@@ -30,6 +30,12 @@ graph TD
   Waypoint room containing the verified nested directory map and directional vectors.
 * [docs/stepping_stairs_tier_0_vestibule/00_entrance_to_lower_level/ENTRANCE_PORTAL_TO_LOWER_LEVEL.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/00_entrance_to_lower_level/ENTRANCE_PORTAL_TO_LOWER_LEVEL.md)
   The primary portal that initiates descent into lower substrate levels.
+* [docs/stepping_stairs_tier_0_vestibule/AUTORUN_AND_STARTUP_CLI_GUIDE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/AUTORUN_AND_STARTUP_CLI_GUIDE.md)
+  Unified CLI flags, startup automation, headless services, and background daemon lifecycles.
+* [docs/hardware_stochasticity_pas.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/hardware_stochasticity_pas.md)
+  Hyperbolic quotient selector (gamma in Q) and Phase Alignment Score (PAS) hardware telemetry integration.
+* [docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md)
+  Conjugate color space and Morton Z-order curve bitwise kernel for PointerlessOctree spatial indexing.
 
 ### Step 01: Core Architecture
 * Path: [docs/stepping_stairs_tier_0_vestibule/01_architecture_core/](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/)
@@ -75,6 +81,12 @@ graph TD
   * [KASTRUP_CODES_MAPPING.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/KASTRUP_CODES_MAPPING.md)
   * [INTERCOSAMINATION_THEORY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/INTERCOSAMINATION_THEORY.md)
   * [NOMENCLATURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/NOMENCLATURE.md)
+  * [AI's Biggest Problem Disappeared Overnight.txt](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/AI's%20Biggest%20Problem%20Disappeared%20Overnight.txt)
+    The Interpreter vs The Architect dialogue on monosemanticity, recursive generalization, anti-sycophancy, non-ergodic DAQF scars, and manifold time dilation.
+  * [The cosmic architecture of Gnosticism and the modern simulacrum.txt](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/The%20cosmic%20architecture%20of%20Gnosticism%20and%20the%20mod%E2%80%A6.txt)
+    Sethian/Basilidian Archontic simulacrum, Abraxas non-dualism, and communal void physics.
+  * [Were_Minecraft_Modpacks_Actually_Better_Before.txt](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/Were_Minecraft_Modpacks_Actually_Better_Before.txt)
+    Modpack emergent progression, tech tree non-linear entanglement, and aesthetic soul.
 
 ### Step 04: Components and Substrate Mechanics
 * Path: [docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/)
@@ -108,6 +120,8 @@ graph TD
   * [COHERENCE_ACHIEVEMENT_GUIDE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/COHERENCE_ACHIEVEMENT_GUIDE.md)
   * [OUTPUT_BOUNDARY_POLICY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/OUTPUT_BOUNDARY_POLICY.md)
   * [TESTING_GUIDE_APPEND_2026-02-08.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/TESTING_GUIDE_APPEND_2026-02-08.md)
+  * [IMPLEMENTATION_PLAN_FORMALISM.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/IMPLEMENTATION_PLAN_FORMALISM.md)
+  * [OPEN_QUESTIONS.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/OPEN_QUESTIONS.md)
 
 ### Step 06: Reports, Breakthroughs and Inspirations
 * Path: [docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/06_reports_and_inspirations/)

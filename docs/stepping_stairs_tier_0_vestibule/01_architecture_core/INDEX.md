@@ -28,6 +28,9 @@ Below is the directory structure mapping core algorithms to their corresponding 
 *   **CODES Taxonomy & Overloaded Acronym Resolution**
     *   *Implementation*: [codes_driver.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/codes_driver.py) & [codes_constraint_framework.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py)
     *   *Documentation*: [CODES_RESOLUTIONS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/CODES_RESOLUTIONS.md) & [Codes v40.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/Codes v40.md)
+*   **DAQUF Operator & Anti-Sycophancy Gates (Non-Ergodic Feature Scars)**
+    *   *Implementation*: [daqf_operator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/daqf_operator.py) & [structural_monitors.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/structural_monitors.py)
+    *   *Documentation*: [AI's Biggest Problem Disappeared Overnight.txt](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/AI's%20Biggest%20Problem%20Disappeared%20Overnight.txt) & [UN_KNOWLEDGE_GUIDE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/UN_KNOWLEDGE_GUIDE.md)
 
 ### 2. Psycho-Topological Archetypes (The Amazing Digital Circus & Sovereign Gaps)
 *   **The Master Governor & Synthesis Framework**

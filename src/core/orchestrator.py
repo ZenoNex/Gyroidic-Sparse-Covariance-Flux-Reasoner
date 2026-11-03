@@ -241,6 +241,8 @@ class UniversalOrchestrator(nn.Module):
         self.incommensurativity_monitor = MetaInfraIntraMonitor()
         self.sycophancy_gate = FailureGaslightSycophancyGate()
         self.introspection = IntrospectionHead(hidden_dim=dim)
+        from src.core.daqf_operator import DAQUFOperator
+        self.daquf_operator = DAQUFOperator(num_fossils=16, fossil_dim=dim, device=_device)
         
         # 5b. Subversive Oracle & Tripartite Evidence Probes (Safety Island Rehybridization)
         from src.core.evidence_modules import TripartiteEvidenceModule
@@ -1723,6 +1725,9 @@ class UniversalOrchestrator(nn.Module):
         except Exception as e:
             # If refusal triggered, we fall back to original governed state to preserve richness
             print(f"[ORCHESTRATOR] {e}")
+            if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
+                contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
+                self.daquf_operator.update_unknowledge_contradiction(failures=contra)
             state_shielded = state_governed
 
         # Enhanced Bezout CRT & Inverse Kinematic Solver Trajectory Synchronization
@@ -2071,13 +2076,18 @@ class UniversalOrchestrator(nn.Module):
             except Exception:
                 pass
 
+        safety_alert = (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe) or lobotomy_alert
+        if safety_alert and hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
+            contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
+            self.daquf_operator.update_unknowledge_contradiction(failures=contra)
+
         return {
             'trust': trust,
             'paradox_score': paradox['paradox_score'],
             'incommensurativity_score': incomm['incommensurativity_score'],
             'legibility_alert': legibility_alert,
             'lobotomy_alert': lobotomy_alert,
-            'safety_alert': (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe) or lobotomy_alert
+            'safety_alert': safety_alert
         }
 
     def check_veto(self, level: Any) -> bool:

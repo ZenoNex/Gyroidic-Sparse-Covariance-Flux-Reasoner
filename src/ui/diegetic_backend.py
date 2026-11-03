@@ -467,6 +467,12 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.core.adaptive_skeleton_harness import AdaptiveSkeletonHarness
         self.skeleton_harness = AdaptiveSkeletonHarness(state_dim=dim, device=self.device).to(self.device)
         
+        # Anti-Sycophancy Gate and DAQUF Non-Ergodic Unknowledge Operator
+        from src.core.structural_monitors import FailureGaslightSycophancyGate
+        from src.core.daqf_operator import DAQUFOperator
+        self.sycophancy_gate = FailureGaslightSycophancyGate(reproduction_threshold=0.05).to(self.device)
+        self.daquf_operator = DAQUFOperator(num_fossils=16, fossil_dim=dim, device=self.device)
+        
         self.current_regime = 'goo' # Default starting regime
         
         # Repunit-CRT Sparse Probe - for topological factoring
@@ -1451,6 +1457,25 @@ class DiegeticPhysicsEngine(nn.Module):
                 self.larynx.eval()
                 return avg_loss_val
                 
+            # Anti-Sycophancy Gate Check during mimicry parameter optimization
+            if hasattr(self, 'sycophancy_gate') and self.sycophancy_gate is not None:
+                grad_norm = sum(p.grad.norm().item() for p in self.larynx.parameters() if p.grad is not None)
+                is_destructive = (grad_norm > 2.0)
+                sycophancy_safe = self.sycophancy_gate.check_sycophancy(
+                    external_pressure_norm=0.85 if is_destructive else 0.15,
+                    internal_reproduction_loss=avg_loss_val,
+                    is_destructive=is_destructive
+                )
+                if not sycophancy_safe:
+                    for p in self.larynx.parameters():
+                        if p.grad is not None:
+                            p.grad.zero_()
+                    self.larynx.eval()
+                    if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
+                        contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
+                        self.daquf_operator.update_unknowledge_contradiction(failures=contra)
+                    return avg_loss_val
+
             # 2. Structural stress backward (computed inline above)
             torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
             
@@ -2944,6 +2969,25 @@ class DiegeticPhysicsEngine(nn.Module):
             entropy = getattr(self, '_last_spectral_entropy', torch.zeros(1, device=self.device))
             
             self.current_hunger = self.valence_drive(manifold_pressure_tensor, mischief=mischief, entropy=entropy)
+
+        # Anti-Sycophancy Gate Check (FailureGaslightSycophancyGate & DAQUF)
+        # Prevents destructive state collapse driven by accusatory external pressure without internal error reproduction
+        if hasattr(self, 'sycophancy_gate') and self.sycophancy_gate is not None:
+            with torch.no_grad():
+                internal_loss = float(torch.norm(self.meta_state - input_tensor).item())
+                ext_pressure = float(manifold_pressure_val)
+                is_destructive = (ext_pressure > 0.85)
+                sycophancy_safe = self.sycophancy_gate.check_sycophancy(
+                    external_pressure_norm=ext_pressure,
+                    internal_reproduction_loss=internal_loss,
+                    is_destructive=is_destructive
+                )
+                if not sycophancy_safe:
+                    print("[ANTI_SYCOPHANCY] Failure gaslight sycophancy veto: preserving coherent manifold.")
+                    metrics["sycophancy_veto"] = True
+                    if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
+                        contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
+                        self.daquf_operator.update_unknowledge_contradiction(failures=contra)
         
         # text_first commutativity: apply media biases AFTER forward() --
         # text already shaped the manifold; media now distorts the resulting state.
@@ -6214,6 +6258,9 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         if not text_val["admissible"]:
             print(f"[TOPOLOGICAL_REFUSAL] Text failed validation (logged scar): {text_val['reason']}")
+            if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
+                contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
+                self.daquf_operator.update_unknowledge_contradiction(failures=contra)
             
             # Mint a Confabulation Gravity Well as a [SHADOW LOG]
             scar_node = KnowledgeFossilNode(
@@ -6240,6 +6287,9 @@ class DiegeticPhysicsEngine(nn.Module):
             )
             if not sig_val["admissible"]:
                 print(f"[TOPOLOGICAL_REFUSAL] Media failed validation (logged scar): {sig_val['reason']}")
+                if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
+                    contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
+                    self.daquf_operator.update_unknowledge_contradiction(failures=contra)
                 
                 # Mint anomaly for media too
                 media_scar_node = KnowledgeFossilNode(
