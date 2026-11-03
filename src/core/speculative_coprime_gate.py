@@ -757,7 +757,8 @@ class SpeculativeCoprimeGate(nn.Module):
             if fossilizer is None:
                 from src.core.knowledge_dyad_fossilizer import DyadFossilizer
                 fossilizer = DyadFossilizer()
-            fossils = fossilizer.recover_fossils()
+            # DeepSeek Nonscalar Efficiency: Request exact budget (limit=16) instead of unconstrained scan
+            fossils = fossilizer.recover_fossils(limit=16)
             if fossils:
                 # Extract up to 16 fossil residue vectors to act as gravity wells
                 gravity_wells = []

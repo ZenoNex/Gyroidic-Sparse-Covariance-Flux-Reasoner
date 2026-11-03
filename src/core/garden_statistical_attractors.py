@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from src.core.honest_jitter import harvest_honest_jitter
 from enum import Enum
 import math
+import time
 
 class HealthMetricType(Enum):
     """Typed health metric states for Bostick-aware geometry."""
@@ -1508,6 +1509,97 @@ class MemoryPalace(nn.Module):
         )
         self.rooms[room_id] = room
         return room
+
+    def selective_update(
+        self,
+        center: torch.Tensor,
+        room_id_prefix: str = "room",
+        similarity_threshold: float = 0.85,
+        residual_lr: float = 0.1,
+        variance: float = 1.0,
+        residue_tuple: Tuple[int, ...] = (),
+        seam_tension: float = 0.0,
+        metadata: Optional[Dict[str, Any]] = None,
+        max_rooms: int = 512
+    ) -> Tuple[MemoryPalaceRoom, str]:
+        """
+        L3GWorld Latent Memory: Selective Spawning vs. Refinement.
+        
+        Evaluates input center against existing attractor chambers to prevent redundant
+        spatial accumulation (the 'video game redraws thousands of identical trees' failure mode).
+        
+        1. Refinement: If max cosine similarity >= similarity_threshold:
+           Applies continuous residual correction to the existing room's center:
+           mu_new = Normalize(mu_old + residual_lr * (center - mu_old))
+           Corrects compounding drift over long horizons without allocating new memory.
+           
+        2. Spawning: If max cosine similarity < similarity_threshold (novel semantic region):
+           Plants a new chamber sealed within Meliponini cerumen walls.
+           
+        3. Bounded Extent: Enforces max_rooms capacity to bound memory footprint O(S).
+        """
+        c_flat = center.detach().cpu().view(-1).float()
+        if c_flat.shape[0] != self.feature_dim:
+            if c_flat.shape[0] < self.feature_dim:
+                c_flat = F.pad(c_flat, (0, self.feature_dim - c_flat.shape[0]))
+            else:
+                c_flat = c_flat[:self.feature_dim]
+
+        best_room = None
+        best_sim = -1.0
+        c_norm = torch.norm(c_flat) + 1e-8
+
+        # Evaluate against existing chambers
+        for r_id, room in self.rooms.items():
+            r_center = room.center.float()
+            r_norm = torch.norm(r_center) + 1e-8
+            sim = (torch.dot(c_flat, r_center) / (c_norm * r_norm)).item()
+            if sim > best_sim:
+                best_sim = sim
+                best_room = room
+
+        # 1. Refinement path
+        if best_room is not None and best_sim >= similarity_threshold:
+            with torch.no_grad():
+                diff = c_flat - best_room.center
+                updated_center = best_room.center + residual_lr * diff
+                updated_center = updated_center / (torch.norm(updated_center) + 1e-8) * c_norm
+                best_room.center = updated_center
+                
+                # Update refinement telemetry
+                ref_count = best_room.metadata.get("refinement_count", 0) + 1
+                best_room.metadata["refinement_count"] = ref_count
+                best_room.metadata["last_refined_sim"] = round(best_sim, 4)
+                best_room.metadata["last_refined_time"] = time.time()
+                if metadata:
+                    best_room.metadata.update(metadata)
+            return best_room, "refined"
+
+        # 2. Spawning path (novel region)
+        # Check capacity budget
+        if len(self.rooms) >= max_rooms:
+            # Prune least recently refined room
+            oldest_id = min(
+                self.rooms.keys(),
+                key=lambda rid: self.rooms[rid].metadata.get("last_refined_time", 0.0)
+            )
+            del self.rooms[oldest_id]
+
+        new_id = f"{room_id_prefix}_{int(time.time() * 1000)}"
+        spawn_meta = dict(metadata or {})
+        spawn_meta["refinement_count"] = 0
+        spawn_meta["spawn_time"] = time.time()
+        spawn_meta["last_refined_time"] = time.time()
+
+        spawned_room = self.plant_room(
+            room_id=new_id,
+            center=c_flat,
+            variance=variance,
+            residue_tuple=residue_tuple,
+            seam_tension=seam_tension,
+            metadata=spawn_meta
+        )
+        return spawned_room, "spawned"
 
     def generate_breather_soliton(self, room_id: str, t: float = 0.0) -> Optional[torch.Tensor]:
         """Generates localized BreatherMode soliton packet for the specified room."""

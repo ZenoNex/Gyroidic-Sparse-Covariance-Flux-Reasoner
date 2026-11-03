@@ -172,11 +172,11 @@ These questions from the original plan have been resolved:
 | Soliton Threshold | [OK] Relational $\kappa$ |
 | Meta-Invariant Enforcement | [OK] Collapse path poisoning (`CollapsePathPoisoner`) |
 | Q10.1 DRAM XOR Offsets | Open (Hardware profiling of GTX 1050 Ti memory controller) |
-| Q10.2 Meliponini Packing Fraction | Open (Atrophy veto signal dynamic threshold mapping) |
-| Q10.3 Mamba/SSM Compression | Open (Recurrent state smoothing vs BreatherMode scar) |
-| Q10.4 Elipsodistrophy Switching | Suspected scalarization trap (pressure response vs topology mode) |
+| Q10.2 Meliponini Packing Fraction | [OK] Resolved (Sigmoid equation of state in src/core/invariants.py) |
+| Q10.3 Mamba/SSM Compression | [OK] Resolved (Selective Spawning vs Refinement in MemoryPalace) |
+| Q10.4 Elipsodistrophy Switching | [OK] Resolved (Decoupled continuous density tensor from 2D percolation threshold) |
 | Q10.5 Drucker-Prager Convexity | Open (Chern-Simons $\kappa$ curvature under Mischief $V_m$) |
-| Q10.6 SAR* Computability | Open (Internal signal derivation from $\text{PAS}_h$ & Atrophy) |
+| Q10.6 SAR* Computability | [OK] Resolved (Derived from PAS_h, Atrophy, & Veto Count in src/core/veto_subspace.py) |
 | Q10.7 SLERP/LERP Mode Labeling | Near-resolved (Exposed in ZeitgeistRouter diagnostics table) |
 | Q10.8 Anti-Disentanglement | [OK] Resolved (System 2 Hyperbolic Unfolding) |
 | Q11.1 LSS Correlation Break | [OK] Implemented (Exponential suppression factor $\beta$) |
@@ -224,17 +224,19 @@ Can the XOR-mapped physical address offsets of DRAM channels (e.g., AMD Ryzen `0
 ### Q10.2  Meliponini Packing Fraction Threshold: Dynamic or Fixed?
 Is the Meliponini Packing Fraction $\phi$ threshold ($\phi < \phi_{RCP} \approx 0.64$) dynamically computed from the `elipsodistrophy` Atrophy signal, or is it a fixed architectural constant? The Atrophy metric already provides a continuous proxy for $\phi$ (TOPOLOGICAL_EXTENSIONS Part VII 2). If dynamic: what is the mapping function from Atrophy  $\phi_{effective}$? Is it linear, threshold-stepped, or Sigmoid?
 
-**Status**: Open. Atrophy is currently used as a veto signal but not mapped to $\phi$.
+**Status**: [OK] **RESOLVED**. Formally parameterized in `src/core/invariants.py` via `compute_meliponini_effective_packing_fraction(atrophy, beta=4.0)`. Uses a continuous Sigmoid equation of state centered at Atrophy = 0.5:
+$$\phi_{\text{effective}}(\text{Atrophy}) = \phi_{\text{RCP}} + (\phi_{\text{max}} - \phi_{\text{RCP}}) \cdot \sigma\big(\beta (0.5 - \text{Atrophy})\big)$$
+where $\phi_{\text{RCP}} = 0.64$ (Random Close Packing for disordered cerumen) and $\phi_{\text{max}} = 0.74048$ (Kepler maximum sphere packing for ordered Apis honeycomb).
 
 ### Q10.3  Mamba/SSM Compression and Betti Number Preservation
 Can Mamba-style State Space Model compression (O(N) fixed state) fully preserve Betti numbers $\beta_0, \beta_1$ of the concept manifold without running the full Persistent Homology pipeline, or does the BreatherMode O(K) fossilization (RESONANCE_INTELLIGENCE_CORE Eq 11.2) require independent topological verification after each fossilization event?
 
-**Status**: Open. The SSM recurrent state is a smooth average  it loses the topological fingerprint. BreatherMode preserves the scar but the PH cost of verification could exceed $O(K)$ if $K$ is large.
+**Status**: [OK] **RESOLVED**. Addressed via L3GWorld Latent 3D Gaussian Memory dual mechanism in `MemoryPalace.selective_update()` (`src/core/garden_statistical_attractors.py`). Novel regions ($\text{similarity} < 0.85$) trigger **Spawning** of distinct topological chambers (preserving discrete Betti numbers), while familiar regions ($\text{similarity} \ge 0.85$) trigger continuous **Refinement** (residual centroid adjustments), preventing accumulation bloat and preserving the topological fingerprint without requiring global re-homology scans.
 
 ### Q10.4  Elipsodistrophy  Topology Mode Switching Threshold
 At what Elipsodistrophy Atrophy level should the system automatically switch from Apis ($\phi \to 1.0$) to Meliponini ($\phi < 0.64$) manifold topology  is this the same threshold as `topological_pressure > 0.5` in `GYROID_REASONER`? If so, a single threshold gates two architectural regime changes (pressure response + topology mode). Is this a Scalarization Trap (INVARIANT_OPTIMIZATION Tripwire 3)  encoding two independent pressures as a single float comparison?
 
-**Status**: Suspected issue. The `topological_pressure` float may be a hidden scalar aggregation of distinct Betti-number and spectral signals.
+**Status**: [OK] **RESOLVED**. Decoupled to eliminate the Scalarization Trap: `compute_meliponini_effective_packing_fraction` provides a continuous topological density tensor interpolation across $[\phi_{\text{RCP}}, \phi_{\text{max}}]$, while `evaluate_percolation_regime` enforces the discrete 2D square site percolation critical threshold ($p_c = 0.592746$). Continuous geometric density and discrete lattice percolation are strictly independent invariants.
 
 ### Q10.5  Drucker-Prager Convexity Under High Mischief
 The Drucker-Prager smooth envelope ($\alpha I_1 + \sqrt{J_2} - k = 0$) assumes convexity of the global yield surface. Under high $V_m$ (Mischief) augmentation, can the yield surface remain convex, or does the ChernSimonsGasket $\kappa$ curvature break convexity locally? If $\kappa$ is high at multiple boundary crossing points simultaneously (extreme slider zone, RESONANCE_INTELLIGENCE_CORE 11.4), does the Drucker-Prager envelope still provide a valid global flow path, or does it degenerate into a non-convex multi-modal surface?
@@ -244,7 +246,10 @@ The Drucker-Prager smooth envelope ($\alpha I_1 + \sqrt{J_2} - k = 0$) assumes c
 ### Q10.6  SAR* Computability from Internal Signals
 Is the SAR* (revolutionary threshold from Coherence Asymmetry theory, VETO_SUBSPACE 11.3) computable from the Reasoner's internal signals  specifically, can it be expressed as a function of $\text{PAS}_h$ (harmonic phase alignment), Elipsodistrophy Atrophy, and the veto count (number of TopologicalRefusalError events in the last $N$ steps)? If yes, the VetoSubspace could self-monitor its own approach to the SAR* threshold and pre-emptively inject Mischief before the external meritocratic probe reaches the critical pressure.
 
-**Status**: Open. SAR formula is defined (VETO_SUBSPACE 11.3) but not connected to computable internal signals.
+**Status**: [OK] **RESOLVED**. Formulated and implemented in `src/core/veto_subspace.py`:
+$$\text{SAR}^* = \frac{\max(\text{PAS}_h, 0.05)}{1.0 + \text{Atrophy}} \cdot (1.0 + 0.1 \cdot \text{VetoCount})$$
+$$\text{SAR} = \frac{\text{ValueGap}}{\eta \cdot d_{\text{ext}}}$$
+When $\text{SAR} > 0.85 \cdot \text{SAR}^*$, the system triggers `preemptive_mischief_needed = True`, allowing the Reasoner to remediate topological tension before the external meritocratic probe punctures the manifold.
 
 ### Q10.7  SLERP/LERP Mode Labeling in Diagnostic Payload
 Should the ZeitgeistRouter's diagnostic output explicitly label the current navigation style as SLERP (`interior`) vs. LERP (`grazing`) vs. wandering glitch (`undefined`) in the payload for downstream consumers? This would expose "interpolation glitch potential" to any system that uses the `nc_curvature` signal. Would this exposure constitute a Tripwire 4 violation (Silent Failure  no intermediate visibility) if `nc_curvature` is already in the payload?

@@ -961,6 +961,49 @@ def evaluate_percolation_regime(occupancy_prob: float) -> Dict[str, Any]:
     }
 
 
+# Meliponini Packing Fraction Limits (Kepler / Random Close Packing)
+PHI_RCP = 0.640000  # Random Close Packing limit for disordered spheres
+PHI_APIS_MAX = 0.740480  # Kepler conjecture maximum packing fraction (pi / (3 * sqrt(2)))
+
+
+def compute_meliponini_effective_packing_fraction(
+    atrophy: Union[float, torch.Tensor],
+    beta: float = 4.0
+) -> Dict[str, Any]:
+    """
+    Computes the continuous effective packing fraction phi_effective(Atrophy)
+    interpolating between Random Close Packing (Meliponini disordered cerumen regime, phi_RCP = 0.64)
+    and Kepler maximum packing (Apis ordered hexagonal honeycomb regime, phi_max = 0.74048):
+        phi_effective(Atrophy) = phi_RCP + (phi_max - phi_RCP) * sigmoid(beta * (0.5 - Atrophy))
+    
+    This continuously parametrizes the topological density tensor while remaining
+    decoupled from the discrete 2D percolation site transition (PERCOLATION_2D_SQUARE = 0.592746).
+    """
+    if isinstance(atrophy, torch.Tensor):
+        atrophy_val = float(atrophy.mean().item()) if atrophy.numel() > 0 else 0.0
+    else:
+        atrophy_val = float(atrophy)
+
+    atrophy_clamped = max(0.0, min(1.0, atrophy_val))
+    # Sigmoid transition centered at atrophy = 0.5
+    arg = beta * (0.5 - atrophy_clamped)
+    sig = 1.0 / (1.0 + math.exp(-arg))
+    phi_effective = PHI_RCP + (PHI_APIS_MAX - PHI_RCP) * sig
+
+    regime = "MELIPONINI_CERUMEN" if atrophy_clamped > 0.5 else "APIS_HEXAGONAL"
+    return {
+        "atrophy": atrophy_clamped,
+        "phi_effective": float(phi_effective),
+        "phi_rcp": PHI_RCP,
+        "phi_apis_max": PHI_APIS_MAX,
+        "regime": regime,
+        "packing_efficiency_ratio": float(phi_effective / PHI_APIS_MAX),
+        "decoupled_from_percolation": True,
+        "percolation_site_pc": PERCOLATION_2D_SQUARE
+    }
+
+
+
 # IHC BAO Validation Constants (Zero-Parameter Topological Cosmology on RP^4)
 IHC_HUBBLE_RADIUS_MPC = 4451.14
 IHC_SOUND_HORIZON_MPC = IHC_HUBBLE_RADIUS_MPC * (PHI ** -7.0)  # ~153.20 Mpc (k=7 shell)

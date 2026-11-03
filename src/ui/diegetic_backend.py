@@ -6495,18 +6495,20 @@ class DiegeticPhysicsEngine(nn.Module):
             if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
                 try:
                     self.garden_orchestrator.influence_attractors.update_fossilization(seed_state)
-                    room_id = f"assoc_{hashlib.md5(input_text.encode('utf-8')).hexdigest()[:8]}"
-                    self.garden_orchestrator.memory_palace.plant_room(
-                        room_id=room_id,
+                    # L3GWorld Latent Memory: Selective Spawning vs. Refinement (prevent duplicate tree stacking)
+                    room, status = self.garden_orchestrator.memory_palace.selective_update(
                         center=seed_state.squeeze(0) if seed_state.dim() > 1 else seed_state,
+                        room_id_prefix="assoc",
+                        similarity_threshold=0.85,
+                        residual_lr=0.1,
                         metadata={'source': source_desc, 'target': target_desc}
                     )
-                    print(f"[GARDEN_SYNC] Planted memory palace room {room_id} for paired association.")
+                    print(f"[GARDEN_SYNC] Memory palace room {room.room_id} ({status}) for paired association.")
                 except Exception as garden_err:
                     print(f"[GARDEN_SYNC] Non-fatal garden synchronization error: {garden_err}")
 
-        # --- RESONANCE SCAN against existing fossils ---
-        fossils = self.fossilizer.recover_fossils()
+        # --- RESONANCE SCAN against existing fossils (DeepSeek nonscalar budget) ---
+        fossils = self.fossilizer.recover_fossils(limit=64)
         if not fossils:
             self._last_resonance = 0.0
             prefix = f"{fossil_log}\n" if fossil_log else ""
