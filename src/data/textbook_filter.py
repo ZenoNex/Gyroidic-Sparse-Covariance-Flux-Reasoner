@@ -67,15 +67,42 @@ class TextbookFilter:
             'structural_honesty': 0.5,
         }
 
+    @staticmethod
+    def is_restriction_or_bot_wall(text: str) -> bool:
+        """
+        Detects anti-bot interstitials, access restriction pages (e.g. ResearchGate),
+        or rate-limit error walls so they are never mistaken for admissible knowledge lore.
+        """
+        if not text:
+            return True
+        lower = text.lower()
+        restriction_markers = (
+            "access is temporarily restricted",
+            "we detected unusual activity from your device or network",
+            "automated (bot) activity on your network",
+            "rapid taps or clicks",
+            "use of developer or inspection tools",
+            "please verify you are a human",
+            "enable javascript and cookies to continue",
+            "checking if the site connection is secure",
+        )
+        hit_count = sum(1 for m in restriction_markers if m in lower)
+        if hit_count >= 2 or ("researchgate" in lower and "access is temporarily restricted" in lower):
+            return True
+        if "we detected unusual activity from your device or network" in lower:
+            return True
+        return False
+
     def assess(self, text: str, source: str = None) -> QualityReport:
         """Single-text assessment. Interface unchanged."""
         result = self.validator.validate_text(text)
+        is_wall = self.is_restriction_or_bot_wall(text)
 
         # Map topological invariants to the 5 documented dimensions, respecting configurable thresholds
         dimension_gates = {
-            "structural_honesty": (result["soliton_entropy"] > 1e-6) if self.thresholds.get("structural_honesty", 0.5) > 0.0 else True,
+            "structural_honesty": (not is_wall and (result["soliton_entropy"] > 1e-6)) if self.thresholds.get("structural_honesty", 0.5) > 0.0 else (not is_wall),
             "self_contained": (result["holonomic_rank"] >= max(1, int(0.3 * self.validator.K))) if self.thresholds.get("self_contained", 0.5) > 0.0 else True,
-            "instructive": (not result["is_lazarus_void"]) if self.thresholds.get("instructive", 0.5) > 0.0 else True,
+            "instructive": (not is_wall and not result["is_lazarus_void"]) if self.thresholds.get("instructive", 0.5) > 0.0 else (not is_wall),
             "algorithmic": (result["pas_h"] > 0.1 if result["pas_h"] != 1.0 else True) if self.thresholds.get("algorithmic", 0.5) > 0.0 else True,
             "clarity": (result["holonomic_rank"] > 0) if self.thresholds.get("clarity", 0.5) > 0.0 else True,
         }
@@ -88,6 +115,8 @@ class TextbookFilter:
             topological_details=result,
         )
         report.flags = [k for k, v in dimension_gates.items() if not v]
+        if is_wall and "restriction_wall_detected" not in report.flags:
+            report.flags.append("restriction_wall_detected")
         return report
 
     def filter_batch(self, texts: List[str], source: str = '') -> List[Dict]:

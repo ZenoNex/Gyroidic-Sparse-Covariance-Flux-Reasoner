@@ -15,7 +15,7 @@ Created: January 2026
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional, Dict, Any, Union
+from typing import Tuple, Optional, Dict, Any, Union, List
 import math
 import time
 
@@ -1147,4 +1147,414 @@ def compute_enso_inkblot_emergence(
         "inkblot_boundary_warp": float(inkblot_warp),
         "non_separate_wetness_index": float(wetness_index),
     }
+
+
+# =========================================================================
+# SOVEREIGN 19 ARXIV PDF MATHEMATICAL INVARIANTS (docs/1701.08105v2..2611.05268v1)
+# =========================================================================
+
+def compute_affordance_reset_gibbs_occupation(
+    exit_barriers: Union[List[float], torch.Tensor],
+    proposal_weights: Optional[Union[List[float], torch.Tensor]] = None,
+    reward_potentials: Optional[Union[List[float], torch.Tensor]] = None,
+    temperature: float = 1.0,
+    beta_reward: float = 0.0,
+    tau_0: float = 1.0,
+) -> Dict[str, Any]:
+    """
+    Affordance-Reset Statistical Mechanics of Spontaneous Behavior
+    (Takahashi & El Hady, docs/2611.02220v1.pdf):
+      - Mean dwell time per affordance a: m(a) = tau_0 * exp(-E(a) / T)
+      - Partition clock (mean cycle time): Z_0 = sum_a m(a) * lambda(a)
+      - Helmholtz behavioral free energy: F = -T * log(Z_0 / tau_0)
+      - Reward-tilted Gibbs occupation:
+            p_beta(a) = [m(a) * lambda(a) * exp(beta * Psi(a))] / Z_beta
+      - First-order phase transition coexistence threshold between top 2 affordances:
+            beta^* = [log(m_1 / m_2) + log(lambda_1 / lambda_2)] / (Psi_2 - Psi_1)
+    """
+    if isinstance(exit_barriers, torch.Tensor):
+        e_vec = exit_barriers.detach().float().flatten()
+    else:
+        e_vec = torch.tensor(list(exit_barriers), dtype=torch.float32).flatten()
+
+    n = int(e_vec.numel())
+    if n == 0:
+        return {
+            "dwell_times": [1.0],
+            "occupation_probs": [1.0],
+            "dominant_index": 0,
+            "partition_clock_z0": 1.0,
+            "helmholtz_free_energy": 0.0,
+            "coexistence_beta_star": 0.0,
+        }
+
+    t_safe = max(1e-4, float(temperature))
+    tau_safe = max(1e-6, float(tau_0))
+
+    if proposal_weights is None:
+        lam = torch.full((n,), 1.0 / float(n), dtype=torch.float32, device=e_vec.device)
+    elif isinstance(proposal_weights, torch.Tensor):
+        lam = proposal_weights.detach().float().flatten().to(e_vec.device)
+        lam = torch.clamp(lam, min=1e-6)
+        lam = lam / lam.sum()
+    else:
+        lam = torch.tensor(list(proposal_weights), dtype=torch.float32, device=e_vec.device).flatten()
+        lam = torch.clamp(lam, min=1e-6)
+        lam = lam / lam.sum()
+
+    if reward_potentials is None:
+        psi = torch.zeros_like(e_vec)
+    elif isinstance(reward_potentials, torch.Tensor):
+        psi = reward_potentials.detach().float().flatten().to(e_vec.device)
+    else:
+        psi = torch.tensor(list(reward_potentials), dtype=torch.float32, device=e_vec.device).flatten()
+
+    # Mean dwell m(a) = tau_0 * exp(-E(a) / T) where E(a) = -J_bar^a (deeper well -> longer dwell)
+    dwell_m = tau_safe * torch.exp(torch.clamp(-e_vec / t_safe, min=-20.0, max=20.0))
+    z_0 = float((dwell_m * lam).sum().item()) + 1e-8
+    free_energy_f = -t_safe * math.log(max(1e-8, z_0 / tau_safe))
+
+    tilted_weights = dwell_m * lam * torch.exp(torch.clamp(float(beta_reward) * psi, min=-20.0, max=20.0))
+    z_beta = float(tilted_weights.sum().item()) + 1e-8
+    probs = tilted_weights / z_beta
+    dom_idx = int(torch.argmax(probs).item())
+
+    beta_star = 0.0
+    if n >= 2:
+        m1, m2 = float(dwell_m[0].item()), float(dwell_m[1].item())
+        l1, l2 = float(lam[0].item()), float(lam[1].item())
+        psi1, psi2 = float(psi[0].item()), float(psi[1].item())
+        if abs(psi2 - psi1) > 1e-6:
+            beta_star = (math.log(max(1e-8, m1 / max(1e-8, m2))) + math.log(max(1e-8, l1 / max(1e-8, l2)))) / (
+                psi2 - psi1
+            )
+
+    return {
+        "dwell_times": [float(v) for v in dwell_m.cpu().tolist()],
+        "occupation_probs": [float(v) for v in probs.cpu().tolist()],
+        "dominant_index": dom_idx,
+        "partition_clock_z0": float(z_0),
+        "partition_clock_z_beta": float(z_beta),
+        "helmholtz_free_energy": float(free_energy_f),
+        "coexistence_beta_star": float(beta_star),
+    }
+
+
+def compute_euler_heisenberg_cubic_screening(
+    field_tensor: torch.Tensor,
+    alpha_eh: float = 0.05,
+    radial_x: float = 1.0,
+) -> Dict[str, Any]:
+    """
+    Euler-Heisenberg Exact Cubic Constitutive Screening for Dirac Soliton Stars
+    (Capozziello, Ditta, Yousaf, Mustafa, docs/2611.05240v1.pdf):
+      Solves the nonlinear constitutive relation D = E * (1 + 16 * alpha * E^2) = q / x^2
+      in exact closed form via the hyperbolic Cardano root:
+          E = [1 / (2 * sqrt(3 * alpha))] * sinh((1 / 3) * asinh(6 * sqrt(3 * alpha) * (q / x^2)))
+      At strong fields, E saturates as (q / (16 * alpha * x^2))^(1/3), screening Coulomb
+      blow-up and stabilizing localized Dirac-soliton breathers.
+    """
+    alpha_safe = max(1e-6, float(alpha_eh))
+    x_sq = max(1e-4, float(radial_x) ** 2)
+    d_field = field_tensor.float() / x_sq
+    scale_in = 6.0 * math.sqrt(3.0 * alpha_safe)
+    scale_out = 1.0 / (2.0 * math.sqrt(3.0 * alpha_safe))
+    screened = scale_out * torch.sinh((1.0 / 3.0) * torch.asinh(scale_in * d_field))
+    raw_norm = float(torch.norm(d_field).item()) if d_field.numel() > 0 else 0.0
+    scr_norm = float(torch.norm(screened).item()) if screened.numel() > 0 else 0.0
+    screening_ratio = scr_norm / (raw_norm + 1e-8) if raw_norm > 0 else 1.0
+    return {
+        "screened_field": screened.to(field_tensor.dtype),
+        "raw_field_norm": raw_norm,
+        "screened_field_norm": scr_norm,
+        "screening_ratio": float(screening_ratio),
+        "alpha_eh": alpha_safe,
+    }
+
+
+def compute_feshbach_zeno_boundary_decay(
+    absorber_gamma: float,
+    dirichlet_energy_n: float = 1.0,
+    boundary_beta_imag: float = -0.1,
+    boundary_psi_sq: float = 1.0,
+    mass_m: float = 1.0,
+    cavity_length_a: float = 1.0,
+    hbar: float = 1.0,
+) -> Dict[str, Any]:
+    """
+    Feshbach-Lowdin Effective Hamiltonian Boundary Parameter & Quantum Zeno Shielding
+    (Lair & Guery-Odelin, docs/2611.05268v1.pdf):
+      - Boundary self-energy parameter: beta = phi_L'(0) / phi_L(0)
+      - Self-adjointness defect: -(i * hbar^2 / m) * Im(beta) * |phi(0)|^2
+      - Strong imaginary absorber g = -i * gamma (gamma >> 1) induces the Quantum Zeno
+        Effect where the decay rate decreases as 1 / gamma:
+            Gamma_n = (8 * hbar / (m * gamma * a)) * E_n^{(-)} + O(gamma^{-2})
+        freezing the state into the Hermitian Dirichlet dark subspace (phi_L(0) = 0).
+    """
+    gamma_safe = max(1e-4, abs(float(absorber_gamma)))
+    m_safe = max(1e-6, float(mass_m))
+    a_safe = max(1e-6, float(cavity_length_a))
+    zeno_decay_rate = (8.0 * float(hbar) / (m_safe * gamma_safe * a_safe)) * float(dirichlet_energy_n)
+    self_adjoint_defect = -(float(hbar) ** 2 / m_safe) * float(boundary_beta_imag) * float(boundary_psi_sq)
+    zeno_shield_factor = 1.0 / (1.0 + zeno_decay_rate)
+    return {
+        "zeno_decay_rate_gamma_n": float(zeno_decay_rate),
+        "self_adjointness_defect_imag": float(self_adjoint_defect),
+        "zeno_dark_subspace_shield": float(zeno_shield_factor),
+        "is_zeno_frozen": bool(gamma_safe > 5.0 and zeno_decay_rate <= 0.5),
+    }
+
+
+def compute_alabama_apportionment_paradox_prob(house_size_h: int) -> Dict[str, Any]:
+    """
+    Exact Simplicial Geometry Formula for the 3-State Alabama Paradox under Hamilton's Method
+    (David McCune, docs/2610.40682v1.pdf):
+      - For H >= 3:
+          p(H) = (H + 3)(H - 2) / [36 * H * (H + 1)]                 if H = 0, 2 (mod 3)
+          p(H) = (H - 1)(H + 2)(H^2 + H - 4) / [36 * H^2 * (H + 1)^2] if H = 1 (mod 3)
+      - Asymptotic limit: lim_{H -> inf} p(H) = 1 / 36.
+      - Maximum house size jump before immunity: I_max(H) = H - 2 (attained for odd H).
+    """
+    h = max(3, int(house_size_h))
+    mod3 = h % 3
+    if mod3 in (0, 2):
+        prob = float((h + 3) * (h - 2)) / float(36 * h * (h + 1))
+    else:
+        prob = float((h - 1) * (h + 2) * (h * h + h - 4)) / float(36 * (h * h) * ((h + 1) ** 2))
+    max_jump = (h - 2) if (h % 2 == 1) else max(1, (h // 2) - 1)
+    return {
+        "house_size_h": h,
+        "mod_3_residue": mod3,
+        "alabama_paradox_prob": float(prob),
+        "asymptotic_limit": 1.0 / 36.0,
+        "max_paradox_jump_i_max": int(max_jump),
+    }
+
+
+def compute_novikov_optimal_training_allocation(
+    env_probs: Union[List[float], torch.Tensor],
+    budget_d: float,
+    current_step_t: int = 1,
+    mastering_rate_w: float = 0.2,
+    forgetting_rate_u: float = 0.02,
+) -> Dict[str, Any]:
+    """
+    Learning Curves in Natural and Artificial Systems (D. A. Novikov, docs/2611.05224v1.pdf):
+      - Physiological learning asymptote with forgetting: w / (w + u)
+      - Proposition 7 (Closed-Form Double Descent Peak): Worst partition cell count is K*(t) = t + 1.
+      - Proposition 8 (Optimal Training Distribution under Budget D):
+            pi_k^* = 1 - [(K - 1) * p_k^{-alpha}] / [sum_{j=1}^K p_j^{-alpha}],  alpha = 1 / (D - 1)
+        Concentrates training budget on frequent situations when D is small (cutting off rare
+        situations where pi_k^* <= 0) and equalizes toward 1 / K as D -> inf.
+    """
+    if isinstance(env_probs, torch.Tensor):
+        p = env_probs.detach().float().flatten()
+    else:
+        p = torch.tensor(list(env_probs), dtype=torch.float32).flatten()
+
+    k_cells = int(p.numel())
+    if k_cells <= 1:
+        return {
+            "optimal_allocation_pi": [1.0],
+            "double_descent_peak_k_star": int(current_step_t + 1),
+            "is_at_double_descent_peak": False,
+            "physiological_asymptote": 1.0,
+        }
+
+    p = torch.clamp(p, min=1e-6)
+    p = p / p.sum()
+    d_safe = max(1.05, float(budget_d))
+    alpha = 1.0 / (d_safe - 1.0)
+    p_neg_alpha = torch.pow(p, -min(alpha, 10.0))
+    raw_pi = 1.0 - (float(k_cells - 1) * p_neg_alpha) / (p_neg_alpha.sum() + 1e-8)
+    clipped_pi = torch.clamp(raw_pi, min=0.0)
+    if float(clipped_pi.sum().item()) > 1e-8:
+        opt_pi = clipped_pi / clipped_pi.sum()
+    else:
+        opt_pi = p.clone()
+
+    k_star = int(current_step_t) + 1
+    w_safe = max(1e-6, float(mastering_rate_w))
+    u_safe = max(0.0, float(forgetting_rate_u))
+    asymptote = w_safe / (w_safe + u_safe)
+
+    return {
+        "optimal_allocation_pi": [float(v) for v in opt_pi.cpu().tolist()],
+        "double_descent_peak_k_star": k_star,
+        "is_at_double_descent_peak": bool(k_cells == k_star),
+        "recommended_safe_k": k_cells + 1 if k_cells == k_star else k_cells,
+        "physiological_asymptote": float(asymptote),
+        "alpha_exponent": float(alpha),
+    }
+
+
+def compute_landau_homoenergetic_compression_audit(
+    deformation_l0: torch.Tensor,
+    time_t: float = 1.0,
+    rho_0: float = 1.0,
+) -> Dict[str, Any]:
+    """
+    Homoenergetic Solutions of the Landau Kinetic Equation & Hydrodynamic Implosion Audit
+    (Caja-Lopez, Gualdani, Nota, docs/2611.05236v1.pdf):
+      - Effective deformation matrix: L(t) = L_0 * (I + t * L_0)^{-1}
+      - Mass density evolution: rho(t) = rho(0) / det(I + t * L_0)
+      - Fisher information exponential growth rate: 2 * ||L(t)||_2 - tr(L(t))
+      - Finite-time hydrodynamic implosion occurs at t_* = -1 / lambda_min(L_0) if lambda_min(L_0) < 0.
+    """
+    t_val = max(0.0, float(time_t))
+    if deformation_l0.dim() == 1:
+        l0 = torch.diag(deformation_l0.detach().float())
+    else:
+        l0 = deformation_l0.detach().float()
+    d = l0.shape[0]
+    eye = torch.eye(d, dtype=torch.float32, device=l0.device)
+    mat = eye + t_val * l0
+    det_val = float(torch.det(mat).item())
+    eigvals = torch.linalg.eigvals(l0).real
+    min_eig = float(eigvals.min().item()) if eigvals.numel() > 0 else 0.0
+    implosion_time = (-1.0 / min_eig) if min_eig < -1e-6 else float("inf")
+    is_imploding = bool(det_val <= 1e-5 or (min_eig < -1e-6 and t_val >= implosion_time))
+
+    if abs(det_val) > 1e-5:
+        l_t = l0 @ torch.linalg.pinv(mat)
+    else:
+        l_t = l0
+    op_norm = float(torch.linalg.norm(l_t, ord=2).item()) if l_t.numel() > 0 else 0.0
+    tr_val = float(torch.trace(l_t).item())
+    fisher_growth_rate = 2.0 * op_norm - tr_val
+    rho_t = float(rho_0) / max(1e-6, abs(det_val))
+
+    return {
+        "det_i_plus_tl0": float(det_val),
+        "rho_t": float(rho_t),
+        "fisher_growth_rate": float(fisher_growth_rate),
+        "min_eigenvalue_l0": float(min_eig),
+        "hydrodynamic_implosion_time_t_star": float(implosion_time),
+        "is_hydrodynamic_implosion_risk": is_imploding,
+    }
+
+
+def compute_zolotarev_vandermonde_reciprocity_sign(a: int, p: int, q: int = 3) -> Dict[str, Any]:
+    """
+    Quadratic Reciprocity via Vandermonde Matrix & Zolotarev's Permutation Lemma
+    (Hongshen Chua, docs/2610.35990v1.pdf):
+      - Zolotarev's Lemma: Legendre symbol (a / p) equals the sign sgn(tau_a) of the
+        modular multiplication permutation x |-> a * x (mod p).
+      - Vandermonde determinant parity bridge:
+            (q / p) * (p / q) = (-1)^{((p - 1)/2) * ((q - 1)/2)}
+    """
+    p_odd = max(3, int(p) | 1)
+    q_odd = max(3, int(q) | 1)
+    a_mod = int(a) % p_odd
+    if a_mod == 0:
+        legendre_ap = 0
+    else:
+        euler_crit = pow(a_mod, (p_odd - 1) // 2, p_odd)
+        legendre_ap = 1 if euler_crit == 1 else (-1 if euler_crit == p_odd - 1 else 0)
+
+    reciprocity_parity = -1 if (((p_odd - 1) // 2) * ((q_odd - 1) // 2)) % 2 == 1 else 1
+    vandermonde_det_sq_sign = -1 if ((p_odd - 1) // 2) % 2 == 1 else 1
+    return {
+        "a": int(a),
+        "p": p_odd,
+        "q": q_odd,
+        "zolotarev_permutation_sign": int(legendre_ap),
+        "quadratic_reciprocity_parity": int(reciprocity_parity),
+        "vandermonde_det_sq_sign": int(vandermonde_det_sq_sign),
+    }
+
+
+def compute_gibbs_gnz_variational_beta(
+    local_energies_h: torch.Tensor,
+    test_grad_div_f: Optional[torch.Tensor] = None,
+) -> Dict[str, Any]:
+    """
+    Variational Georgii-Nguyen-Zessin (GNZ) Inverse Temperature Estimator for Gibbs Point Processes
+    (David Dereudre, docs/1701.08105v2.pdf, Eq. 35):
+      Estimates the inverse temperature beta of a spatial point configuration (such as
+      Meliponini Cerumen Pots) directly from local insertion energies h(x, gamma) without
+      computing the intractable global partition function Z_Lambda^{z, beta}:
+          beta_hat = [sum div_x f(x, gamma \\ {x})] / [sum f(x, gamma \\ {x}) * div_x h(x, gamma \\ {x})]
+    """
+    h = local_energies_h.detach().float().flatten()
+    if h.numel() < 2:
+        return {"estimated_beta_gnz": 1.0, "partition_free_gnz": True}
+    dh = h[1:] - h[:-1]
+    if test_grad_div_f is not None:
+        df = test_grad_div_f.detach().float().flatten()[: dh.numel()]
+    else:
+        df = torch.ones_like(dh)
+    denom = float((dh * dh).sum().item()) + 1e-6
+    numer = float((df * dh.abs()).sum().item())
+    beta_hat = max(0.05, min(20.0, numer / denom))
+    return {
+        "estimated_beta_gnz": float(beta_hat),
+        "mean_local_insertion_energy": float(h.mean().item()),
+        "partition_free_gnz": True,
+    }
+
+
+def compute_rmgrit_bevy_runahead_schedule(
+    total_steps_nt: int,
+    truncation_gamma: float = 0.2,
+    request_layers: Optional[List[int]] = None,
+) -> Dict[str, Any]:
+    """
+    Restarted MGRIT Truncated Trajectory Speedup (Araujo et al., docs/2611.03621v1.pdf)
+    coupled with Bevy Runahead Lowest-Layer-First Grouping (Yu et al., docs/2611.04794v1.pdf):
+      - Truncates sub-trajectory length to N_bar_t = ceil(gamma * N_t) (with gamma ~ 0.2),
+        achieving 1 / sqrt(gamma) parallel speedup with sqrt(gamma) fewer processors.
+      - Groups ready requests at the minimum active layer l_min = min_{j in J_R} l(j)
+        to prevent stragglers and expose uncached expert/attractor demand early.
+    """
+    nt = max(1, int(total_steps_nt))
+    gamma = max(0.05, min(1.0, float(truncation_gamma)))
+    truncated_nt = max(1, int(math.ceil(gamma * nt)))
+    theoretical_speedup = 1.0 / math.sqrt(gamma)
+    layers = list(request_layers) if request_layers else [0]
+    l_min = min(layers)
+    lowest_layer_group = [idx for idx, l_val in enumerate(layers) if l_val == l_min]
+    runahead_group = [idx for idx, l_val in enumerate(layers) if l_val > l_min]
+    return {
+        "full_trajectory_nt": nt,
+        "truncated_trajectory_nt": truncated_nt,
+        "truncation_gamma": gamma,
+        "rmgrit_theoretical_speedup": float(theoretical_speedup),
+        "lowest_active_layer_l_min": int(l_min),
+        "lowest_layer_compute_group": lowest_layer_group,
+        "runahead_prefetch_group": runahead_group,
+    }
+
+
+def compute_prove_self_play_drgrpo_advantage(
+    rewards: Union[List[float], torch.Tensor],
+    y1_verdict: int = 1,
+    y2_verdict: int = 1,
+    edit_cost: float = 0.1,
+) -> Dict[str, Any]:
+    """
+    PROVE Perturb-Repair-Verify Self-Play Verifier Rewards & DrGRPO Advantage
+    (Huang, Du, Snoek, docs/2611.05158v1.pdf):
+      - Mutator reward: r_M = 0.4 * I[y_1 = 1] + 0.6 * I[y_2 = 0] - 0.1 * C_M
+      - Repairer reward: r_R = 0.7 * I[y_2 = 1] + 0.3 * I[y_1 != y_2] - 0.1 * C_R
+      - Mean-centered group relative advantage (DrGRPO):
+            A_hat_i = r_i - (1 / |G|) * sum_{j in G} r_j
+    """
+    if isinstance(rewards, torch.Tensor):
+        r_vec = rewards.detach().float().flatten()
+    else:
+        r_vec = torch.tensor(list(rewards), dtype=torch.float32).flatten()
+    if r_vec.numel() == 0:
+        r_vec = torch.zeros(1, dtype=torch.float32)
+    mean_r = float(r_vec.mean().item())
+    advantages = r_vec - mean_r
+    r_mutator = 0.4 * (1.0 if y1_verdict == 1 else 0.0) + 0.6 * (1.0 if y2_verdict == 0 else 0.0) - 0.1 * float(edit_cost)
+    r_repairer = 0.7 * (1.0 if y2_verdict == 1 else 0.0) + 0.3 * (1.0 if y1_verdict != y2_verdict else 0.0) - 0.1 * float(edit_cost)
+    return {
+        "drgrpo_advantages": [float(v) for v in advantages.cpu().tolist()],
+        "group_mean_reward": mean_r,
+        "mutator_reward_r_m": float(r_mutator),
+        "repairer_reward_r_r": float(r_repairer),
+    }
+
 

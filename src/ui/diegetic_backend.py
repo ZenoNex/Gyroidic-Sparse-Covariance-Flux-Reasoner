@@ -327,7 +327,11 @@ class DiegeticPhysicsEngine(nn.Module):
         self.advanced_bridge = AdvancedExtensionsBridge(dim=dim, device=self.device) if EXTENSIONS_AVAILABLE else None
         self.extensions_enabled = EXTENSIONS_AVAILABLE
 
+        from src.models.resonance_cavity import BreatherMode
         self.cavity = ResonanceCavity(hidden_dim=dim, num_modes=16)
+        self.resonance_cavity = self.cavity
+        self.trust_vault = self.cavity.trust_vault
+        self.breather_mode = BreatherMode(num_breathers=min(8, dim), dim=dim)
         self.larynx = ResonanceLarynx(hidden_dim=dim) # Pure Topological
         self.unicode_to_idx = {}
         self.idx_to_unicode = []
@@ -446,8 +450,13 @@ class DiegeticPhysicsEngine(nn.Module):
         # Audience Mapping (: M -> A)
         self.audience_mapper = AudienceProjection(input_dim=dim, audience_dim=dim)
 
-        # Garden Orchestrator for statistical attractor dynamics and concept trajectory modeling
+        # Garden Orchestrator & Unified Memory Palace for statistical attractor dynamics
         self.garden_orchestrator = GardenOrchestrator(num_attractors=8, feature_dim=dim, device=self.device)
+        self.memory_palace = self.garden_orchestrator.memory_palace
+        self.memory_palace.trust_vault = self.trust_vault
+        self.tag_stacker = getattr(self.archetypal_governor, 'tag_stacker', None)
+        self.memory_palace.tag_stacker = self.tag_stacker
+        self.cerumen_isolation = self.memory_palace.cerumen_isolation
 
         # Symplectic Gluing Operator (Psi)
         self.gluer = GluingOperator(dim)
@@ -644,8 +653,9 @@ class DiegeticPhysicsEngine(nn.Module):
         # Harmonic Wave Decomposition: Separate signal (non-ergodic) from noise (ergodic)
         self.harmonic_decomp = HarmonicWaveDecomposition(dim=dim)
         
-        # Graph Manager for topological mapping
-        self.graph_manager = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=dim)
+        # Preserve pre-loaded GyroidicGraphManager from step 13 (do not overwrite with empty instance)
+        if not hasattr(self, 'graph_manager') or self.graph_manager is None:
+            self.graph_manager = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=dim)
         
         # Gyroid Covariance Estimator: Tensor-based momentum tracking
         # Replaces scalar std() with proper gyroidic manifold covariance
@@ -712,9 +722,64 @@ class DiegeticPhysicsEngine(nn.Module):
         self.fossilizer = DyadFossilizer(
             storage_dir="data/encodings",
             fusion_layer=self.fusion_layer,  # shared reference
-            feature_dim=self.dim
+            feature_dim=self.dim,
+            memory_palace=self.memory_palace,
         )
         self.coprime_gate.fossilizer = self.fossilizer
+
+        # 11b. Mount Remaining Sovereign Memory Systems (Systems 12-19)
+        try:
+            from src.environment.cleanroom_mechanics import (
+                ChiselsAndBitsMicroOctree,
+                MultiMineMemory,
+                PurgatoryBufferMap,
+            )
+            self.chisels_bits = ChiselsAndBitsMicroOctree()
+            self.multi_mine = MultiMineMemory()
+            self.purgatory = PurgatoryBufferMap()
+        except Exception:
+            self.chisels_bits = None
+            self.multi_mine = None
+            self.purgatory = None
+
+        try:
+            from src.environment.cleanroom_advanced_extensions import AutonomousLuggageStorage
+            self.luggage_storage = AutonomousLuggageStorage(owner_id="diegetic_luggage")
+        except Exception:
+            self.luggage_storage = None
+
+        try:
+            from src.core.erosion_filter import TopologicalErosionFBM
+            self.erosion_filter = TopologicalErosionFBM(octaves=4, persistence=0.6)
+            self.survival_lattice = self.erosion_filter.survival_lattice
+        except Exception:
+            self.erosion_filter = None
+            self.survival_lattice = None
+
+        try:
+            from src.topology.persistence_obstruction import ResidueObstructionGraph
+            self.obstruction_graph = ResidueObstructionGraph(num_epsilon_samples=10, max_dimension=1)
+        except Exception:
+            self.obstruction_graph = None
+
+        try:
+            from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+            from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
+            self.carnot_ledger = CarnotMobiusLedger(xi_shear=0.1)
+            self.curvature_ledger = Hessian8x8CurvatureLedger(dim=8, sovereignty_engine=getattr(self, 'sovereignty_engine', None))
+        except Exception:
+            self.carnot_ledger = None
+            self.curvature_ledger = None
+
+        try:
+            from src.core.non_dual_coin import TripsodicLedger, CerumenPotWallet
+            self.tripsodic_ledger = TripsodicLedger(base_volume=1000.0)
+            self.sys1_wallet = CerumenPotWallet(dim=self.dim, device=self.device)
+            self.sys2_wallet = CerumenPotWallet(dim=self.dim, device=self.device)
+        except Exception:
+            self.tripsodic_ledger = None
+            self.sys1_wallet = None
+            self.sys2_wallet = None
         
         # 11. Spectral Structural Trainer (Deeper Dynamics)
         self.trainer = SpectralStructuralTrainer(
@@ -960,6 +1025,88 @@ class DiegeticPhysicsEngine(nn.Module):
         """Initialize or update spatial metric tensor g_mu_nu."""
         if spatial_metric_tensor is not None:
             self.spatial_metric = spatial_metric_tensor.to(self.device)
+
+    def get_unified_memory_telemetry(self) -> Dict[str, Any]:
+        """
+        Reports the live connection and isolation status of all 19 Sovereign Memory Systems
+        across DiegeticPhysicsEngine while preserving Meliponini Cerumen Pot isolation.
+        """
+        palace_diag = self.memory_palace.get_diagnostics() if getattr(self, "memory_palace", None) is not None else {}
+        return {
+            "total_systems": 19,
+            "meliponini_isolation_enforced": bool(palace_diag.get("meliponini_isolation_enforced", True)),
+            "shared_memory_palace_unified": (
+                getattr(self, "memory_palace", None) is not None
+                and getattr(getattr(self, "garden_orchestrator", None), "memory_palace", None) is self.memory_palace
+                and getattr(getattr(self, "fossilizer", None), "memory_palace", None) is self.memory_palace
+            ),
+            "trust_vault_bound": (
+                getattr(getattr(self, "memory_palace", None), "trust_vault", None) is getattr(self, "trust_vault", None)
+            ),
+            "systems": {
+                "1_resonance_cavity": getattr(self, "cavity", None) is not None,
+                "2_heritable_trust_vault": getattr(self, "trust_vault", None) is not None,
+                "3_breather_mode": getattr(self, "breather_mode", None) is not None,
+                "4_memory_palace": getattr(self, "memory_palace", None) is not None,
+                "5_cerumen_pot_isolation": getattr(self, "cerumen_isolation", None) is not None,
+                "6_dyad_fossilizer": getattr(self, "fossilizer", None) is not None,
+                "7_daquf_operator": getattr(self, "daquf_operator", None) is not None,
+                "8_gyroidic_graph_manager": getattr(self, "graph_manager", None) is not None,
+                "9_encoding_manager": getattr(self, "encoding_manager", None) is not None,
+                "10_superposed_tag_stacker": getattr(self, "tag_stacker", None) is not None,
+                "11_pointerless_octree": getattr(self, "terrain_octree", None) is not None,
+                "12_chisels_and_bits_micro_octree": getattr(self, "chisels_bits", None) is not None,
+                "13_multi_mine_memory": getattr(self, "multi_mine", None) is not None,
+                "14_purgatory_buffer_map": getattr(self, "purgatory", None) is not None,
+                "15_autonomous_luggage_storage": getattr(self, "luggage_storage", None) is not None,
+                "16_fossilized_survival_lattice": getattr(self, "survival_lattice", None) is not None,
+                "17_residue_obstruction_graph": getattr(self, "obstruction_graph", None) is not None,
+                "18_carnot_and_hessian_ledgers": (
+                    getattr(self, "carnot_ledger", None) is not None
+                    and getattr(self, "curvature_ledger", None) is not None
+                ),
+                "19_tripsodic_and_cerumen_wallets": (
+                    getattr(self, "tripsodic_ledger", None) is not None
+                    and getattr(self, "sys1_wallet", None) is not None
+                    and getattr(self, "sys2_wallet", None) is not None
+                ),
+            },
+            "memory_palace_diagnostics": palace_diag,
+        }
+
+    def vocalize_psychotopological_substrate(
+        self,
+        substrate_state: Optional[torch.Tensor] = None,
+        prompt_text: str = "",
+        mode: str = "sing",
+        audio_harmonics_k64: Optional[torch.Tensor] = None,
+        max_steps: int = 24,
+        pas_h: float = 0.78,
+        external_pressure: float = 0.35,
+    ) -> Dict[str, Any]:
+        """
+        Unicorn Synthesis Pipeline on DiegeticPhysicsEngine:
+        Delegates psychotopological substrate and archetype singing/talking to VoxelboxterEngine
+        while sharing the unified MemoryPalace, ResonanceCavity, and Compute Affordance telemetry.
+        """
+        from src.ui.voxelboxter_simulation import VoxelboxterEngine
+
+        if not hasattr(self, "_voxelboxter_vocal_bridge") or self._voxelboxter_vocal_bridge is None:
+            self._voxelboxter_vocal_bridge = VoxelboxterEngine(device="cpu")
+            if getattr(self, "memory_palace", None) is not None:
+                self._voxelboxter_vocal_bridge.memory_palace = self.memory_palace
+            if getattr(self, "cavity", None) is not None:
+                self._voxelboxter_vocal_bridge.resonance_cavity = self.cavity
+
+        return self._voxelboxter_vocal_bridge.vocalize_psychotopological_substrate(
+            substrate_state=substrate_state,
+            prompt_text=prompt_text,
+            mode=mode,
+            audio_harmonics_k64=audio_harmonics_k64,
+            max_steps=max_steps,
+            pas_h=pas_h,
+            external_pressure=external_pressure,
+        )
 
     def fetch_spatial_land_value(
         self,
@@ -4247,8 +4394,8 @@ class DiegeticPhysicsEngine(nn.Module):
             # Evaluate live tensors
             topobench_data = {}
             if len(self.interaction_context) >= 3:
-                # We need a trajectory for TopoBench
-                live_trajectory = torch.stack([s.detach().cpu().squeeze(0)[:3] for s in self.interaction_context[-3:]]).tolist()
+                # We need a trajectory for TopoBench (flatten guarantees [3, 3] across variable tensor shapes)
+                live_trajectory = torch.stack([s.detach().cpu().flatten()[:3] for s in self.interaction_context[-3:]]).tolist()
                 closed_pass, twist_energy = self._live_topobench.evaluate_loop_closure(live_trajectory)
                 topobench_data = {"is_closed": closed_pass, "twist_energy": twist_energy}
                 print(f" [LIVE TOPOBENCH] Loop Closure: {closed_pass}, Twist Energy: {twist_energy:.6f}")
@@ -7632,7 +7779,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-        super().end_headers()
+        http.server.SimpleHTTPRequestHandler.end_headers(self)
 
     def do_OPTIONS(self):
         self.send_response(200, "ok")
@@ -8285,6 +8432,18 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         "status": "ok",
                         "live_benchmarks": live_benchmarks,
                         "suite_results": suite_results,
+                        "timestamp": time.time()
+                    })
+                except Exception as e:
+                    self._send_error_json(str(e))
+                return
+
+            elif base_path == '/api/memory_systems':
+                try:
+                    mem_telemetry = ENGINE.get_unified_memory_telemetry() if ('ENGINE' in globals() and ENGINE is not None and hasattr(ENGINE, 'get_unified_memory_telemetry')) else {}
+                    self._send_json({
+                        "status": "ok",
+                        "memory_telemetry": mem_telemetry,
                         "timestamp": time.time()
                     })
                 except Exception as e:

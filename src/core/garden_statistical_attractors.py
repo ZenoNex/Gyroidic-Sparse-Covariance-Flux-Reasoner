@@ -569,7 +569,7 @@ class GardenOrchestrator(nn.Module):
     through non-ergodic statistical mechanics while preserving rich feature distinctions.
     """
     
-    def __init__(self, num_attractors: int, feature_dim: int, device: str = None):
+    def __init__(self, num_attractors: int, feature_dim: int, device: str = None, memory_palace: Optional['MemoryPalace'] = None):
         super().__init__()
         self.num_attractors = num_attractors
         self.feature_dim = feature_dim
@@ -588,8 +588,8 @@ class GardenOrchestrator(nn.Module):
         # Self-organized criticality parameters
         self.criticality_threshold = nn.Parameter(torch.tensor(0.8))
         
-        # Initialize Memory Palace (Planted Attractor Chambers & Meliponini Pots)
-        self.memory_palace = MemoryPalace(feature_dim=feature_dim, device=device)
+        # Initialize or bind shared Memory Palace (Planted Attractor Chambers & Meliponini Pots)
+        self.memory_palace = memory_palace if memory_palace is not None else MemoryPalace(feature_dim=feature_dim, device=device)
         
     def compute_concept_entropy(self, concepts: torch.Tensor) -> torch.Tensor:
         """
@@ -1429,12 +1429,20 @@ class MemoryPalace(nn.Module):
     6. Immunological Memory Bridge: Read-only antibody queries for Inoculation Exemption,
        protecting against systemic lobotomy while informing the immune system.
     """
-    def __init__(self, feature_dim: int = 256, device: Optional[str] = None):
+    def __init__(
+        self,
+        feature_dim: int = 256,
+        device: Optional[str] = None,
+        trust_vault: Optional[Any] = None,
+        tag_stacker: Optional[Any] = None,
+    ):
         super().__init__()
         self.feature_dim = feature_dim
         self.device = device
         self.rooms: Dict[str, MemoryPalaceRoom] = {}
         self.cerumen_isolation = CerumenPotIsolation(threshold=0.5)
+        self.trust_vault = trust_vault
+        self.tag_stacker = tag_stacker
 
     def plant_room(
         self,
@@ -1635,6 +1643,8 @@ class MemoryPalace(nn.Module):
         """
         if base_room_id not in self.rooms:
             raise KeyError(f"Base room '{base_room_id}' not found in Memory Palace.")
+        if tag_stacker is None:
+            tag_stacker = self.tag_stacker
             
         base_room = self.rooms[base_room_id]
         delta = torch.zeros_like(base_room.center)
@@ -1810,12 +1820,13 @@ class MemoryPalace(nn.Module):
 
         if max_pull >= resonance_threshold and candidate_room is not None:
             candidate_room.sealed = False
+            active_vault = trust_vault if trust_vault is not None else self.trust_vault
             # Operational bridge with HeritableTrustVault if provided
-            if trust_vault is not None and hasattr(trust_vault, 'update') and candidate_room.residue_tuple:
+            if active_vault is not None and hasattr(active_vault, 'update') and candidate_room.residue_tuple:
                 try:
                     res_tensor = torch.tensor(candidate_room.residue_tuple, dtype=torch.float32).unsqueeze(0)
                     surv_tensor = torch.tensor([max_pull], dtype=torch.float32)
-                    trust_vault.update(res_tensor, surv_tensor)
+                    active_vault.update(res_tensor, surv_tensor)
                 except Exception:
                     pass
             return True, candidate_room, max_pull

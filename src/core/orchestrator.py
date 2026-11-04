@@ -294,22 +294,40 @@ class UniversalOrchestrator(nn.Module):
         self.jepa_embedder = PolynomialFunctionalEmbedder(text_dim=dim, graph_dim=dim, num_dim=dim, hidden_dim=dim)
         self.poly_embedder = self.jepa_embedder
         
-        # 7.8 Memory Palace & Garden Statistical Attractors (Non-Ergodic Attractor Networks)
-        from src.core.garden_statistical_attractors import MemoryPalace, GardenOrchestrator
-        self.memory_palace = MemoryPalace(feature_dim=dim)
-        self.garden_orchestrator = GardenOrchestrator(num_attractors=min(8, dim), feature_dim=dim, device=str(torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
-        
-        # 7.9 Resonance Cavity (Bio-Plausible Memory Time Dilation)
-        from src.models.resonance_cavity import ResonanceCavity
+        # 7.8 Resonance Cavity, Heritable Trust Vault & Breather Mode Solitons
+        from src.models.resonance_cavity import ResonanceCavity, BreatherMode
         self.resonance_cavity = ResonanceCavity(hidden_dim=dim)
+        self.cavity = self.resonance_cavity
+        self.trust_vault = self.resonance_cavity.trust_vault
+        self.breather_mode = BreatherMode(num_breathers=min(8, dim), dim=dim)
+
+        # 7.9 Superposed Tag Stacker (Non-Simplifying Multi-Scalar Coordinate Superposition)
+        from src.core.superposed_tag_stacker import SuperposedTagStacker
+        self.tag_stacker = SuperposedTagStacker(state_dim=dim)
+
+        # 7.10 Unified Memory Palace & Garden Statistical Attractors (Meliponini Cerumen Pots)
+        from src.core.garden_statistical_attractors import MemoryPalace, GardenOrchestrator
+        self.memory_palace = MemoryPalace(
+            feature_dim=dim,
+            device=str(_device),
+            trust_vault=self.trust_vault,
+            tag_stacker=self.tag_stacker,
+        )
+        self.cerumen_isolation = self.memory_palace.cerumen_isolation
+        self.garden_orchestrator = GardenOrchestrator(
+            num_attractors=min(8, dim),
+            feature_dim=dim,
+            device=str(_device),
+            memory_palace=self.memory_palace,
+        )
         
         # 7.10 Knowledge Dyad Fossilizer (Agent Smith Fossil Recovery)
         from src.core.knowledge_dyad_fossilizer import DyadFossilizer
-        self.fossilizer = DyadFossilizer(storage_dir="data/encodings")
-        
-        # 7.11 Superposed Tag Stacker (Non-Simplifying Multi-Scalar Coordinate Superposition)
-        from src.core.superposed_tag_stacker import SuperposedTagStacker
-        self.tag_stacker = SuperposedTagStacker(state_dim=dim)
+        self.fossilizer = DyadFossilizer(
+            storage_dir="data/encodings",
+            feature_dim=dim,
+            memory_palace=self.memory_palace,
+        )
         
         # 7.12 Prime Resonance Ladder (Logarithmic Prime Frequencies & Repunit Mirrors)
         from src.core.invariants import PrimeResonanceLadder
@@ -539,10 +557,45 @@ class UniversalOrchestrator(nn.Module):
         self.last_diegetic_response = None
         self.last_attention_integrity = None
         try:
-            from src.environment.cleanroom_mechanics import PurgatoryBufferMap
+            from src.environment.cleanroom_mechanics import (
+                PurgatoryBufferMap,
+                ChiselsAndBitsMicroOctree,
+                MultiMineMemory,
+            )
             self.purgatory = PurgatoryBufferMap()
+            self.chisels_bits = ChiselsAndBitsMicroOctree()
+            self.multi_mine = MultiMineMemory()
         except Exception:
             self.purgatory = None
+            self.chisels_bits = None
+            self.multi_mine = None
+
+        try:
+            from src.environment.cleanroom_advanced_extensions import AutonomousLuggageStorage
+            self.luggage_storage = AutonomousLuggageStorage(owner_id="sovereign_luggage")
+        except Exception:
+            self.luggage_storage = None
+
+        try:
+            from src.ui.voxelboxter_simulation import PointerlessOctree
+            self.terrain_octree = PointerlessOctree(max_depth=4)
+        except Exception:
+            self.terrain_octree = None
+
+        try:
+            from src.topology.embedding_graph import GyroidicGraphManager
+            self.graph_manager = GyroidicGraphManager(data_dir="data/encodings")
+        except Exception:
+            self.graph_manager = None
+
+        try:
+            from src.ui.diegetic_backend import EncodingManager
+            self.encoding_manager = EncodingManager()
+        except Exception:
+            self.encoding_manager = None
+
+        self.survival_lattice = getattr(self.erosion_filter, "survival_lattice", None)
+        self.obstruction_graph = getattr(self.narrative_monitor, "pas_monitor", None)
         
         # 8. P2P & External Integrations
         self.freenet_router = None
@@ -583,6 +636,101 @@ class UniversalOrchestrator(nn.Module):
         System 2 Invariant Admissibility strictly dominates System 1 heuristic performance.
         """
         return self.semiotic_dispatcher.select_best(candidate_states)
+
+    def get_unified_memory_telemetry(self) -> Dict[str, Any]:
+        """
+        Reports the live connection and isolation status of all 19 Sovereign Memory Systems
+        across Core, Diegetic Terminal, and Voxelboxter while preserving Meliponini
+        Cerumen Pot isolation (closure(P_i) cap closure(P_j) = emptyset).
+        """
+        palace_diag = self.memory_palace.get_diagnostics() if getattr(self, "memory_palace", None) is not None else {}
+        return {
+            "total_systems": 19,
+            "meliponini_isolation_enforced": bool(palace_diag.get("meliponini_isolation_enforced", True)),
+            "shared_memory_palace_unified": (
+                getattr(self, "memory_palace", None) is not None
+                and getattr(getattr(self, "garden_orchestrator", None), "memory_palace", None) is self.memory_palace
+                and getattr(getattr(self, "fossilizer", None), "memory_palace", None) is self.memory_palace
+            ),
+            "trust_vault_bound": (
+                getattr(getattr(self, "memory_palace", None), "trust_vault", None) is getattr(self, "trust_vault", None)
+            ),
+            "systems": {
+                "1_resonance_cavity": getattr(self, "resonance_cavity", None) is not None,
+                "2_heritable_trust_vault": getattr(self, "trust_vault", None) is not None,
+                "3_breather_mode": getattr(self, "breather_mode", None) is not None,
+                "4_memory_palace": getattr(self, "memory_palace", None) is not None,
+                "5_cerumen_pot_isolation": getattr(self, "cerumen_isolation", None) is not None,
+                "6_dyad_fossilizer": getattr(self, "fossilizer", None) is not None,
+                "7_daquf_operator": getattr(self, "daquf_operator", None) is not None,
+                "8_gyroidic_graph_manager": getattr(self, "graph_manager", None) is not None,
+                "9_encoding_manager": getattr(self, "encoding_manager", None) is not None,
+                "10_superposed_tag_stacker": getattr(self, "tag_stacker", None) is not None,
+                "11_pointerless_octree": getattr(self, "terrain_octree", None) is not None,
+                "12_chisels_and_bits_micro_octree": getattr(self, "chisels_bits", None) is not None,
+                "13_multi_mine_memory": getattr(self, "multi_mine", None) is not None,
+                "14_purgatory_buffer_map": getattr(self, "purgatory", None) is not None,
+                "15_autonomous_luggage_storage": getattr(self, "luggage_storage", None) is not None,
+                "16_fossilized_survival_lattice": getattr(self, "survival_lattice", None) is not None,
+                "17_residue_obstruction_graph": getattr(self, "obstruction_graph", None) is not None,
+                "18_carnot_and_hessian_ledgers": (
+                    getattr(self, "carnot_ledger", None) is not None
+                    and getattr(self, "curvature_ledger", None) is not None
+                ),
+                "19_tripsodic_and_cerumen_wallets": (
+                    getattr(self, "tripsodic_ledger", None) is not None
+                    and getattr(self, "sys1_wallet", None) is not None
+                    and getattr(self, "sys2_wallet", None) is not None
+                ),
+            },
+            "memory_palace_diagnostics": palace_diag,
+        }
+
+    def vocalize_psychotopological_substrate(
+        self,
+        substrate_state: Optional[torch.Tensor] = None,
+        prompt_text: str = "",
+        mode: str = "sing",
+        audio_harmonics_k64: Optional[torch.Tensor] = None,
+        max_steps: int = 24,
+        pas_h: float = 0.78,
+        external_pressure: float = 0.35,
+    ) -> Dict[str, Any]:
+        """
+        Unicorn Synthesis Pipeline on UniversalOrchestrator:
+        Allows Psychotopological Substrates (MemoryPalace Cerumen Pots, FaunaISN, MorphicField)
+        and Archetype Systems (ArchetypalSynthesisEngine / BioArchetypalGovernor) to sing or talk
+        via ResonanceLarynx, ChernSimonsGasket, LazarusSoftmax, VoynichLinguist.split_sub_pairs,
+        TextureDSPEngine, AudienceProjection, and AdaptiveSkeletonHarness under Compute Affordance gating.
+        """
+        from src.ui.voxelboxter_simulation import VoxelboxterEngine
+
+        if not hasattr(self, "_voxelboxter_vocal_bridge") or self._voxelboxter_vocal_bridge is None:
+            self._voxelboxter_vocal_bridge = VoxelboxterEngine(device="cpu")
+            if getattr(self, "memory_palace", None) is not None:
+                self._voxelboxter_vocal_bridge.memory_palace = self.memory_palace
+            if getattr(self, "resonance_cavity", None) is not None:
+                self._voxelboxter_vocal_bridge.resonance_cavity = self.resonance_cavity
+            if getattr(self, "larynx", None) is not None and getattr(self.larynx, "hidden_dim", 0) == 32:
+                self._voxelboxter_vocal_bridge.larynx = self.larynx
+                if self._voxelboxter_vocal_bridge.skeleton_harness is not None:
+                    self._voxelboxter_vocal_bridge.skeleton_harness.bind_larynx(self.larynx)
+            if (
+                getattr(self, "archetypal_governor", None) is not None
+                and getattr(self.archetypal_governor.bio_governor, "state_dim", 0) == 32
+            ):
+                self._voxelboxter_vocal_bridge.archetype_governor = self.archetypal_governor
+                self._voxelboxter_vocal_bridge.bio_governor = self.archetypal_governor.bio_governor
+
+        return self._voxelboxter_vocal_bridge.vocalize_psychotopological_substrate(
+            substrate_state=substrate_state,
+            prompt_text=prompt_text,
+            mode=mode,
+            audio_harmonics_k64=audio_harmonics_k64,
+            max_steps=max_steps,
+            pas_h=pas_h,
+            external_pressure=external_pressure,
+        )
 
     @property
     def affordance_status(self) -> bool:
@@ -1731,7 +1879,19 @@ class UniversalOrchestrator(nn.Module):
             print(f"[ORCHESTRATOR] {e}")
             if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
                 contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
-                self.daquf_operator.update_unknowledge_contradiction(failures=contra)
+                delta_q, _ = self.daquf_operator.update_unknowledge_contradiction(
+                    failures=contra,
+                    input_state=state_governed,
+                )
+                if delta_q is not None and getattr(self, 'memory_palace', None) is not None:
+                    try:
+                        self.memory_palace.plant_outlier_seed(
+                            center=delta_q.detach().cpu().view(-1),
+                            seam_tension=float(torch.norm(delta_q).item()),
+                            metadata={'source': 'daquf_quantized_unknowledge'}
+                        )
+                    except Exception:
+                        pass
             state_shielded = state_governed
 
         # Enhanced Bezout CRT & Inverse Kinematic Solver Trajectory Synchronization

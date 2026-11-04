@@ -127,9 +127,88 @@ class PatchStateResource:
         self.lootbags = LootBagSystem()
         self.camp_kit = PortableUtilitiesKit()
         self.remote_cursor = RemoteCursorItem()
-        self.luggage_companions: dict = {}
+        self.luggage_companions: dict = {
+            "default": (
+                self.orchestrator.luggage_storage
+                if (self.orchestrator is not None and getattr(self.orchestrator, "luggage_storage", None) is not None)
+                else AutonomousLuggageStorage(owner_id="client_luggage")
+            )
+        }
+        self.luggage_storage = self.luggage_companions["default"]
         self.recursive_portal = RecursiveSphericalPortal()
         self.engine_4d = Hyperdimensional4DEngine()
+
+        # Bind Sovereign Memory Systems from UniversalOrchestrator (or standalone cleanroom fallbacks)
+        from src.environment.cleanroom_mechanics import (
+            ChiselsAndBitsMicroOctree,
+            MultiMineMemory,
+            PurgatoryBufferMap,
+        )
+        from src.ui.voxelboxter_simulation import PointerlessOctree
+        self.chisels_bits = (
+            self.orchestrator.chisels_bits
+            if (self.orchestrator is not None and getattr(self.orchestrator, "chisels_bits", None) is not None)
+            else ChiselsAndBitsMicroOctree()
+        )
+        self.multi_mine = (
+            self.orchestrator.multi_mine
+            if (self.orchestrator is not None and getattr(self.orchestrator, "multi_mine", None) is not None)
+            else MultiMineMemory()
+        )
+        self.purgatory = (
+            self.orchestrator.purgatory
+            if (self.orchestrator is not None and getattr(self.orchestrator, "purgatory", None) is not None)
+            else PurgatoryBufferMap()
+        )
+        self.terrain_octree = (
+            self.orchestrator.terrain_octree
+            if (self.orchestrator is not None and getattr(self.orchestrator, "terrain_octree", None) is not None)
+            else PointerlessOctree(max_depth=4)
+        )
+        self.memory_palace = getattr(self.orchestrator, "memory_palace", None)
+        self.resonance_cavity = getattr(self.orchestrator, "resonance_cavity", None)
+        self.trust_vault = getattr(self.orchestrator, "trust_vault", None)
+        self.larynx = getattr(self.orchestrator, "larynx", None)
+        self.archetype_governor = getattr(self.orchestrator, "archetypal_governor", None)
+
+    def vocalize_psychotopological_substrate(
+        self,
+        substrate_state: torch.Tensor = None,
+        prompt_text: str = "",
+        mode: str = "sing",
+        audio_harmonics_k64: torch.Tensor = None,
+        max_steps: int = 24,
+        pas_h: float = 0.78,
+        external_pressure: float = 0.35,
+    ) -> dict:
+        """
+        Delegates psychotopological substrate & archetype singing/talking in the Voxelboxter Client
+        to the Unicorn Synthesis pipeline with strict Compute Affordance governance.
+        """
+        if self.orchestrator is not None and hasattr(
+            self.orchestrator, "vocalize_psychotopological_substrate"
+        ):
+            return self.orchestrator.vocalize_psychotopological_substrate(
+                substrate_state=substrate_state,
+                prompt_text=prompt_text,
+                mode=mode,
+                audio_harmonics_k64=audio_harmonics_k64,
+                max_steps=max_steps,
+                pas_h=pas_h,
+                external_pressure=external_pressure,
+            )
+        from src.ui.voxelboxter_simulation import VoxelboxterEngine
+
+        sim_engine = VoxelboxterEngine(device="cpu")
+        return sim_engine.vocalize_psychotopological_substrate(
+            substrate_state=substrate_state,
+            prompt_text=prompt_text,
+            mode=mode,
+            audio_harmonics_k64=audio_harmonics_k64,
+            max_steps=max_steps,
+            pas_h=pas_h,
+            external_pressure=external_pressure,
+        )
 
     def update_ingame_options_gui(self, options: dict) -> dict:
         """In-game options config GUI for live tuning of wind, flight, and damage."""
@@ -191,12 +270,29 @@ def switch_game_mode(state: PatchStateResource, target_mode: EngineMode):
             state.mode = EngineMode.PLAY
             logging.info("[Patch Sovereignty] Switched to PLAY mode. Simulating physics.")
             
-            # If entering survival without admin rights, hook Chisels & Bits
+            # If entering survival without admin rights, hook Chisels & Bits Micro-Octree & Purgatory Buffer
             if role == Role.VISITOR:
-                logging.info("[Inventory Hook] Visitor status confirmed. Storing cut mass into local inventory...")
-                # Pseudo-logic: calculate mass from routine and store to inventory
-                cut_mass = len(state.graph.blocks)
-                state.local_inventory.block_masses[1] = cut_mass
+                logging.info("[Inventory Hook] Visitor status confirmed. Harvesting Chisels & Bits micro-voxels into local inventory...")
+                for coord, block in list(state.graph.blocks.items()):
+                    mat_id = getattr(block, "material_id", 1)
+                    if hasattr(state, "chisels_bits") and state.chisels_bits is not None:
+                        carved = state.chisels_bits.chisel_carve_bit(
+                            coord[0], coord[1], coord[2],
+                            sx=0, sy=0, sz=0,
+                            material_id=mat_id,
+                            octree=getattr(state, "terrain_octree", None),
+                        )
+                        harvest_mat = carved if carved > 0 else mat_id
+                    else:
+                        harvest_mat = mat_id
+                    state.local_inventory.block_masses[harvest_mat] = (
+                        state.local_inventory.block_masses.get(harvest_mat, 0) + 1
+                    )
+                if hasattr(state, "purgatory") and state.purgatory is not None:
+                    state.purgatory.suspend_stranded_states(
+                        torch.tensor([float(len(state.graph.blocks))], dtype=torch.float32),
+                        origin_id=f"visitor_graph_{state.local_peer_id}",
+                    )
                 state.graph = StructuralGraph() # Clear world representation for visitors temporarily
                 state.graph.dirty = True
 

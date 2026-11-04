@@ -2482,9 +2482,341 @@ class VoxelboxterEngine:
         self.lootbags = LootBagSystem()
         self.portable_camp = PortableUtilitiesKit()
         self.remote_cursor = RemoteCursorItem()
-        self.luggage_companions: Dict[str, AutonomousLuggageStorage] = {}
+        self.luggage_companions: Dict[str, AutonomousLuggageStorage] = {
+            "default": AutonomousLuggageStorage(owner_id="voxelboxter_luggage")
+        }
+        self.luggage_storage = self.luggage_companions["default"]
         self.recursive_portal = RecursiveSphericalPortal()
         self.engine_4d = Hyperdimensional4DEngine()
+
+        # Connect Chisels & Bits Micro-Octree and Sovereign Memory Palace / Cavity Bridges
+        from src.environment.cleanroom_mechanics import ChiselsAndBitsMicroOctree
+        self.chisels_bits = ChiselsAndBitsMicroOctree()
+        try:
+            from src.models.resonance_cavity import ResonanceCavity, BreatherMode
+            from src.core.garden_statistical_attractors import MemoryPalace
+            from src.core.superposed_tag_stacker import SuperposedTagStacker
+            self.resonance_cavity = ResonanceCavity(hidden_dim=32)
+            self.cavity = self.resonance_cavity
+            self.trust_vault = self.resonance_cavity.trust_vault
+            self.breather_mode = BreatherMode(num_breathers=8, dim=32)
+            self.tag_stacker = SuperposedTagStacker(state_dim=32)
+            self.memory_palace = MemoryPalace(
+                feature_dim=32,
+                trust_vault=self.trust_vault,
+                tag_stacker=self.tag_stacker,
+            )
+            self.cerumen_isolation = self.memory_palace.cerumen_isolation
+        except Exception:
+            self.resonance_cavity = None
+            self.cavity = None
+            self.trust_vault = None
+            self.breather_mode = None
+            self.tag_stacker = None
+            self.memory_palace = None
+            self.cerumen_isolation = None
+
+        # Unicorn Synthesis Pipeline: Psychotopological Substrate & Archetype Singing/Talking Suite
+        try:
+            from src.models.diegetic_heads import ResonanceLarynx
+            from src.core.gluing_operator import LazarusSoftmax
+            from src.core.voynich_architecture import VoynichLinguist
+            from src.core.texture_dsp import TextureDSPEngine
+            from src.core.audience_mapping import AudienceProjection
+            from src.core.archetype_engines import ArchetypalSynthesisEngine
+            from src.core.adaptive_skeleton_harness import AdaptiveSkeletonHarness
+
+            self.larynx = ResonanceLarynx(hidden_dim=32)
+            self.chern_simons_gasket = self.larynx.chern_simons
+            self.lazarus_softmax = LazarusSoftmax(dim=-1)
+            self.voynich_linguist = VoynichLinguist()
+            self.texture_dsp = TextureDSPEngine(device="cpu")
+            self.audio_dyad_proj = torch.nn.Linear(64, 32)
+            torch.nn.init.orthogonal_(self.audio_dyad_proj.weight)
+            self.audience_projector = AudienceProjection(input_dim=32, audience_dim=32)
+            self.archetype_governor = ArchetypalSynthesisEngine(state_dim=32)
+            self.bio_governor = self.archetype_governor.bio_governor
+            self.skeleton_harness = AdaptiveSkeletonHarness(state_dim=32, device="cpu")
+            self.skeleton_harness.bind_larynx(self.larynx)
+        except Exception as e:
+            print(f"[VoxelboxterEngine] Unicorn Synthesis vocalization suite fallback: {e}")
+            self.larynx = None
+            self.chern_simons_gasket = None
+            self.lazarus_softmax = None
+            self.voynich_linguist = None
+            self.texture_dsp = None
+            self.audio_dyad_proj = None
+            self.audience_projector = None
+            self.archetype_governor = None
+            self.bio_governor = None
+            self.skeleton_harness = None
+
+    def vocalize_psychotopological_substrate(
+        self,
+        substrate_state: Optional[torch.Tensor] = None,
+        prompt_text: str = "",
+        mode: str = "sing",
+        audio_harmonics_k64: Optional[torch.Tensor] = None,
+        max_steps: int = 24,
+        pas_h: float = 0.78,
+        external_pressure: float = 0.35,
+    ) -> Dict[str, Any]:
+        """
+        Unicorn Synthesis Pipeline for Psychotopological Substrates & Archetype Systems in Voxelboxter.
+        Allows MemoryPalace rooms (Meliponini Cerumen Pots), FaunaISN murmurations (2610.35487v1.pdf),
+        and TADC/Bio-Archetype systems (Mandy, Billy, Pomni, Jax, Gangle, Kinger, Zooble) to sing or talk
+        inside Voxelboxter, strictly governed by Compute Affordance and Affordance-Reset Thermodynamics.
+        """
+        t_start = time.perf_counter()
+        from src.core.hardware_monitor import (
+            HardwareMonitor,
+            ComputeAffordanceType,
+            enforce_500ms_restless_thermal_guard,
+        )
+        from src.core.honest_jitter import harvest_honest_jitter
+        from src.core.invariants import (
+            compute_affordance_reset_gibbs_occupation,
+            compute_euler_heisenberg_cubic_screening,
+            compute_feshbach_zeno_boundary_decay,
+            compute_rmgrit_bevy_runahead_schedule,
+            compute_gibbs_gnz_variational_beta,
+        )
+
+        hw = HardwareMonitor.get_instance()
+        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        diegetic_aff = hw.get_typed_affordance(ComputeAffordanceType.DIEGETIC)
+        algo_aff = hw.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+        can_afford_full = bool(silicon_aff and thermal_aff and algo_aff)
+
+        # 1. R-MGRIT Truncated Trajectory & Bevy Lowest-Layer-First Runahead (2611.03621v1 & 2611.04794v1)
+        trunc_gamma = 1.0 if can_afford_full else 0.25
+        rmgrit_sched = compute_rmgrit_bevy_runahead_schedule(
+            total_steps_nt=max_steps,
+            truncation_gamma=trunc_gamma,
+            request_layers=[0, 1, 0, 2],
+        )
+        effective_steps = (
+            max(4, min(max_steps, int(max_steps * diegetic_aff.gauge)))
+            if can_afford_full
+            else rmgrit_sched["truncated_trajectory_nt"]
+        )
+
+        # 2. Affordance-Reset Dwell Thermodynamics & Cerumen Pot Selection (2611.02220v1 & 1701.08105v2)
+        exit_barriers = [0.4, 0.7, 0.25, 0.55]
+        reward_potentials = [pas_h, 0.5 * pas_h, 1.1 * pas_h, 0.8 * pas_h]
+        if self.memory_palace is not None and getattr(self.memory_palace, "rooms", None):
+            room_vals = list(self.memory_palace.rooms.values())[:8]
+            if room_vals:
+                exit_barriers = [
+                    float(getattr(r, "local_threshold", 0.5)) for r in room_vals
+                ]
+                reward_potentials = [
+                    float(getattr(r, "navigation_Salience", getattr(r, "salience", 0.5)))
+                    for r in room_vals
+                ]
+
+        gibbs_occ = compute_affordance_reset_gibbs_occupation(
+            exit_barriers=exit_barriers,
+            reward_potentials=reward_potentials,
+            temperature=max(0.1, 1.0 - 0.5 * pas_h),
+            beta_reward=1.5,
+        )
+        gnz_beta = compute_gibbs_gnz_variational_beta(
+            torch.tensor(exit_barriers, dtype=torch.float32)
+        )
+
+        # 3. Prepare 32-D Psychotopological Substrate State
+        if substrate_state is None:
+            if (
+                self.memory_palace is not None
+                and getattr(self.memory_palace, "rooms", None)
+            ):
+                rooms_list = list(self.memory_palace.rooms.values())
+                dom_room = rooms_list[gibbs_occ["dominant_index"] % len(rooms_list)]
+                att = getattr(dom_room, "attractor_position", None)
+                if isinstance(att, torch.Tensor) and att.numel() > 0:
+                    substrate_state = att.detach().float().view(1, -1)
+            if substrate_state is None:
+                substrate_state = harvest_honest_jitter((1, 32), device="cpu", scaled=True)
+
+        state_32 = substrate_state.detach().float().view(1, -1)
+        if state_32.shape[-1] < 32:
+            state_32 = torch.nn.functional.pad(state_32, (0, 32 - state_32.shape[-1]))
+        elif state_32.shape[-1] > 32:
+            state_32 = state_32[:, :32]
+
+        # 4. Audio Harmonics (K=64 Chebyshev) & TextureDSPEngine Filtering (for "sing" or audio dyads)
+        if audio_harmonics_k64 is not None and self.audio_dyad_proj is not None:
+            harm = audio_harmonics_k64.detach().float().view(1, -1)
+            if harm.shape[-1] < 64:
+                harm = torch.nn.functional.pad(harm, (0, 64 - harm.shape[-1]))
+            elif harm.shape[-1] > 64:
+                harm = harm[:, :64]
+            with torch.no_grad():
+                audio_proj = self.audio_dyad_proj(harm)
+            state_32 = 0.75 * state_32 + 0.25 * audio_proj
+        elif mode == "sing" and self.texture_dsp is not None and self.audio_dyad_proj is not None:
+            with torch.no_grad():
+                tex_2d = state_32.view(1, 1, 4, 8).repeat(1, 1, 2, 1)  # [1, 1, 8, 8] -> 64 Chebyshev modes
+                filtered_2d = self.texture_dsp.apply_spectral_filter(
+                    tex_2d, cutoff_freq=0.65, window_type="hann"
+                )
+                audio_proj = self.audio_dyad_proj(filtered_2d.view(1, 64))
+                state_32 = 0.8 * state_32 + 0.2 * audio_proj
+
+        # 5. Archetype & Bio-Archetypal Governor Modulation + Threat Recalibration
+        reflex_telemetry = {}
+        archetype_status = "UNMODULATED"
+        if self.bio_governor is not None:
+            structural_entropy = float(torch.std(state_32).clamp(0.0, 1.0).item())
+            reflex_telemetry = self.bio_governor.evaluate_threat_recalibration_and_fixed_reflexes(
+                structural_entropy=structural_entropy,
+                external_pressure=external_pressure,
+                surrounding_pas_h=pas_h,
+                valence_hunger=0.3,
+                jax_rigidity=1.0,
+            )
+        if self.archetype_governor is not None and can_afford_full:
+            try:
+                with torch.no_grad():
+                    arch_sig = self.archetype_governor(
+                        current_state=state_32,
+                        phase_alignment=pas_h,
+                        current_mischief=0.15 if mode == "sing" else 0.05,
+                         resonance_cavity=self.resonance_cavity,
+                    )
+                    state_32 = arch_sig.active_state.view(1, 32)
+                    archetype_status = arch_sig.pusafiliacrimonto_status
+            except Exception:
+                archetype_status = "BIO_REFLEX_ONLY"
+
+        # 6. Euler-Heisenberg Cubic Screening (2611.05240v1) & Feshbach-Lowdin Zeno Shield (2611.05268v1)
+        eh_screen = compute_euler_heisenberg_cubic_screening(state_32, alpha_eh=0.05, radial_x=1.0)
+        state_32 = eh_screen["screened_field"]
+        zeno_audit = compute_feshbach_zeno_boundary_decay(
+            absorber_gamma=8.0 if pas_h >= 0.5 else 2.0,
+            dirichlet_energy_n=float(torch.norm(state_32).item()),
+        )
+
+        # 7. Audience Projection (Phi: M -> A) & AdaptiveSkeletonHarness PAL Subcarrier Multiplexing
+        if self.audience_projector is not None:
+            with torch.no_grad():
+                state_32 = self.audience_projector(state_32)
+
+        subcarrier_telemetry = {}
+        if self.skeleton_harness is not None:
+            with torch.no_grad():
+                subcarrier_telemetry = self.skeleton_harness.modulate_larynx_attention_morton_stream(
+                    skeleton_tensor=state_32
+                )
+
+        # 8. Autoregressive Singing / Talking via ResonanceLarynx, ChernSimonsGasket & LazarusSoftmax
+        vocal_chars: List[str] = []
+        lazarus_launches = 0
+        confidence_vals: List[float] = []
+        allowed_ascii = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?'-"
+        vowels = set("aeiouyAEIOUY")
+
+        if self.larynx is not None:
+            curr = state_32.clone()
+            prev_pas = pas_h
+            temp = 1.15 if mode == "sing" else 0.95
+            with torch.no_grad():
+                for step_i in range(effective_steps):
+                    logits, conf = self.larynx(curr, temperature=temp)
+                    confidence_vals.append(float(conf.mean().item()))
+
+                    # Enforce vowel-consonant topological transition continuity
+                    prev_ch = vocal_chars[-1] if vocal_chars else " "
+                    mod_logits = logits.clone()
+                    if prev_ch.isalpha() and prev_ch not in vowels:
+                        for idx_v in range(mod_logits.shape[-1]):
+                            ch_v = allowed_ascii[idx_v % len(allowed_ascii)]
+                            if ch_v in vowels:
+                                mod_logits[0, idx_v] += 0.65
+                    elif prev_ch in vowels:
+                        for idx_v in range(mod_logits.shape[-1]):
+                            ch_v = allowed_ascii[idx_v % len(allowed_ascii)]
+                            if ch_v in vowels:
+                                mod_logits[0, idx_v] -= 0.45
+
+                    cur_pas = min(1.0, max(0.0, pas_h + 0.05 * math.sin(step_i * 0.7)))
+                    if self.lazarus_softmax is not None:
+                        probs, laz_fired = self.lazarus_softmax(mod_logits, cur_pas, prev_pas)
+                        if laz_fired:
+                            lazarus_launches += 1
+                    else:
+                        probs = torch.softmax(mod_logits, dim=-1)
+                    prev_pas = cur_pas
+
+                    idx_pick = int(torch.argmax(probs[0]).item())
+                    ch_out = allowed_ascii[(idx_pick + step_i * 3) % len(allowed_ascii)]
+                    vocal_chars.append(ch_out)
+
+                    # Tanh state feedback loop (Non-Markovian conversational memory)
+                    w_row = self.larynx.proj.weight[idx_pick % self.larynx.proj.weight.shape[0]].unsqueeze(0)
+                    feedback = torch.tanh(w_row)
+                    curr = (
+                        0.88 * curr
+                        + 0.10 * feedback
+                        + 0.02 * harvest_honest_jitter(curr.shape, device=curr.device, scaled=True)
+                    )
+
+        raw_utterance = "".join(vocal_chars).strip()
+        if not raw_utterance:
+            raw_utterance = "gyroidic resonance hum"
+
+        # 9. Agglutinative Morpho-Unit Segmentation via VoynichLinguist.split_sub_pairs (2n sweep)
+        seed_word = (prompt_text.strip().split()[0] if prompt_text.strip() else raw_utterance.replace(" ", "")[:12]) or "voxel"
+        morpho_sub_pairs = (
+            self.voynich_linguist.split_sub_pairs(seed_word)
+            if self.voynich_linguist is not None
+            else [(seed_word, "")]
+        )
+        catalan_cuts = (
+            self.voynich_linguist.split_catalan_weighted_sub_pairs(seed_word[:10])
+            if self.voynich_linguist is not None
+            else []
+        )
+
+        # 10. Enforce 500ms Restless Thermal Latency Guard
+        elapsed_ms = (time.perf_counter() - t_start) * 1000.0
+        thermal_guard = enforce_500ms_restless_thermal_guard(
+            execution_ms=elapsed_ms,
+            silicon_engine=self.silicon_sovereignty,
+            cooldown_sleep_sec=0.01,
+            pas_h=pas_h,
+        )
+
+        return {
+            "mode": mode,
+            "utterance": raw_utterance,
+            "avg_confidence": sum(confidence_vals) / max(1, len(confidence_vals)),
+            "effective_steps": effective_steps,
+            "lazarus_launches": lazarus_launches,
+            "archetype_status": archetype_status,
+            "bio_reflex_telemetry": reflex_telemetry,
+            "affordance_reset_gibbs": gibbs_occ,
+            "gnz_variational_beta": gnz_beta,
+            "euler_heisenberg_screening_ratio": eh_screen["screening_ratio"],
+            "feshbach_zeno_audit": zeno_audit,
+            "rmgrit_bevy_schedule": rmgrit_sched,
+            "voynich_sub_pairs_count": len(morpho_sub_pairs),
+            "voynich_expected_2n": 2 * len(seed_word) if len(seed_word) > 0 else 1,
+            "catalan_weighted_cuts_count": len(catalan_cuts),
+            "morton_subcarrier_keys_count": len(subcarrier_telemetry.get("morton_keys", [])),
+            "compute_affordance": {
+                "can_afford_full": can_afford_full,
+                "silicon_gauge": silicon_aff.gauge,
+                "thermal_gauge": thermal_aff.gauge,
+                "diegetic_gauge": diegetic_aff.gauge,
+                "algorithmic_gauge": algo_aff.gauge,
+                "elapsed_ms": elapsed_ms,
+                "restless_500ms_guard": thermal_guard,
+            },
+        }
+
 
     def probe_actuation_feasibility(
         self,

@@ -8,6 +8,8 @@ import socketserver
 import json
 import sys
 import os
+if __name__ == "__main__":
+    sys.modules["hybrid_backend"] = sys.modules[__name__]
 import torch
 import threading
 import socketserver
@@ -2713,7 +2715,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.send_header('Cache-Control', 'no-cache')
-        super().end_headers()
+        http.server.SimpleHTTPRequestHandler.end_headers(self)
     
     def do_OPTIONS(self):
         self.send_response(200)
@@ -2731,7 +2733,7 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 '/api/fs/drives', '/api/security/creator_status', '/api/security/status',
                 '/api/tags', '/api/state', '/api/madoc/info', '/benchmark_dashboard.html',
                 '/api/affordances', '/api/bulletin_board', '/api/progress',
-                '/api/hardware', '/api/gpus', '/api/scheduler'
+                '/api/hardware', '/api/gpus', '/api/scheduler', '/api/memory_systems'
             ]
             or parsed_path.path.startswith('/api/freenet/')
             or parsed_path.path.startswith('/api/bonfire/')
