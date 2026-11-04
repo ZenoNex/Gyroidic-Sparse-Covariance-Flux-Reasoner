@@ -556,6 +556,13 @@ class UniversalOrchestrator(nn.Module):
         self.last_calm_veto = None
         self.last_diegetic_response = None
         self.last_attention_integrity = None
+
+        # 7.29 FiveGatePipeline (Gates 4 & 5 Search Alignment and Tri-State Confabulation Detection)
+        try:
+            from src.core.five_gate_pipeline import FiveGatePipeline
+            self.five_gate_pipeline = FiveGatePipeline(state_dim=dim)
+        except Exception:
+            self.five_gate_pipeline = None
         try:
             from src.environment.cleanroom_mechanics import (
                 PurgatoryBufferMap,
@@ -1936,6 +1943,51 @@ class UniversalOrchestrator(nn.Module):
         
         # Audience Mapping: Final human-readable projection
         ui_readout = self.audience_projector(state_shielded)
+
+        # 6b. FiveGatePipeline Execution (Gate 4 Search & Gate 5 Confabulation Detection)
+        if self.five_gate_pipeline is not None:
+            def _orchestrator_search_retrieval(query_embedding: torch.Tensor):
+                # Gated by HardwareMonitor compute & thermal affordances
+                try:
+                    from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                    hm = HardwareMonitor.get_instance()
+                    if hm.thermal_runaway:
+                        return None, False
+                    thermal_aff = hm.get_typed_affordance(ComputeAffordanceType.THERMAL)
+                    if not bool(thermal_aff) or thermal_aff.gauge < 0.15:
+                        return None, False
+                except Exception:
+                    pass
+
+                # Dispatch via ArXivSovereignIngestor & SearXNG if available
+                if hasattr(self, 'arxiv_ingestor') and self.arxiv_ingestor is not None:
+                    try:
+                        query = self.arxiv_ingestor._generate_larynx_query()
+                        if hasattr(self.arxiv_ingestor, 'ingest_searxng_by_query'):
+                            ok = self.arxiv_ingestor.ingest_searxng_by_query(query)
+                            if ok:
+                                return {"query": query, "source": "SearXNG"}, True
+                        if hasattr(self.arxiv_ingestor, 'ingest_arxiv_by_query'):
+                            ok = self.arxiv_ingestor.ingest_arxiv_by_query(query)
+                            if ok:
+                                return {"query": query, "source": "ArXiv"}, True
+                    except Exception:
+                        pass
+                return None, False
+
+            try:
+                gate_query = state_shielded.flatten()[:self.dim]
+                internal_cert = 1.0 - float(getattr(self, 'last_calm_veto', 0.0) or 0.0)
+                gate_results = self.five_gate_pipeline.process_pipeline(
+                    query_state=gate_query,
+                    internal_certainty=max(0.0, min(1.0, internal_cert)),
+                    current_pas_h=pas_h,
+                    target_mischief=self.mischief_threshold,
+                    diegetic_retrieval_fn=_orchestrator_search_retrieval
+                )
+                self.telemetry_state['five_gate_pipeline'] = gate_results
+            except Exception as e:
+                self.telemetry_state['five_gate_pipeline'] = {"error": str(e)}
 
         # Autoeclectic Responder Head (Diegetic Response modulated by spectral entropy)
         try:

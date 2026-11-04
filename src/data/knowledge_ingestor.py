@@ -936,7 +936,26 @@ class ArXivSovereignIngestor:
         3. SearXNG (Meta-search aggregator, if configured)
         4. Community Directories & Atlas
         5. Open Web Knowledge (Wikipedia API + DuckDuckGo)
+
+        Governed by Typed Compute Affordances:
+        - SILICON & THERMAL: Throttles rate limit delays and result depths when constrained.
+        - P2P_MESH: Selectively prioritizes or relaxes decentralized peer crawls vs. local Open Web tiers.
         """
+        # Dynamic Compute Affordance Telemetry and Throttling
+        from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+        hw = HardwareMonitor.get_instance()
+        silicon_aff = hw.get_typed_affordance(ComputeAffordanceType.SILICON)
+        thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
+        mesh_aff = hw.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+
+        # Thermal runaway or severe silicon starvation veto
+        if hw.thermal_runaway or not bool(silicon_aff) or not bool(thermal_aff):
+            print("[INGEST] Throttling decentralized open search queries due to thermal/silicon load.")
+            return
+
+        # Adaptive delay scaling based on thermal margin
+        if thermal_aff.gauge < 0.40:
+            time.sleep(1.0)
         self._wait_for_rate_limit()
         
         # Clean query
@@ -952,21 +971,22 @@ class ArXivSovereignIngestor:
         web_results = []
         source_label = "Open Web"
 
-        # Tier 1: Check Freenet Library (Spider crawler inverted index)
-        freenet_hits = self._fetch_freenet_library(cleaned_query)
-        if freenet_hits:
-            web_results.extend(freenet_hits)
-            source_label = "Freenet Library"
+        # Tier 1: Check Freenet Library (Spider crawler inverted index) - gated by P2P_MESH affordance
+        if bool(mesh_aff) and mesh_aff.gauge >= 0.20:
+            freenet_hits = self._fetch_freenet_library(cleaned_query)
+            if freenet_hits:
+                web_results.extend(freenet_hits)
+                source_label = "Freenet Library"
 
-        # Tier 2: Check YaCy P2P DHT search engine
-        if not web_results:
+        # Tier 2: Check YaCy P2P DHT search engine - gated by P2P_MESH affordance
+        if not web_results and bool(mesh_aff) and mesh_aff.gauge >= 0.25:
             yacy_hits = self._fetch_yacy_p2p(cleaned_query)
             if yacy_hits:
                 web_results.extend(yacy_hits)
                 source_label = "YaCy P2P"
 
         # Tier 3: Check Community Freesites / Atlas directory
-        if not web_results:
+        if not web_results and bool(mesh_aff) and mesh_aff.gauge >= 0.15:
             dir_hits = self._fetch_community_directories(cleaned_query)
             if dir_hits:
                 web_results.extend(dir_hits)
@@ -993,7 +1013,8 @@ class ArXivSovereignIngestor:
                     data = response.json()
                     if isinstance(data, dict) and "results" in data:
                         raw_results = data.get("results", [])
-                        for r in raw_results[:3]:
+                        max_hits = 3 if silicon_aff.gauge >= 0.50 else 1
+                        for r in raw_results[:max_hits]:
                             u = r.get("url")
                             t = r.get("title", "Unknown Web Title")
                             s = r.get("content") or r.get("snippet") or ""

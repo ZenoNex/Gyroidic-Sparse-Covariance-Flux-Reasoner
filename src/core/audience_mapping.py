@@ -91,14 +91,31 @@ class AudienceProjection(nn.Module):
         Approximate inverse Phi^-1(a) via fixed point iteration.
         x = a - f(x) * effective_k
         Only works if Lip(f * effective_k) < 1 (Banach Fixed Point Theorem).
+
+        Gated by HardwareMonitor compute and thermal affordance:
+        Scales fixed-point iteration steps dynamically to prevent thermal throttling or stall.
         """
         if self.input_dim != self.audience_dim:
             # Fixed point iteration requires identical dimensions
             # Return identity fallback
             return audience_state[..., :self.input_dim] if audience_state.shape[-1] >= self.input_dim else torch.nn.functional.pad(audience_state, (0, self.input_dim - audience_state.shape[-1]))
-            
+
+        # Dynamic compute affordance adaptation
+        actual_iterations = iterations
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor.get_instance()
+            thermal_aff = hw.get_typed_affordance(ComputeAffordanceType.THERMAL)
+            algo_aff = hw.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+            if hw.thermal_runaway or not bool(thermal_aff):
+                actual_iterations = max(1, iterations // 3)
+            elif not bool(algo_aff) or thermal_aff.gauge < 0.4:
+                actual_iterations = max(2, (iterations * 2) // 3)
+        except Exception:
+            pass
+
         x = audience_state # Initial guess
-        for _ in range(iterations):
+        for _ in range(actual_iterations):
             # 1. Re-evaluate Homology-driven topological shaping for current x
             draft_betti = self.homology_engine.predict_draft_betti(x)
             betti_1 = draft_betti.get(1, 0)
