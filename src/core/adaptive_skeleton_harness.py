@@ -19,7 +19,27 @@ from src.core.fgrt_primitives import morton_encode_3d
 from src.core.honest_jitter import harvest_honest_jitter
 from src.core.manifold_time import ManifoldClock, TwoCopsSchedule
 from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
-from src.ui.voxelboxter_simulation import morton_encode, StructuralGraph, Block, RigidBody
+# Lazy import helper to prevent circular UI imports
+def _get_voxelboxter_simulation():
+    from src.ui.voxelboxter_simulation import morton_encode, StructuralGraph, Block, RigidBody
+    return morton_encode, StructuralGraph, Block, RigidBody
+
+def morton_encode(x: int, y: int, z: int) -> int:
+    """Bit-interleaves 3D coordinates (x, y, z) into a 1D scalar Morton code."""
+    def expand_bits(v: int) -> int:
+        v = (v | (v << 16)) & 0x030000FF
+        v = (v | (v <<  8)) & 0x0300F00F
+        v = (v | (v <<  4)) & 0x030C30C3
+        v = (v | (v <<  2)) & 0x09249249
+        return v
+    ux = max(0, int(x)) & 0x3FF
+    uy = max(0, int(y)) & 0x3FF
+    uz = max(0, int(z)) & 0x3FF
+    return expand_bits(ux) | (expand_bits(uy) << 1) | (expand_bits(uz) << 2)
+
+StructuralGraph = Any
+Block = Any
+RigidBody = Any
 from src.core.structural_blueprints import AddonRoutine, MangostienBSplineMod, BooleanXORLayer
 
 class AmbulatoryClass(Enum):
@@ -785,6 +805,7 @@ class AdaptiveSkeletonHarness(nn.Module):
         Interacts with structural algebra functionals (AddonRoutine, MangostienBSplineMod,
         BooleanXORLayer) to project continuous skeleton into discrete voxel constructs.
         """
+        _, StructuralGraph, Block, _ = _get_voxelboxter_simulation()
         graph = target_graph if target_graph is not None else StructuralGraph()
         routine = AddonRoutine()
         
@@ -870,6 +891,7 @@ class AdaptiveSkeletonHarness(nn.Module):
         fossil_split = graph.fossilize_core(bone_ratio=bone_ratio)
         
         # Instantiate RigidBody with precomputed bone inertial invariants
+        _, _, _, RigidBody = _get_voxelboxter_simulation()
         rb = RigidBody(
             mass=max(1.0, graph.bone_mass * 10.0),
             center_of_mass=graph.bone_center_of_mass,

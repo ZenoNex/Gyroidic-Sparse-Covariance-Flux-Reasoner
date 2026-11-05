@@ -1767,9 +1767,11 @@ class DiegeticPhysicsEngine(nn.Module):
                         # Background external search requires Silicon + Thermal headroom and minimum 180s cooldown
                         now = time.time()
                         last_ext_search = getattr(self, '_last_bg_external_search_time', 0.0)
-                        can_search_ext = (silicon_aff.is_admissible and silicon_aff.gauge > 0.30) and \
-                                         (thermal_aff.is_admissible and thermal_aff.gauge > 0.20) and \
-                                         not hw.thermal_runaway and (now - last_ext_search >= 180.0)
+                        can_search_ext = not getattr(self, 'lightweight', False) and \
+                                         not bool(os.environ.get("Sovereign_Disable_Background")) and \
+                                         (silicon_aff.is_admissible and silicon_aff.gauge > 0.35) and \
+                                         (thermal_aff.is_admissible and thermal_aff.gauge > 0.30) and \
+                                         not hw.thermal_runaway and (now - last_ext_search >= 300.0)
                         
                         if can_search_ext:
                             if getattr(self, 'open_science_ingestor', None) is not None:
@@ -2469,7 +2471,20 @@ class DiegeticPhysicsEngine(nn.Module):
             
         dynamic_max_len = int((base_len + affordance_expansion) * proficiency_multiplier)
         # Prevent completely runaway generation while allowing deep explanation
-        dynamic_max_len = max(50, min(dynamic_max_len, 2000))
+        is_cpu = (str(self.device) == 'cpu')
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor.get_instance()
+            thermal_ok = hw.has_compute_affordance(ComputeAffordanceType.THERMAL)
+        except Exception:
+            thermal_ok = True
+
+        if is_cpu or not thermal_ok or getattr(self, 'lightweight', False):
+            # Enforce strict thermal and latency bounds on CPU/restricted host
+            cap = 180 if is_cpu else 260
+            dynamic_max_len = max(40, min(dynamic_max_len, cap))
+        else:
+            dynamic_max_len = max(50, min(dynamic_max_len, 500))
         
         # --- GIBBERISH & PATHOLOGICAL GARBLE AFFORDANCE GUARD ---
         # Detect whether the prompt is ungrounded / gibberish to prevent generating 2000 characters of junk on CPU.
@@ -2581,6 +2596,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 if len(dream_chars) >= 40 and char in ('.', '!', '?'):
                     break
+                if len(dream_chars) >= 60 and char == '\n':
+                    break
+                # Anti-repetition brake: avoid runaway repeating sequences
+                if len(dream_chars) >= 4 and dream_chars[-1] == dream_chars[-2] == dream_chars[-3] == dream_chars[-4]:
+                    break
+                # Clause completion brake near target length
+                if len(dream_chars) >= 90 and char in (',', ';', ' ') and i >= dynamic_max_len - 25:
+                    break
                 
                 # Feedback from own state using projection weight modulated by Cavity overtones
                 feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
@@ -2608,6 +2631,10 @@ class DiegeticPhysicsEngine(nn.Module):
                         "recent": "".join(dream_chars[-30:]),
                         "elapsed_sec": round(elapsed, 2)
                     }
+
+                # Yield CPU time slice periodically so GIL and server threads don't starve
+                if (i + 1) % 10 == 0:
+                    time.sleep(0.001)
 
                 # Restless 500ms thermal guard check
                 step_elapsed_ms = (time.time() - gen_start_time) * 1000.0 / max(1, i + 1)

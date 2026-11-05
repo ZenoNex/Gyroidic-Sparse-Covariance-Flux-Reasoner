@@ -5,13 +5,17 @@ import sys
 import os
 from typing import Optional, Any, Tuple, List
 
-try:
-    from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
-except ImportError:
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    if root_dir not in sys.path:
-        sys.path.insert(0, root_dir)
-    from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
+# Lazy import helper for image extension components to prevent circular imports
+def _get_image_extension_classes():
+    try:
+        from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
+        return ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
+    except ImportError:
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        if root_dir not in sys.path:
+            sys.path.insert(0, root_dir)
+        from image_extension import ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
+        return ImageProcessor, StructuralEntanglementNet, ConjugateColorTransport
 
 _SPECTRAL_MASK_CACHE = {}
 
@@ -23,6 +27,7 @@ class TextureDSPEngine:
     """
     def __init__(self, device: str = 'cpu'):
         self.device = device
+        ImageProcessor, _, ConjugateColorTransport = _get_image_extension_classes()
         self.image_processor = ImageProcessor(device=self.device)
         self.color_transport = ConjugateColorTransport(device=self.device)
 

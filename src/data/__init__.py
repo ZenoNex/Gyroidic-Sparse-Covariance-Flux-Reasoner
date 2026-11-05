@@ -8,44 +8,33 @@ from .gltf_splat_ingestor import GltfSplatIngestionPipeline
 from .webp_prompt_extractor import WebPPromptExtractor
 from .conversational_types import ConversationTurn, Conversation
 
-try:
-    from .knowledge_ingestor import ArXivSovereignIngestor, KnowledgeIngestor, ResonanceLarynx, LazarusSoftmax
-except ImportError:
-    ArXivSovereignIngestor = None
-    KnowledgeIngestor = None
-    ResonanceLarynx = None
-    LazarusSoftmax = None
+_LAZY_EXPORTS = {
+    'ArXivSovereignIngestor': ('.knowledge_ingestor', 'ArXivSovereignIngestor'),
+    'KnowledgeIngestor': ('.knowledge_ingestor', 'KnowledgeIngestor'),
+    'ResonanceLarynx': ('.knowledge_ingestor', 'ResonanceLarynx'),
+    'LazarusSoftmax': ('.knowledge_ingestor', 'LazarusSoftmax'),
+    'EconomicNewsLinker': ('.economic_news_linker', 'EconomicNewsLinker'),
+    'InvestorNewsIngestor': ('.economic_news_linker', 'InvestorNewsIngestor'),
+    'ChatGPTFrictionHarvester': ('.chatgpt_friction_harvester', 'ChatGPTFrictionHarvester'),
+    'OpenScienceIngestor': ('.open_science_ingestor', 'OpenScienceIngestor'),
+    'MinecraftIngestionPipeline': ('.minecraft_ingestor', 'MinecraftIngestionPipeline'),
+    'LocalDatasetIngestor': ('.local_dataset_ingestor', 'LocalDatasetIngestor'),
+    'run_background_topology_analysis': ('.sterile_data_reruns', 'run_background_topology_analysis'),
+}
 
-try:
-    from .economic_news_linker import EconomicNewsLinker, InvestorNewsIngestor
-except ImportError:
-    EconomicNewsLinker = None
-    InvestorNewsIngestor = None
-
-try:
-    from .chatgpt_friction_harvester import ChatGPTFrictionHarvester
-except ImportError:
-    ChatGPTFrictionHarvester = None
-
-try:
-    from .open_science_ingestor import OpenScienceIngestor
-except ImportError:
-    OpenScienceIngestor = None
-
-try:
-    from .minecraft_ingestor import MinecraftIngestionPipeline
-except ImportError:
-    MinecraftIngestionPipeline = None
-
-try:
-    from .local_dataset_ingestor import LocalDatasetIngestor
-except ImportError:
-    LocalDatasetIngestor = None
-
-try:
-    from .sterile_data_reruns import run_background_topology_analysis
-except ImportError:
-    run_background_topology_analysis = None
+def __getattr__(name: str):
+    if name in _LAZY_EXPORTS:
+        mod_name, attr_name = _LAZY_EXPORTS[name]
+        try:
+            import importlib
+            mod = importlib.import_module(mod_name, package=__name__)
+            attr = getattr(mod, attr_name)
+            globals()[name] = attr
+            return attr
+        except Exception:
+            globals()[name] = None
+            return None
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __all__ = [
     'GltfSplatIngestionPipeline',

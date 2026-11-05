@@ -1081,26 +1081,28 @@ class HybridAI:
             print(f"[FAIL] Multiplexed Feed Substrate initialization failed: {e}")
             self.physics_backend = None
 
-        # Valence & Hunger Initial Bootup Feed Ingestion (Gated on lightweight & compute affordances)
+        # Valence & Hunger Initial Bootup Feed Ingestion (Non-blocking async worker gated on affordances)
         from src.core.hardware_monitor import has_compute_affordance
         if not getattr(self, 'lightweight', False) and has_compute_affordance() and self.engine and hasattr(self.engine, 'valence_drive'):
-            try:
-                init_hunger = self.engine.valence_drive.get_metrics().get('current_hunger_drive', 1.0)
-                print(f"[BOOT] Evaluating Initial Valence Hunger Drive: {init_hunger:.3f}")
-                if init_hunger > 0.0 and hasattr(self.engine, 'investor_ingestor'):
-                    user_feeds = self.engine.investor_ingestor.get_active_feed_urls()
-                    print(f"[BOOT] Valence Hunger prodding auto-injection of {len(user_feeds)} user RSS feed(s)...")
-                    boot_payloads = self.engine.investor_ingestor.fetch_financial_feeds(
-                        feeds=user_feeds, state=getattr(self.engine, 'meta_state', None)
-                    )
-                    ingested_boot = 0
-                    for payload in boot_payloads[:6]:
-                        if payload and not payload.startswith("Equities flux neutral"):
-                            self.engine.process_input(payload, generate_response=False)
-                            ingested_boot += 1
-                    print(f"[OK] Ingested {ingested_boot} RSS feed item(s) on bootup into manifold via Valence/Hunger prodding.")
-            except Exception as boot_err:
-                print(f"[WARN] Bootup Valence RSS feed ingestion bypassed: {boot_err}")
+            def _async_boot_feeds():
+                try:
+                    time.sleep(10)  # Wait for server startup to complete
+                    init_hunger = self.engine.valence_drive.get_metrics().get('current_hunger_drive', 1.0)
+                    if init_hunger > 0.0 and hasattr(self.engine, 'investor_ingestor'):
+                        user_feeds = self.engine.investor_ingestor.get_active_feed_urls()
+                        boot_payloads = self.engine.investor_ingestor.fetch_financial_feeds(
+                            feeds=user_feeds, state=getattr(self.engine, 'meta_state', None)
+                        )
+                        ingested_boot = 0
+                        for payload in boot_payloads[:6]:
+                            if payload and not payload.startswith("Equities flux neutral"):
+                                self.engine.process_input(payload, generate_response=False)
+                                ingested_boot += 1
+                        if ingested_boot > 0:
+                            print(f"[OK] Ingested {ingested_boot} RSS feed item(s) into manifold via Valence/Hunger prodding.", flush=True)
+                except Exception as boot_err:
+                    print(f"[WARN] Bootup Valence RSS feed ingestion bypassed: {boot_err}", flush=True)
+            threading.Thread(target=_async_boot_feeds, daemon=True, name="BootFeedsWorker").start()
         
         self.iteration_count = 0
         
@@ -2444,11 +2446,19 @@ class HybridAI:
         
         def _loop():
             # Wait for startup stabilization
-            time.sleep(1)
+            time.sleep(25)
             print(f"[INGEST] Background Scientific Learning ACTIVE (Dataset: {self.primary_query_dataset})", flush=True)
             
             while getattr(self, 'bg_scientific_learning', False):
                 try:
+                    from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+                    hw = HardwareMonitor.get_instance()
+                    if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL) or hw.thermal_runaway:
+                        # Yield when constrained
+                        for _ in range(60):
+                            if not getattr(self, 'bg_scientific_learning', False): break
+                            time.sleep(1)
+                        continue
                     if self.engine and getattr(self.engine, 'open_science_ingestor', None) is not None:
                         ds_list = [d.strip().lower() for d in self.primary_query_dataset.split(',') if d.strip()]
                         q_configs = []
@@ -2514,8 +2524,8 @@ class HybridAI:
                 except Exception as e:
                     print(f"[WARN] Background Scientific Learning iteration failed: {e}")
                 
-                # Sleep in small chunks to remain shutdown-responsive
-                for _ in range(60):
+                # Sleep in small chunks to remain shutdown-responsive (300s / 5 minute cycle)
+                for _ in range(300):
                     if not getattr(self, 'bg_scientific_learning', False):
                         break
                     time.sleep(1)

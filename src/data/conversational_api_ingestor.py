@@ -56,25 +56,11 @@ try:
 except ImportError:
     AIOHTTP_AVAILABLE = False
 
-try:
-    from datasets import load_dataset
-    DATASETS_AVAILABLE = True
-except ImportError:
-    DATASETS_AVAILABLE = False
-    print("  'datasets' (Hugging Face) not available. HF ingestion will be disabled.")
+import importlib.util
 
-try:
-    from convokit import Corpus, download
-    CONVOKIT_AVAILABLE = True
-except ImportError:
-    CONVOKIT_AVAILABLE = False
-    print("  'convokit' not available. ConvoKit ingestion will be disabled.")
-    
-try:
-    from huggingface_hub import HfApi
-    HF_HUB_AVAILABLE = True
-except ImportError:
-    HF_HUB_AVAILABLE = False
+DATASETS_AVAILABLE = importlib.util.find_spec('datasets') is not None
+CONVOKIT_AVAILABLE = importlib.util.find_spec('convokit') is not None
+HF_HUB_AVAILABLE = importlib.util.find_spec('huggingface_hub') is not None
 
 # Core imports
 from src.core.polynomial_coprime import PolynomialCoprimeConfig

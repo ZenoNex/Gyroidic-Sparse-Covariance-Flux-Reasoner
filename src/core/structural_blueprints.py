@@ -11,7 +11,15 @@ import time
 from typing import Tuple, List, Optional, Dict, Any
 from dataclasses import dataclass
 
-from src.ui.voxelboxter_simulation import StructuralGraph, Block, SliderSettings, InventoryComponent
+# Lazy import helper to prevent circular UI imports
+def _get_voxelboxter_classes():
+    from src.ui.voxelboxter_simulation import StructuralGraph, Block, SliderSettings, InventoryComponent
+    return StructuralGraph, Block, SliderSettings, InventoryComponent
+
+StructuralGraph = Any
+Block = Any
+SliderSettings = Any
+InventoryComponent = Any
 from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, TrigonometricUnfolding
 from src.core.yield_criteria import MohrCoulombProjection
 from src.core.honest_jitter import harvest_honest_jitter
@@ -20,7 +28,11 @@ class AddonLayer:
     """Base class for topologically protected structural layers."""
     def __init__(self, name: str):
         self.name = name
-        self.settings = SliderSettings()
+        try:
+            _, _, SliderCls, _ = _get_voxelboxter_classes()
+            self.settings = SliderCls()
+        except Exception:
+            self.settings = None
         self.enabled = True
 
     def execute(self, graph: StructuralGraph, gcve_pressure: Optional[torch.Tensor] = None):
