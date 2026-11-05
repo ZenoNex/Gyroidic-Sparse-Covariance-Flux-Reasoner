@@ -8,7 +8,13 @@ from typing import List, Dict, Optional, Callable, Any
 import datetime
 import threading
 import tarfile
+import zipfile
+import gzip
 import io
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -396,8 +402,112 @@ class ArXivSovereignIngestor:
         except Exception as e:
             print(f"[INGEST] Transport error: {e}. Ingestion suspended.")
 
+    def _extract_images_from_pdf(self, pdf_bytes: bytes, max_images: int = 10) -> List[bytes]:
+        """Extracts valid embedded images (JPEG) directly from raw compiled PDF bytes."""
+        images = []
+        start = 0
+        while True:
+            idx = pdf_bytes.find(b'\xff\xd8\xff', start)
+            if idx == -1:
+                break
+            end = pdf_bytes.find(b'\xff\xd9', idx + 3)
+            if end == -1:
+                break
+            img_chunk = pdf_bytes[idx:end + 2]
+            start = end + 2
+            if Image is not None:
+                try:
+                    im = Image.open(io.BytesIO(img_chunk))
+                    im.verify()
+                    images.append(img_chunk)
+                    if len(images) >= max_images:
+                        break
+                except Exception:
+                    continue
+            else:
+                images.append(img_chunk)
+                if len(images) >= max_images:
+                    break
+        return images
+
+    def _extract_images_from_payload(self, raw_bytes: bytes, max_images: int = 10) -> List[bytes]:
+        """
+        Extracts embedded visual media from arbitrary ArXiv e-print bitstreams:
+        - Raw PDF (PDF-only submissions)
+        - Standard Tarballs (.tar, .tar.gz, .tar.bz2, .tar.xz)
+        - Zip archives (.zip)
+        - Single gzipped streams (.gz)
+        - Plain text / TeX source (gracefully returns empty list)
+        """
+        if not raw_bytes or len(raw_bytes) < 4:
+            return []
+
+        # 1. HTML error or notice page
+        if raw_bytes.lstrip().startswith((b"<!DOCTYPE", b"<html", b"<?xml")):
+            return []
+
+        # 2. Raw or embedded PDF
+        if raw_bytes.startswith(b"%PDF-"):
+            return self._extract_images_from_pdf(raw_bytes, max_images=max_images)
+
+        # 3. Zip archive
+        if raw_bytes.startswith(b"PK\x03\x04"):
+            images = []
+            try:
+                with zipfile.ZipFile(io.BytesIO(raw_bytes), "r") as z:
+                    for name in z.namelist():
+                        if name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                            images.append(z.read(name))
+                            if len(images) >= max_images:
+                                break
+            except Exception:
+                pass
+            return images
+
+        # 4. Standard Tarball (tar, tar.gz, tar.bz2, tar.xz)
+        try:
+            images = []
+            buf = io.BytesIO(raw_bytes)
+            with tarfile.open(fileobj=buf, mode="r:*") as tar:
+                for member in tar.getmembers():
+                    if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                        f = tar.extractfile(member)
+                        if f:
+                            images.append(f.read())
+                            if len(images) >= max_images:
+                                break
+            return images
+        except (tarfile.ReadError, tarfile.TarError):
+            pass
+
+        # 5. Single Gzip compressed stream (might wrap a PDF, tar, or standalone tex)
+        if raw_bytes.startswith(b"\x1f\x8b"):
+            try:
+                decompressed = gzip.decompress(raw_bytes)
+                if decompressed.startswith(b"%PDF-"):
+                    return self._extract_images_from_pdf(decompressed, max_images=max_images)
+                try:
+                    buf = io.BytesIO(decompressed)
+                    images = []
+                    with tarfile.open(fileobj=buf, mode="r:") as tar:
+                        for member in tar.getmembers():
+                            if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
+                                f = tar.extractfile(member)
+                                if f:
+                                    images.append(f.read())
+                                    if len(images) >= max_images:
+                                        break
+                    if images:
+                        return images
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        return []
+
     def _extract_media_from_eprint(self, arxiv_id: str) -> List[bytes]:
-        """Downloads the ArXiv source tarball and extracts embedded images (max 10)."""
+        """Downloads the ArXiv source bitstream (tarball, PDF, or zip) and extracts embedded images (max 10)."""
         url = f"https://export.arxiv.org/e-print/{arxiv_id}"
         images = []
         headers = {
@@ -414,15 +524,8 @@ class ArXivSovereignIngestor:
                     for chunk in response.iter_content(chunk_size=65536):
                         if chunk:
                             buf.write(chunk)
-                    buf.seek(0)
-                    with tarfile.open(fileobj=buf, mode="r:*") as tar:
-                        for member in tar.getmembers():
-                            if member.name.lower().endswith(('.png', '.jpg', '.jpeg')):
-                                f = tar.extractfile(member)
-                                if f:
-                                    images.append(f.read())
-                                    if len(images) >= 10: # Capped to prevent OOM
-                                        break
+                    raw_bytes = buf.getvalue()
+                    images = self._extract_images_from_payload(raw_bytes, max_images=10)
                     break
                 elif response.status_code in (403, 404, 429):
                     break
