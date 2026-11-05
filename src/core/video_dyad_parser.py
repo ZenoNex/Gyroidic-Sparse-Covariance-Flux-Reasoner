@@ -620,3 +620,23 @@ class VideoDyadParser(nn.Module):
         except Exception as e:
             print(f"[VIDEO_PARSER] Audio extraction failed: {e}", flush=True)
             return None
+
+    def evaluate_reel_representation_amortization(
+        self,
+        num_queries_m: int = 1,
+        retain_breather_state: bool = True,
+        build_cost_b: float = 1.0,
+        per_query_cost_p: float = 0.15
+    ) -> Dict[str, Any]:
+        """
+        Evaluates REEL multimodal representation amortization G_v^r(m) = B_v^r + sum P_{v,i}^r
+        and answer-flip risk avoidance (20-29% flip rate on scalar caption compression vs
+        non-scalar Chebyshev/Breather retention; Zohar et al., docs/2610.38158v1.pdf).
+        """
+        from src.core.invariants import compute_reel_representation_amortization
+        return compute_reel_representation_amortization(
+            num_queries_m=num_queries_m,
+            retain_breather_state=retain_breather_state,
+            build_cost_b=build_cost_b,
+            per_query_cost_p=per_query_cost_p,
+        )

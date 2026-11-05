@@ -102,6 +102,8 @@ class CarnotMobiusLedger(nn.Module):
             )
         except Exception:
             pass
+
+        landau_audit = self.audit_homoenergetic_compression(admr_residues, dt=1.0)
             
         return {
             "eta_ideal": eta_ideal,
@@ -112,8 +114,30 @@ class CarnotMobiusLedger(nn.Module):
             "effective_depth_n": effective_depth_N,
             "effective_depth_N": effective_depth_N,
             "n_crit": n_crit,
-            "topological_friction": sigma_eps_sq
+            "topological_friction": sigma_eps_sq,
+            "landau_compression_audit": landau_audit,
         }
+
+    def audit_homoenergetic_compression(
+        self,
+        admr_residues: torch.Tensor,
+        dt: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Audits isotropic/anisotropic velocity-gradient compression for finite-time
+        hydrodynamic implosion t_* = -1 / lambda_min(L_0) and Fisher information
+        exponential growth rate 2*||L||_2 - tr(L) (Caja-Lopez et al., docs/2611.05236v1.pdf).
+        """
+        from src.core.invariants import compute_landau_homoenergetic_compression_audit
+        flat_res = admr_residues.detach().float().flatten()
+        if flat_res.numel() == 0:
+            flat_res = torch.zeros(4, dtype=torch.float32)
+        else:
+            flat_res = flat_res[:min(16, flat_res.numel())]
+        return compute_landau_homoenergetic_compression_audit(
+            deformation_l0=flat_res,
+            time_t=dt
+        )
 
     def compute_parallel_sorting_entropy(
         self,

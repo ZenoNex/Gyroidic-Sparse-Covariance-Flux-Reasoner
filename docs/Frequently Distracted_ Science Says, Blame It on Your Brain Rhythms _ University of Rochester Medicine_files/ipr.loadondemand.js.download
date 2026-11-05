@@ -1,0 +1,82 @@
+(function($){
+
+  jQuery.prototype.pr_newsLoad = function() {
+    
+    var _self = this;
+    linkElem: "";
+    
+    //
+    //  SETTINGS
+    //
+    
+    var settings = {
+      
+      linkElemSelector : "[data-newsload='caller']",
+      linkElemDisable: "disable",
+      linkElemLoading: "loading",
+      itemSelector: "[data-newsload='indexitem']",
+      itemLength: 3
+    }
+    
+    //
+    // EVENTS
+    //  
+    $("body").on("click",settings.linkElemSelector,function(){
+      if(linkElem.hasClass(settings.linkElemDisable)) return false;
+      linkElem.addClass(settings.linkElemLoading);
+      
+      $.ajax({
+        url : (linkElem.attr("href") ? linkElem.attr("href") : linkElem.attr("href")+"&page="+_self.attr("data-pages")),
+        dataType: "html",
+        complete : function(data){
+          _self.addPage(data);
+        }
+      });
+      return false;
+      
+    });
+    
+    
+    //
+    // METHODS
+    //
+    _self.init = function() {
+      linkElem = $("body").find(settings.linkElemSelector+"[data-newsloadfor='"+_self.attr("id")+"']");
+    }
+    
+    
+    _self.addPage = function(data){
+      if(data.responseText.indexOf("<!--start_index-->")!=-1) {
+        var items = data.responseText.substr(data.responseText.indexOf("<!--start_index-->"),data.responseText.indexOf("<!--end_index-->")-data.responseText.indexOf("<!--start_index-->"));
+        _self.append(items);
+        _self.attr("data-pages",(parseInt(_self.attr("data-pages"))+1));
+        
+        var itemPattern = new RegExp(settings.itemSelector, 'g');
+        if( ( _self.find(settings.itemSelector).length >= parseInt(_self.attr("data-total")) ) || (items.match(itemPattern) && items.match(itemPattern).length < settings.itemLength )) {
+          _self.setDisable();
+        } else {
+          // update number of page for loading
+          var url = linkElem.attr("href");
+          linkElem.attr("href",url.replace(/(.*)(page=)(\w*)(.*)/,"$1$2"+(parseInt(_self.attr("data-pages"))+1)+"$4"));
+        }
+      } else {
+        _self.setDisable();
+      }
+      linkElem.removeClass(settings.linkElemLoading);
+      
+    }
+    
+    _self.setDisable = function(){
+      linkElem.addClass(settings.linkElemDisable);
+      linkElem.removeAttr("href");
+    }
+    
+    
+    _self.init();
+    
+    
+    
+    
+  }
+
+})(jQuery)

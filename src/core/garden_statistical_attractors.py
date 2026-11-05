@@ -680,11 +680,77 @@ class GardenOrchestrator(nn.Module):
         
         return coupling
     
+    def compute_widom_rowlinson_gnz_repulsion(
+        self,
+        concepts: torch.Tensor,
+        halo_radius: float = 0.25,
+    ) -> Dict[str, Any]:
+        """
+        Widom-Rowlinson Area-Interaction Repulsion & Partition-Free GNZ Variational Beta
+        (David Dereudre, docs/1701.08105v2.pdf):
+          Models Meliponini Cerumen Pots / concept attractors as a continuum Widom-Rowlinson
+          area-interaction Gibbs point process with halo radius R:
+            h(x, gamma) = Vol(B(x, R) \\ union_{y in gamma} B(y, R))
+          and estimates the variational inverse temperature beta_hat_GNZ directly from
+          local insertion energies without global partition normalization.
+        """
+        from src.core.invariants import compute_gibbs_gnz_variational_beta
+
+        c_norm = F.normalize(concepts.detach().float(), p=2, dim=-1)
+        if c_norm.dim() == 1:
+            c_norm = c_norm.unsqueeze(0)
+
+        # Gather background gamma from fossilized basins (and MemoryPalace rooms if attached)
+        basins = F.normalize(self.influence_attractors.fossilized_basins.detach().float().to(c_norm.device), p=2, dim=-1)
+        dists_to_basins = torch.cdist(c_norm, basins)  # [B, N_basins]
+        overlap_ratio = torch.clamp(1.0 - (dists_to_basins / max(1e-4, 2.0 * float(halo_radius))), min=0.0, max=1.0)
+        # Local uncovered halo volume proxy h(x, gamma) in (0, 1]
+        uncovered_h = torch.prod(1.0 - 0.5 * overlap_ratio, dim=-1)  # [B]
+
+        # If batch size == 1, include per-basin leave-one-out insertion energies so GNZ has >= 2 points
+        if uncovered_h.numel() < 2 and basins.shape[0] >= 2:
+            basin_dists = torch.cdist(basins, basins)
+            basin_dists.fill_diagonal_(float("inf"))
+            basin_overlap = torch.clamp(1.0 - (basin_dists / max(1e-4, 2.0 * float(halo_radius))), min=0.0, max=1.0)
+            basin_h = torch.prod(1.0 - 0.5 * basin_overlap, dim=-1)
+            h_for_gnz = torch.cat([uncovered_h, basin_h], dim=0)
+        else:
+            h_for_gnz = uncovered_h
+
+        gnz_stats = compute_gibbs_gnz_variational_beta(local_energies_h=h_for_gnz)
+        beta_gnz = float(gnz_stats["estimated_beta_gnz"])
+
+        # Compute Widom-Rowlinson halo repulsion vector away from overlapping basins
+        close_mask = (dists_to_basins < (2.0 * float(halo_radius))).float()  # [B, N_basins]
+        repulsion_vec = torch.zeros_like(c_norm)
+        if float(close_mask.sum().item()) > 0.0:
+            # Weighted sum of (c_i - basin_j) for overlapping halos
+            diff = c_norm.unsqueeze(1) - basins.unsqueeze(0)  # [B, N_basins, D]
+            weights = close_mask.unsqueeze(-1) * overlap_ratio.unsqueeze(-1)
+            repulsion_vec = (diff * weights).sum(dim=1)
+            repulsion_vec = F.normalize(repulsion_vec + 1e-8, p=2, dim=-1) * min(0.05, 0.01 * beta_gnz)
+
+        self.last_gnz_stats = {
+            "estimated_beta_gnz": beta_gnz,
+            "widom_rowlinson_insertion_energy": float(uncovered_h.mean().item()),
+            "repulsion_force": repulsion_vec,
+        }
+        return self.last_gnz_stats
+
     def apply_topological_constraints(self, concepts: torch.Tensor) -> torch.Tensor:
-        """Apply topological constraints to maintain manifold structure."""
+        """Apply topological constraints and Widom-Rowlinson GNZ halo repulsion to maintain manifold structure."""
         
         # Normalize to unit sphere (preserve topology)
         concepts_normalized = F.normalize(concepts, p=2, dim=-1)
+
+        # Apply Widom-Rowlinson area-interaction halo repulsion (docs/1701.08105v2.pdf)
+        try:
+            wr_stats = self.compute_widom_rowlinson_gnz_repulsion(concepts_normalized)
+            wr_rep = wr_stats["repulsion_force"].to(concepts_normalized.device, concepts_normalized.dtype)
+            if wr_rep.shape == concepts_normalized.shape:
+                concepts_normalized = F.normalize(concepts_normalized + wr_rep, p=2, dim=-1)
+        except Exception:
+            pass
         
         # Apply soft constraints to prevent collapse
         # Minimum distance between concepts
@@ -787,7 +853,9 @@ class GardenOrchestrator(nn.Module):
             'resonance_strength': resonance_strength,
             'chiral_gating': chiral_gating,
             'phase_alignment': phase_alignment,
-            'basin_density': self.influence_attractors.compute_basin_density()
+            'basin_density': self.influence_attractors.compute_basin_density(),
+            'estimated_beta_gnz': getattr(self, 'last_gnz_stats', {}).get('estimated_beta_gnz', 1.0),
+            'widom_rowlinson_insertion_energy': getattr(self, 'last_gnz_stats', {}).get('widom_rowlinson_insertion_energy', 1.0),
         }
     
     def compute_garden_health_metrics(self, concepts: torch.Tensor) -> Dict[str, HealthMetric]:
@@ -1934,6 +2002,33 @@ class MemoryPalace(nn.Module):
             "percolation_threshold_pc": PERCOLATION_2D_SQUARE,
             "tether_step": round(tether_step * 0.25, 4)
         }
+
+    def update_room_view_weight(self, room_id: str, delta_weight: float) -> float:
+        """
+        Updates the q-hierarchical Grounded View-Tree survivorship weight of a MemoryPalace
+        Cerumen Pot room (docs/2611.04519v1.pdf), closing the downstream verification loop.
+        """
+        if room_id in self.rooms:
+            room = self.rooms[room_id]
+            curr_w = float(room.metadata.get("survivorship_weight", max(0.1, float(room.seam_tension))))
+            new_w = max(0.05, min(100.0, curr_w + float(delta_weight)))
+            room.metadata["survivorship_weight"] = new_w
+            return new_w
+        return 0.0
+
+    def query_ranked_rooms_view_tree(self, k_limit: int = 8) -> List[MemoryPalaceRoom]:
+        """
+        O(|Q| log |D|) Ranked Direct Access over MemoryPalace rooms weighted by
+        seam_tension and survivorship_weight (Kara et al., docs/2611.04519v1.pdf).
+        """
+        if not self.rooms:
+            return []
+        room_items = list(self.rooms.values())
+        room_items.sort(
+            key=lambda r: float(r.metadata.get("survivorship_weight", max(0.1, float(r.seam_tension)))),
+            reverse=True,
+        )
+        return room_items[: max(1, int(k_limit))]
 
 
 if __name__ == "__main__":

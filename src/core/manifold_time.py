@@ -178,3 +178,87 @@ class TwoCopsSchedule(nn.Module):
         """Update the shared bulletin board with exact constraints."""
         # Simple EMA update for now
         self.bulletin_board.copy_(0.7 * self.bulletin_board + 0.3 * system_2_forces.mean())
+
+    def compute_rmgrit_schedule_and_anderson_acceleration(
+        self,
+        state_history: list,
+        residual_history: list,
+        total_micro_steps: int = 5,
+        gamma: float = 0.2,
+        window_w: int = 3,
+        request_layers: Optional[list] = None,
+    ) -> Dict[str, object]:
+        """
+        Parallel-in-Iteration Restarted MGRIT + Anderson Acceleration AA(w) + Bevy Runahead
+        (Araujo et al., docs/2611.03621v1.pdf; Yu et al., docs/2611.04794v1.pdf):
+          1. Truncates sequential micro-step trajectory N_t to N_bar_t = ceil(gamma * N_t)
+             for 1 / sqrt(gamma) parallel-in-time speedup and groups lowest active layer l_min
+             for Bevy runahead prefetching.
+          2. Applies Anderson Acceleration AA(w) over the rolling micro-step history
+             (x_{k-m}, ..., x_k) and residuals r_j = G(x_j) - x_j by solving the regularized
+             least-squares problem min_theta ||r_k - Delta_R * theta||_2^2 + reg * ||theta||_2^2.
+        """
+        from src.core.invariants import compute_rmgrit_bevy_runahead_schedule
+
+        sched = compute_rmgrit_bevy_runahead_schedule(
+            total_steps_nt=total_micro_steps,
+            truncation_gamma=gamma,
+            request_layers=request_layers or [0, 1, 2],
+        )
+
+        if len(state_history) < 2 or len(residual_history) < 2:
+            latest_state = state_history[-1] if len(state_history) > 0 else None
+            return {
+                "accelerated_state": latest_state,
+                "anderson_applied": False,
+                "anderson_window_used": 0,
+                "residual_reduction_ratio": 1.0,
+                "rmgrit_schedule": sched,
+            }
+
+        m = min(int(window_w), len(state_history) - 1, len(residual_history) - 1)
+        x_k = state_history[-1]
+        r_k = residual_history[-1]
+        orig_shape = x_k.shape
+        x_flat = x_k.detach().float().reshape(-1)
+        r_flat = r_k.detach().float().reshape(-1)
+
+        dx_cols = []
+        dr_cols = []
+        for idx in range(1, m + 1):
+            dx_i = state_history[-idx].detach().float().reshape(-1) - state_history[-idx - 1].detach().float().reshape(-1)
+            dr_i = residual_history[-idx].detach().float().reshape(-1) - residual_history[-idx - 1].detach().float().reshape(-1)
+            dx_cols.append(dx_i)
+            dr_cols.append(dr_i)
+
+        delta_x = torch.stack(dx_cols, dim=-1)  # [D, m]
+        delta_r = torch.stack(dr_cols, dim=-1)  # [D, m]
+
+        gram = torch.matmul(delta_r.T, delta_r)
+        reg_eye = 1e-4 * torch.eye(m, dtype=gram.dtype, device=gram.device)
+        rhs = torch.matmul(delta_r.T, r_flat.unsqueeze(-1))
+        try:
+            theta = torch.linalg.solve(gram + reg_eye, rhs).squeeze(-1)
+        except Exception:
+            theta = torch.matmul(torch.linalg.pinv(gram + reg_eye), rhs).squeeze(-1)
+
+        theta = torch.clamp(theta, min=-2.0, max=2.0)
+        beta_mix = 0.5
+        correction = beta_mix * r_flat - torch.matmul(delta_x + beta_mix * delta_r, theta.unsqueeze(-1)).squeeze(-1)
+        x_aa_flat = x_flat + 0.35 * correction
+        x_aa = x_aa_flat.reshape(orig_shape).to(x_k.dtype)
+
+        if x_k.requires_grad:
+            x_aa = x_k + (x_aa - x_k.detach())
+
+        r_norm_before = float(torch.norm(r_flat).item()) + 1e-8
+        r_proj_after = float(torch.norm(r_flat - torch.matmul(delta_r, theta.unsqueeze(-1)).squeeze(-1)).item())
+        reduction_ratio = min(1.0, r_proj_after / r_norm_before)
+
+        return {
+            "accelerated_state": x_aa,
+            "anderson_applied": True,
+            "anderson_window_used": m,
+            "residual_reduction_ratio": float(reduction_ratio),
+            "rmgrit_schedule": sched,
+        }

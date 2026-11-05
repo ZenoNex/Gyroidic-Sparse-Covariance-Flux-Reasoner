@@ -758,7 +758,7 @@ class SpeculativeCoprimeGate(nn.Module):
                 from src.core.knowledge_dyad_fossilizer import DyadFossilizer
                 fossilizer = DyadFossilizer()
             # DeepSeek Nonscalar Efficiency: Request exact budget (limit=16) instead of unconstrained scan
-            fossils = fossilizer.recover_fossils(limit=16)
+            fossils = fossilizer.recover_fossils_ranked_direct_access(rank_offset=0, limit=16) if hasattr(fossilizer, 'recover_fossils_ranked_direct_access') else fossilizer.recover_fossils(limit=16)
             if fossils:
                 # Extract up to 16 fossil residue vectors to act as gravity wells
                 gravity_wells = []
@@ -774,6 +774,9 @@ class SpeculativeCoprimeGate(nn.Module):
                             is_atrophied = f.get('atrophy_detected', False)
                             weight = 0.1 if is_atrophied else 1.0
                             fossil_weights.append(weight)
+                            fname = f.get('_fossil_filename')
+                            if fname and hasattr(fossilizer, 'update_fossil_view_weight'):
+                                fossilizer.update_fossil_view_weight(fname, delta_weight=-0.05 if is_atrophied else 0.05)
                             
                 if gravity_wells:
                     gravity_tensor = torch.cat(gravity_wells, dim=0)

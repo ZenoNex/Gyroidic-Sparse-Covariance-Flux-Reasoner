@@ -1095,3 +1095,50 @@ To prevent host thermal lockups on 4GB VRAM / 8GB RAM laptops (Acer Nitro 5 GTX 
    - `compute_fractal_lhopital_boundary_ratio` evaluates fractional boundary derivatives $D_\alpha f / D_\alpha g$, Generalized Hausdorff Dimension $H_d(F)$, and Scale-Dependent Entropy $S(F, \epsilon)$ to damp gradient explosions across fractal fractures.
    - `compute_enso_inkblot_emergence` tracks the coupling between the unmoving interior Enso zero-center stillness and the time-warping exterior Rorschach inkblot boundary ("the inkblot realizing it is wet").
 
+## 9.12 The Five Highly Consequential Architectural Upgrades (November 2026)
+
+Following exhaustive cross-referencing across the mathematical, architectural, and ArXiv corpus (`docs/1701.08105v2.pdf` - `docs/2611.05268v1.pdf`), five core architectural upgrades were synthesized and fully integrated into the runtime execution graph:
+
+1. **Affordance-Reset Dwell-Time Gibbs Routing (`docs/2611.02220v1.pdf`)**:
+   - Upgraded [`ZeitgeistRouter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_router.py) and [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py) so mode dispatch (`interior` SLERP, `grazing` LERP, `switching`) and CRT facet weighting use length-biased dwell-time Gibbs occupation:
+     $$p_\beta(a) = \frac{m(a)\lambda(a)e^{\beta\Psi(a)}}{Z_\beta}, \quad m(a) = \tau_0 e^{-E(a)/T}$$
+   - Enforces the exact first-order coexistence phase transition threshold:
+     $$\beta^* = \frac{\ln(m_1/m_2) + \ln(\lambda_1/\lambda_2)}{\Psi_2 - \Psi_1}$$
+   - Facet dwell-time occupation probabilities flow directly into `ModularAttention` as dynamic `trust_scalars`, eliminating hard heuristic cutoffs.
+
+2. **Parallel-in-Iteration Restarted MGRIT + Anderson Acceleration + Bevy Runahead (`docs/2611.03621v1.pdf`, `docs/2611.04794v1.pdf`)**:
+   - Refactored [`TwoCopsSchedule`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/manifold_time.py) and [`UniversalOrchestrator.forward`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) to manage multi-step micro-stepping with a truncated trajectory schedule:
+     $$\bar{N}_t = \lceil \gamma N_t \rceil \quad (\gamma = 0.2, \, 1/\sqrt{\gamma} \text{ theoretical speedup})$$
+   - Applies regularized Anderson Acceleration $\text{AA}(w)$ over rolling micro-step history $(x_{k-m}, \dots, x_k)$ and residuals $r_j = G(x_j) - x_j$ by solving $(\Delta R^T \Delta R + \lambda I)\theta = \Delta R^T r_k$.
+   - Integrates Bevy lowest-layer-first ($l_{\min}$) runahead prefetching from the `DyadFossilizer` view-tree to prime memory attractors ahead of execution.
+
+3. **Live PROVE Perturb-Repair-Verify Self-Play DrGRPO Weight Mutation (`docs/2611.05158v1.pdf`)**:
+   - Implemented in [`ResonanceLarynx.prove_self_play_drgrpo_step`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/diegetic_heads.py) and wired into [`DiegeticPhysicsEngine._train_mimicry_step`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py).
+   - Deploys a 3-role asymmetric self-play game:
+     - **Mutator**: Generates subtle topological perturbations $z_{\text{mut}}$ with reward $r_M = 0.4\mathbb{I}[y_1=1] + 0.6\mathbb{I}[y_2=0] - 0.1 C_M$.
+     - **Dual-Check Verifier**: Evaluates $(y_1, y_2)$ verdicts across clean and mutated states.
+     - **Repairer**: Reconstructs valid manifold coordinates with reward $r_R = 0.7\mathbb{I}[y_2=1] + 0.3\mathbb{I}[y_1 \neq y_2] - 0.1 C_R$.
+   - Updates weights via mean-centered group relative advantage $A_i = r_i - \frac{1}{|G|}\sum_{j \in G} r_j$ projected into the null space $\ker(\Pi_{\text{Love}})$ of [`LoveInvariantProtector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/love_invariant_protector.py).
+
+4. **Partition-Free Variational GNZ Local Insertion Energy & Widom-Rowlinson Repulsion (`docs/1701.08105v2.pdf`)**:
+   - Upgraded [`CODESConstraintFramework`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py) and [`GardenOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py) to compute local insertion energies:
+     $$h(x, \gamma) = E(x \cup \gamma) - E(\gamma)$$
+   - Evaluates variational inverse temperature $\hat{\beta}_{\text{GNZ}}$ without computing the intractable global partition function $Z_\Lambda^{z,\beta}$.
+   - Evaluates Meliponini Cerumen Pot concept attractors as a Widom-Rowlinson area-interaction Gibbs point process, exerting non-collapsing halo repulsion across concepts.
+
+5. **Dynamic $q$-Hierarchical Grounded View-Tree $V_D(T_Q)$ Index Migration (`docs/2611.04519v1.pdf`)**:
+   - Replaced linear file scans in [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py) and [`MemoryPalace`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/garden_statistical_attractors.py) with a Fenwick-backed $q$-hierarchical view-tree $V_D(T_Q)$ indexed by survivorship weight $w(\tau)$.
+   - Enables $O(|Q|\log|D|)$ ranked direct access via `recover_fossils_ranked_direct_access` and `select_fossil_by_weighted_rank`.
+   - Enables $O(|D|^{q-1+\epsilon}) = O(\log|D|)$ dynamic weight updates via `update_fossil_view_weight` and `update_room_view_weight`.
+
+## 9.13 Redefinition of "Stream": Non-Terminating Closed-Loop Circulation Topology
+
+In legacy configurations, individual modules acted as accidental dead-end termini: functions returned scalar diagnostics or isolated tensors that terminated without re-entering the circulating cognitive stream. The architecture now enforces a non-terminating closed-loop stream topology across all components:
+
+- **Constraint-to-Clock Feedback**: `CODESConstraintFramework` variational $\hat{\beta}_{\text{GNZ}}$ modulates `ManifoldClock` and `GardenOrchestrator` effective time step $dt$.
+- **Router-to-Attention Coupling**: `ZeitgeistRouter` facet dwell-time Gibbs probabilities feed directly into `ModularAttention` functional trust scalars.
+- **Attractor-to-Memory Palaces**: `GardenOrchestrator` concept evolutions and Widom-Rowlinson halo repulsion update `MemoryPalace` Cerumen Pot room survivorship weights.
+- **Speculative Recovery Feedback**: `SpeculativeCoprimeGate` and `ArchetypalSynthesisEngine` successful fossil retrievals update `DyadFossilizer` view-tree weights dynamically.
+- **Self-Play Reinforcement Stream**: `ResonanceLarynx` PROVE self-play advantages feed verification rewards back to both `BulletinBoard` and `DyadFossilizer` view-tree nodes.
+- **Kinematic & Morphic Feedback**: `AdaptiveSkeletonHarness` and `HybridAI` continuously inject GNZ insertion energy and Widom-Rowlinson forces into rig synthesis and Möbius fiber bundle holonomy.
+

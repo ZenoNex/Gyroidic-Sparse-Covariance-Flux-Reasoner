@@ -70,6 +70,12 @@ This documentation maintains **archaeological fossils** of deprecated design rou
 42. [600-Cell Polychoron Quantization](#42-600-cell-polychoron-quantization)
 43. [Negentropic Trigonometric Manifold (NTM)](#43-negentropic-trigonometric-manifold-ntm)
 44. [GDPO-Decoupled Polynomial CRT](#44-gdpo-decoupled-polynomial-crt)
+- [62. Affordance-Reset Dwell-Time Gibbs Routing & Coexistence Phase Transitions](#62-affordance-reset-dwell-time-gibbs-routing--coexistence-phase-transitions)
+- [63. Parallel-in-Iteration Restarted MGRIT, Anderson Acceleration AA(w), and Bevy Runahead Grouping](#63-parallel-in-iteration-restarted-mgrit-anderson-acceleration-aaw-and-bevy-runahead-grouping)
+- [64. PROVE Perturb-Repair-Verify Self-Play Verifier Rewards & DrGRPO Advantage Weight Mutation](#64-prove-perturb-repair-verify-self-play-verifier-rewards--drgrpo-advantage-weight-mutation)
+- [65. Partition-Free Variational Georgii-Nguyen-Zessin (GNZ) Inverse Temperature & Widom-Rowlinson Area Repulsion](#65-partition-free-variational-georgii-nguyen-zessin-gnz-inverse-temperature--widom-rowlinson-area-repulsion)
+- [66. Dynamic q-Hierarchical Grounded View-Tree V_D(T_Q) Direct Access and Incremental Maintenance](#66-dynamic-q-hierarchical-grounded-view-tree-v_dt_q-direct-access-and-incremental-maintenance)
+- [67. Sovereign Invariant Cross-Referenced Formalisms (docs/2610.35990v1 - 2611.05268v1)](#67-sovereign-invariant-cross-referenced-formalisms-docs261035990v1---261105268v1)
 - [Appendix A. Implementation State Documentation (January 2026)](#appendix-a-implementation-state-documentation-january-2026)
 
 ---
@@ -2634,3 +2640,178 @@ Discrete symbol streams across the architecture (octree Morton keys, Cleanroom c
    where $H(X) = -\sum p_i \log_2(p_i)$ is the empirical Shannon entropy and $L_i$ is the bit length of prefix code $i$.
 2. **Run-Length Interleaving**:
    Repetitive symbol runs $(c_k, v_k)$ are Huffman-coded, shrinking sparse voxel octrees and idle conduit channels by up to $85\%$, eliminating bus stalling during zero-copy GPU memory transfers.
+
+---
+
+## 62. Affordance-Reset Dwell-Time Gibbs Routing & Coexistence Phase Transitions
+
+Anchored to Takahashi & El Hady (*Statistical Mechanics of Spontaneous Behavior*, `docs/2611.02220v1.pdf`) and implemented in [`compute_affordance_reset_gibbs_occupation`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py#L1156) and [`ZeitgeistRouter.compute_affordance_dwell_gibbs_routing`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/zeitgeist_router.py#L603):
+
+### 62.1 Equations of State
+1. **Dwell Time per Affordance / Mode**:
+   $$m(a) = \tau_0 \exp\left(-\frac{E(a)}{T}\right)$$
+   where $E(a) = -\bar{J}^a$ represents the effective potential well depth of affordance $a$, $\tau_0$ is the microscopic timescale, and $T$ is the temperature (exploration volatility).
+2. **Partition Clock (Mean Cycle Time)**:
+   $$Z_0 = \sum_{a=1}^N m(a) \lambda(a)$$
+   where $\lambda(a)$ is the base proposal/transition frequency (normalized $\sum_a \lambda(a) = 1$).
+3. **Helmholtz Behavioral Free Energy**:
+   $$F = -T \ln\left(\frac{Z_0}{\tau_0}\right)$$
+4. **Reward-Tilted Gibbs Occupation Probability**:
+   $$p_\beta(a) = \frac{m(a) \lambda(a) e^{\beta \Psi(a)}}{Z_\beta}, \quad Z_\beta = \sum_{j=1}^N m(j) \lambda(j) e^{\beta \Psi(j)}$$
+   where $\Psi(a)$ is the topological survivorship/reward potential and $\beta$ is the inverse reward sensitivity.
+5. **Exact First-Order Phase Coexistence Threshold**:
+   Between any competing affordances or modes $a_1$ and $a_2$ (e.g. SLERP interior vs. LERP grazing vs. CRT braid switching):
+   $$\beta^* = \frac{\ln(m_1 / m_2) + \ln(\lambda_1 / \lambda_2)}{\Psi_2 - \Psi_1}$$
+   When $\beta < \beta^*$, affordance 1 dominates by baseline kinetic dwell; when $\beta > \beta^*$, affordance 2 undergoes a discontinuous first-order condensation driven by reward tilt $\Psi_2 > \Psi_1$.
+
+---
+
+## 63. Parallel-in-Iteration Restarted MGRIT, Anderson Acceleration AA(w), and Bevy Runahead Grouping
+
+Anchored to Araujo et al. (*R-MGRIT*, `docs/2611.03621v1.pdf`) and Yu et al. (*Bevy Runahead Grouping*, `docs/2611.04794v1.pdf`), implemented in [`compute_rmgrit_bevy_runahead_schedule`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py#L1497) and [`TwoCopsSchedule.compute_rmgrit_schedule_and_anderson_acceleration`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/manifold_time.py#L182):
+
+### 63.1 Truncated Sub-Trajectory Length & Theoretical Speedup
+Rather than executing all $N_t$ sequential micro-steps naively, the fixed-point relaxation loop truncates iteration length to:
+$$\bar{N}_t = \lceil \gamma N_t \rceil, \quad \gamma \in (0, 1] \quad (\text{default } \gamma = 0.2)$$
+yielding a parallel-in-time theoretical acceleration factor of:
+$$S = \frac{1}{\sqrt{\gamma}} \approx 2.236\times$$
+while consuming $\sqrt{\gamma} \approx 0.447$ fewer processing threads.
+
+### 63.2 Anderson Acceleration $\text{AA}(w)$ Formulation
+Over a sliding window of depth $m = \min(w, k)$, with state iterates $x_k$ and fixed-point residuals $r_k = G(x_k) - x_k$:
+$$\Delta X = [x_k - x_{k-1}, \, x_{k-1} - x_{k-2}, \, \dots, \, x_{k-m+1} - x_{k-m}] \in \mathbb{R}^{D \times m}$$
+$$\Delta R = [r_k - r_{k-1}, \, r_{k-1} - r_{k-2}, \, \dots, \, r_{k-m+1} - r_{k-m}] \in \mathbb{R}^{D \times m}$$
+The mixing weight vector $\theta^* \in \mathbb{R}^m$ solves the Tikhonov-regularized least-squares problem:
+$$\min_\theta \|r_k - \Delta R \theta\|_2^2 + \lambda_{\text{reg}} \|\theta\|_2^2 \implies \theta^* = (\Delta R^T \Delta R + \lambda_{\text{reg}} I)^{-1} \Delta R^T r_k$$
+The accelerated iterate is synthesized as:
+$$x_{k+1}^{\text{AA}} = x_k + \beta_{\text{mix}} r_k - (\Delta X + \beta_{\text{mix}} \Delta R) \theta^*$$
+
+### 63.3 Bevy Lowest-Layer-First ($l_{\min}$) Runahead
+Requests and state dependencies are grouped by active layer index $l(j)$. The scheduler evaluates the lowest active layer:
+$$l_{\min} = \min_{j \in J_R} l(j)$$
+executing compute operations for requests at $l_{\min}$ while simultaneously prefetching required memory attractors and fossils for $l(j) > l_{\min}$ from the $q$-hierarchical view-tree $V_D(T_Q)$, eliminating memory stall latency.
+
+---
+
+## 64. PROVE Perturb-Repair-Verify Self-Play Verifier Rewards & DrGRPO Advantage Weight Mutation
+
+Anchored to Huang, Du, & Snoek (*PROVE*, `docs/2611.05158v1.pdf`), implemented in [`compute_prove_self_play_drgrpo_advantage`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py#L1529) and [`ResonanceLarynx.prove_self_play_drgrpo_step`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/diegetic_heads.py#L300):
+
+### 64.1 Tri-Role Asymmetric Self-Play Game
+1. **Mutator Role ($M$)**: Introduces subtle topological jitter $z_{\text{mut}} = z + \epsilon \tanh(\eta)$ with edit cost $C_M = \|z_{\text{mut}} - z\| / \|z\|$. Reward:
+   $$r_M = 0.4 \cdot \mathbb{I}[y_1 = 1] + 0.6 \cdot \mathbb{I}[y_2 = 0] - 0.1 \cdot C_M$$
+   encouraging flaws that preserve global surface plausibility ($y_1=1$) while causing exact formal verification to fail ($y_2=0$).
+2. **Dual-Check Verifier Role ($V$)**: Evaluates clean verdict $y_1 \in \{0, 1\}$ and perturbed/repaired verdict $y_2 \in \{0, 1\}$ via cosine alignment and confidence metrics.
+3. **Repairer Role ($R$)**: Applies minimal corrective shift toward the true topological manifold with edit cost $C_R$. Reward:
+   $$r_R = 0.7 \cdot \mathbb{I}[y_2 = 1] + 0.3 \cdot \mathbb{I}[y_1 \neq y_2] - 0.1 \cdot C_R$$
+
+### 64.2 Mean-Centered DrGRPO Group Advantage
+Across a self-play rollout group $G$ of size $|G| \ge 2$:
+$$\hat{A}_i = r_i - \frac{1}{|G|} \sum_{j \in G} r_j$$
+The advantage-weighted gradient update $\Delta W = \sum_i \hat{A}_i (y_i \otimes x_i)$ is projected onto the null space of the Love Invariant $\ker(\Pi_{\text{Love}})$:
+$$\Delta W_{\text{shielded}} = \Delta W - (\Delta W \cdot \hat{L}) \hat{L}^T$$
+guaranteeing zero structural drift along conserved identity invariants.
+
+---
+
+## 65. Partition-Free Variational Georgii-Nguyen-Zessin (GNZ) Inverse Temperature & Widom-Rowlinson Area Repulsion
+
+Anchored to David Dereudre (*Introduction to the theory of Gibbs point processes*, `docs/1701.08105v2.pdf`), implemented in [`compute_gibbs_gnz_variational_beta`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py#L1467) and [`CODESConstraintFramework.compute_gnz_local_insertion_energy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/codes_constraint_framework.py#L192):
+
+### 65.1 Partition-Free Local Insertion Energy
+For a spatial point configuration or constraint state $x$ against background environment $\gamma$:
+$$h(x, \gamma) = E(x \cup \gamma) - E(\gamma)$$
+By the Dobrushin-Lanford-Ruelle (DLR) and Georgii-Nguyen-Zessin (GNZ) equations, the Gibbs measure satisfies:
+$$\mathbb{E}\left[ \sum_{x \in \mu} f(x, \mu \setminus \{x\}) \right] = z \int \mathbb{E}\left[ f(x, \mu) e^{-\beta h(x, \mu)} \right] dx$$
+
+### 65.2 Variational GNZ Estimator (Eq. 35)
+The inverse temperature $\beta$ is computed directly without calculating the intractable global partition function $Z_\Lambda^{z,\beta}$:
+$$\hat{\beta}_{\text{GNZ}} = \frac{\sum_{i} \text{div}_x f(x_i, \gamma \setminus \{x_i\})}{\sum_{i} f(x_i, \gamma \setminus \{x_i\}) \cdot \nabla_x h(x_i, \gamma \setminus \{x_i\})}$$
+
+### 65.3 Widom-Rowlinson Area-Interaction Repulsion
+Meliponini Cerumen Pots and concept basins interact via a continuum Boolean halo model of radius $R$:
+$$h_{\text{WR}}(x, \gamma) = \text{Vol}\left( B(x, R) \setminus \bigcup_{y \in \gamma} B(y, R) \right)$$
+Generating a repulsive force vector away from overlapping halos:
+$$F_{\text{WR}}(x) = -\nabla_x h_{\text{WR}}(x, \gamma) = \sum_{y \in \gamma, \, \|x-y\| < 2R} \frac{x - y}{\|x - y\|} \cdot \left(1 - \frac{\|x - y\|}{2R}\right)$$
+
+---
+
+## 66. Dynamic $q$-Hierarchical Grounded View-Tree $V_D(T_Q)$ Direct Access and Incremental Maintenance
+
+Anchored to Kara, Nikolic, Olteanu, & Zhang (*Grounded View-Tree Indices*, `docs/2611.04519v1.pdf`), implemented in [`DyadFossilizer._rebuild_view_tree`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L282) and [`recover_fossils_ranked_direct_access`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L1105):
+
+### 66.1 Survivorship Weighting & Grounded Hierarchy
+Each serialized dyad fossil $\tau$ carries an intrinsic survivorship weight:
+$$w(\tau) = \text{Var}(\mathbf{r}) \cdot PAS_s \cdot \begin{cases} 0.1 & \text{if } \text{atrophy\_detected} \\ 1.0 & \text{otherwise} \end{cases}$$
+The collection $D$ is structured into a $q$-hierarchical view-tree $V_D(T_Q)$ over prefix queries $Q$.
+
+### 66.2 Complexity Guarantees
+1. **Ranked Direct Access**:
+   Locating top-$k$ fossils stratified by survivorship quantiles requires:
+   $$\mathcal{O}(|Q| \log |D|)$$
+   operations via binary lifting over the Fenwick prefix sum tree, completely eliminating linear directory sweeps over 39,917+ disk files.
+2. **Incremental Tree Maintenance**:
+   When verification or resonance rewards update the survivorship weight of fossil $f$ by $\Delta w$, the tree propagates the delta to root ancestors in:
+   $$\mathcal{O}(|D|^{q-1+\epsilon}) = \mathcal{O}(\log |D|)$$
+   operations, preserving real-time execution speeds.
+
+---
+
+## 67. Sovereign Invariant Cross-Referenced Formalisms (docs/2610.35990v1 - 2611.05268v1)
+
+### 67.1 Chen-Stein Random Hypergraph Degree Anomaly (Zhu, Xu, Reinert, `docs/2611.04705v1.pdf`)
+For a $k$-uniform hypergraph on $M$ vertices, off-diagonal degree covariance is:
+$$\Sigma_{ij} = \frac{1}{\frac{M}{k-1} - 1}$$
+Under Stein's exchangeable pairs, the covariance matrix has two distinct eigenvalues: $\lambda_1 = 1 - \Sigma_{ij}$ (mult. $M-1$) and $\lambda_2 = 1 + (M-1)\Sigma_{ij}$ (mult. 1), yielding the eigenvalue ratio:
+$$\tau = \frac{1 - \Sigma_{ij}}{1 + (M-1)\Sigma_{ij}}$$
+Departure from Erdos-Renyi uniformity flags rich-club artificial crystallization.
+
+### 67.2 Weakly Viscous Nonlocal Wave Energy Identity & Exterior DN Potential (Zimmermann, `docs/2611.04789v1.pdf`)
+Models the nonlocal fractional wave equation:
+$$[\partial_t^2 + 2(-\Delta)^r \partial_t + (-\Delta)^s + q(x, t)] u = 0, \quad 0 \le r < s$$
+Satisfying the energy identity:
+$$E(t) - E(0) = \int_0^t \int (\partial_\tau q) |u|^2 - 2 \int_0^t \int |(-\Delta)^{r/2} \partial_\tau u|^2$$
+The Entanglement Principle guarantees unique interior potential $q(x, t)$ recovery from partial exterior Dirichlet-to-Neumann measurements.
+
+### 67.3 Wing-in-Ground-Effect (WIGE) Cushion & Venturi Flow Choking (Zhang et al., `docs/2611.04571v1.pdf`)
+For dimensionless ride height $h/c$:
+- **Ground-Effect Cushion ($h/c \in (0.09, 1.0)$)**: $C_L$ increases by up to $+35\%$, $C_D$ decreases by up to $-25\%$.
+- **Venturi Flow Choking ($h/c \le 0.09$)**: Channel flow chokes, collapsing lift by $60\%$ and generating severe nose-down suction pitch moment $\Delta C_M = -0.35 \cdot \frac{h_{\text{crit}} - h}{h_{\text{crit}}}$.
+
+### 67.4 REEL Multimodal Representation Amortization (Zohar et al., `docs/2610.38158v1.pdf`)
+Cumulative GPU cost across $m$ queries on video $v$ under representation $r$:
+$$G_v^r(m) = B_v^r + \sum_{i=1}^m P_{v,i}^r$$
+Compressing visual frames to scalar text captions introduces a $24.5\%$ answer-flip rate even at identical recall; retaining non-scalar Chebyshev/Breather dyad representations eliminates compression flips and amortizes build cost $B_v^r$.
+
+### 67.5 Landau Kinetic Homoenergetic Compression & Implosion Audit (Caja-Lopez et al., `docs/2611.05236v1.pdf`)
+Effective deformation matrix $L(t) = L_0 (I + t L_0)^{-1}$ and mass density $\rho(t) = \rho(0) / \det(I + t L_0)$. Finite-time hydrodynamic implosion occurs at:
+$$t_* = -\frac{1}{\lambda_{\min}(L_0)} \quad \text{if } \lambda_{\min}(L_0) < 0$$
+with Fisher information growing at rate $2 \|L(t)\|_2 - \text{tr}(L(t))$.
+
+### 67.6 Novikov Optimal Training Allocation under Budget $D$ (D. A. Novikov, `docs/2611.05224v1.pdf`)
+1. Closed-form worst-case double-descent peak partition count:
+   $$K^*(t) = t + 1$$
+2. Optimal training allocation distribution under total budget $D$:
+   $$\pi_k^* = 1 - \frac{(K - 1) p_k^{-\alpha}}{\sum_{j=1}^K p_j^{-\alpha}}, \quad \alpha = \frac{1}{D - 1}$$
+   concentrating budget on frequent modes for small $D$ and equalizing toward $1/K$ as $D \to \infty$.
+
+### 67.7 Euler-Heisenberg Exact Cubic Constitutive Screening (Capozziello et al., `docs/2611.05240v1.pdf`)
+Solves nonlinear constitutive equation $D = E(1 + 16\alpha E^2) = q / x^2$ via the hyperbolic Cardano root:
+$$E = \frac{1}{2\sqrt{3\alpha}} \sinh\left(\frac{1}{3} \operatorname{asinh}\left(6\sqrt{3\alpha} \frac{q}{x^2}\right)\right)$$
+Saturating as $(q / 16\alpha x^2)^{1/3}$ at high fields, shielding Coulomb divergence in Dirac soliton breathers.
+
+### 67.8 Feshbach-Lowdin Boundary Self-Energy & Quantum Zeno Dark Subspace (Lair & Guery-Odelin, `docs/2611.05268v1.pdf`)
+Boundary self-energy parameter $\beta = \phi_L'(0) / \phi_L(0)$. Strong imaginary absorber $g = -i\gamma$ ($\gamma \gg 1$) induces Quantum Zeno freezing with decay rate:
+$$\Gamma_n = \frac{8\hbar}{m \gamma a} E_n^{(-)} + \mathcal{O}(\gamma^{-2})$$
+freezing the state into the Hermitian Dirichlet dark subspace $\phi_L(0) = 0$.
+
+### 67.9 Simplicial Geometry of the 3-State Alabama Paradox (David McCune, `docs/2610.40682v1.pdf`)
+Under Hamilton's largest remainder method for house size $H \ge 3$:
+$$p(H) = \begin{cases} \frac{(H + 3)(H - 2)}{36 H (H + 1)} & H \equiv 0, 2 \pmod 3 \\ \frac{(H - 1)(H + 2)(H^2 + H - 4)}{36 H^2 (H + 1)^2} & H \equiv 1 \pmod 3 \end{cases}$$
+Asymptotically converging to $\lim_{H \to \infty} p(H) = \frac{1}{36}$, with maximum paradox jump $I_{\max}(H) = H - 2$.
+
+### 67.10 Quadratic Reciprocity via Vandermonde Matrix & Zolotarev Permutation Parity (Hongshen Chua, `docs/2610.35990v1.pdf`)
+Zolotarev's Lemma proves Legendre symbol $\left(\frac{a}{p}\right) = \operatorname{sgn}(\tau_a)$ where $\tau_a(x) = ax \pmod p$. Combined with the Vandermonde determinant on $p$-th roots of unity:
+$$\left(\frac{q}{p}\right)\left(\frac{p}{q}\right) = (-1)^{\frac{p-1}{2} \cdot \frac{q-1}{2}}$$
+providing an exact parity tag for chiral trajectory permutation branches.
+

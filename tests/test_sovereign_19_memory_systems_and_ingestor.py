@@ -235,3 +235,190 @@ def test_19_arxiv_pdfs_mathematical_invariants():
     assert abs(sum(prv["drgrpo_advantages"])) < 1e-5
 
 
+def test_cross_referenced_lowly_consequential_invariants_and_subsystems():
+    from src.environment.cleanroom_advanced_extensions import OpenGliderKinematics, GliderDeploymentState
+    from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+    from src.core.context_aware_quantizer import ContextAwareQuantizer
+    from src.core.video_dyad_parser import VideoDyadParser
+    from src.models.resonance_cavity import ResonanceCavity
+    from src.core.legibility_audit import LegibilityTripwire
+    from src.core.structural_monitors import MetaInfraIntraMonitor
+    from src.core.chern_simons_gasket import SolitonStabilityHealer
+    from src.core.hessian_8x8_curvature_ledger import Trajectory8x8Decombiner
+
+    # 1. OpenGliderKinematics WIGE ground cushion & Venturi flow choking (2611.04571v1)
+    glider = OpenGliderKinematics()
+    glider.state = GliderDeploymentState.DEPLOYED
+    glider.deployment_progress = 1.0
+    _, tel_cushion = glider.update_flight_kinematics(
+        velocity=(10.0, -0.5, 0.0),
+        orientation_pitch_yaw_roll=(2.0, 0.0, 0.0),
+        ambient_wind=(0.0, 0.0, 0.0),
+        altitude_agl=0.8,
+        chord_length=2.0,
+    )
+    assert tel_cushion["wige_aerodynamics"]["regime"] == "WIGE_GROUND_CUSHION"
+    assert tel_cushion["wige_aerodynamics"]["lift_multiplier"] > 1.0
+    _, tel_choke = glider.update_flight_kinematics(
+        velocity=(10.0, -0.5, 0.0),
+        orientation_pitch_yaw_roll=(2.0, 0.0, 0.0),
+        ambient_wind=(0.0, 0.0, 0.0),
+        altitude_agl=0.10,
+        chord_length=2.0,
+    )
+    assert tel_choke["wige_aerodynamics"]["regime"] == "VENTURI_CHOKED"
+    assert tel_choke["wige_aerodynamics"]["is_venturi_choked"] is True
+
+    # 2. CarnotMobiusLedger Landau Homoenergetic Compression Audit (2611.05236v1)
+    ledger = CarnotMobiusLedger()
+    ledger_out = ledger(
+        lambda_vac=torch.tensor(0.2),
+        lambda_pump=torch.tensor(1.0),
+        admr_residues=torch.tensor([[-0.6, -0.6, -0.6, -0.6]]),
+        depth_N=3,
+    )
+    assert "landau_compression_audit" in ledger_out
+    assert ledger_out["landau_compression_audit"]["min_eigenvalue_l0"] < 0.0
+
+    # 3. ContextAwareQuantizer Novikov Double-Descent Audit (2611.05224v1)
+    caq = ContextAwareQuantizer(dim=8)
+    nov_diag = caq.audit_novikov_double_descent(step_t=3, active_cells_k=4)
+    assert nov_diag["is_at_double_descent_peak"] is True
+    assert nov_diag["recommended_safe_cells_k"] == 5
+
+    # 4. VideoDyadParser REEL Representation Amortization (2610.38158v1)
+    vparser = VideoDyadParser(device="cpu")
+    reel_breather = vparser.evaluate_reel_representation_amortization(num_queries_m=5, retain_breather_state=True)
+    reel_scalar = vparser.evaluate_reel_representation_amortization(num_queries_m=5, retain_breather_state=False)
+    assert reel_breather["expected_answer_flip_rate"] < reel_scalar["expected_answer_flip_rate"]
+    assert reel_breather["flip_risk_avoided"] > 0.20
+
+    # 5. ResonanceCavity Weakly Viscous Nonlocal Wave Damping & DN Potential (2611.04789v1)
+    cavity = ResonanceCavity(hidden_dim=8, num_modes=4)
+    wave_diag = cavity.evaluate_nonlocal_wave_damping_and_dn_potential(
+        state_u=torch.sin(torch.linspace(0, 3.14, 16)),
+        r_viscous=0.25,
+        s_elastic=0.75,
+    )
+    assert wave_diag["is_weakly_viscous_regime"] is True
+    assert wave_diag["entanglement_unique_continuation"] is True
+
+    # 6. LegibilityTripwire Chen-Stein Hypergraph Degree Anomaly (2611.04705v1)
+    tripwire = LegibilityTripwire(hidden_dim=8)
+    sel = torch.ones(4, 8)
+    rej = torch.zeros(4, 8)
+    tw_out = tripwire(sel, rej)
+    assert "stein_hypergraph_anomaly" in tw_out
+    assert "eigenvalue_ratio_tau" in tw_out["stein_hypergraph_anomaly"]
+
+    # 7. MetaInfraIntraMonitor McCune's Alabama Apportionment Paradox (2610.40682v1)
+    monitor = MetaInfraIntraMonitor()
+    ala = monitor.audit_alabama_apportionment_paradox(house_size_h=99)
+    assert ala["mod_3_residue"] == 0
+    assert ala["max_paradox_jump_i_max"] == 97
+
+    # 8. SolitonStabilityHealer Q10.5 & Trajectory8x8Decombiner Q12.4
+    healer = SolitonStabilityHealer(device="cpu")
+    conv_diag = healer.audit_euler_heisenberg_and_zeno_convexity(
+        dp_stress=torch.tensor([5.0, 12.0, -8.0]),
+        gcve_pressure=10.0,
+    )
+    assert conv_diag["drucker_prager_globally_convex"] is True
+    assert conv_diag["euler_heisenberg_screening"]["screening_ratio"] < 1.0
+
+    decomb = Trajectory8x8Decombiner(budget=64)
+    board = [[0] * 8 for _ in range(8)]
+    board[0][0] = 4
+    board[0][1] = 2
+    dec_res = decomb.decombine_trajectory(board, max_depth=2)
+    assert dec_res["zolotarev_chiral_parity_sign"] in (-1, 0, 1)
+
+
+def test_five_highly_consequential_upgrades_and_closed_loop_stream(tmp_path):
+    from src.core.zeitgeist_router import ZeitgeistRouter
+    from src.models.modular_attention import ModularAttention
+    from src.core.polynomial_coprime import PolynomialCoprimeConfig
+    from src.core.manifold_time import TwoCopsSchedule
+    from src.models.diegetic_heads import ResonanceLarynx
+    from src.core.codes_constraint_framework import create_codes_framework
+    from src.core.garden_statistical_attractors import GardenOrchestrator, MemoryPalace
+    from src.core.knowledge_dyad_fossilizer import DyadFossilizer
+
+    # HC-1: Affordance-Reset Dwell-Time Gibbs Routing in ZeitgeistRouter & ModularAttention
+    router = ZeitgeistRouter(dim=16)
+    x_in = torch.randn(2, 16)
+    mode, zg_state, zg_diag, x_steered = router(x_in, tadc_kwargs={"pas_h": 0.75, "entropy": 0.3})
+    assert "dwell_occupation_probs" in zg_diag
+    assert abs(sum(zg_diag["dwell_occupation_probs"]) - 1.0) < 1e-4
+    assert len(zg_diag["facet_dwell_occupation_probs"]) == router.M
+
+    poly_cfg = PolynomialCoprimeConfig(k=5, degree=4)
+    mod_attn = ModularAttention(hidden_dim=16, num_heads=2, poly_config=poly_cfg, num_functionals=5)
+    attn_out = mod_attn(
+        torch.randn(2, 4, 16),
+        trust_scalars=zg_diag["facet_dwell_occupation_probs"],
+    )
+    assert attn_out.shape == (2, 4, 16)
+    assert hasattr(mod_attn, "last_dwell_gibbs_stats")
+    assert abs(sum(mod_attn.last_dwell_gibbs_stats["occupation_probs"]) - 1.0) < 1e-4
+
+    # HC-2: Restarted MGRIT + Anderson Acceleration AA(w) + Bevy Runahead in TwoCopsSchedule
+    sched = TwoCopsSchedule(macro_steps=4)
+    s0 = torch.ones(2, 16)
+    s1 = s0 + 0.2 * torch.randn(2, 16)
+    s2 = s1 + 0.1 * torch.randn(2, 16)
+    s3 = s2 + 0.05 * torch.randn(2, 16)
+    r_hist = [s1 - s0, s2 - s1, s3 - s2]
+    aa_res = sched.compute_rmgrit_schedule_and_anderson_acceleration(
+        state_history=[s0, s1, s2, s3],
+        residual_history=r_hist,
+        total_micro_steps=5,
+        gamma=0.2,
+        window_w=2,
+        request_layers=[1, 0, 2],
+    )
+    assert aa_res["anderson_applied"] is True
+    assert aa_res["accelerated_state"].shape == (2, 16)
+    assert aa_res["rmgrit_schedule"]["lowest_active_layer_l_min"] == 0
+
+    # HC-3: Live PROVE Perturb-Repair-Verify Self-Play DrGRPO Weight Mutation in ResonanceLarynx
+    larynx = ResonanceLarynx(hidden_dim=16)
+    prove_res = larynx.prove_self_play_drgrpo_step(
+        seed_state=torch.randn(2, 16),
+        group_size=4,
+        lr=0.005,
+    )
+    assert "drgrpo_advantages" in prove_res
+    assert len(prove_res["drgrpo_advantages"]) == 4
+    assert abs(sum(prove_res["drgrpo_advantages"])) < 1e-4
+
+    # HC-4: Partition-Free Variational GNZ Local Insertion Energy & Widom-Rowlinson Repulsion
+    codes = create_codes_framework(state_dim=16, max_constraints=6)
+    _, void_diag = codes.monitor_void_friction(torch.randn(2, 16), f_void=0.3)
+    assert void_diag["partition_free_gnz"] is True
+    assert void_diag["estimated_beta_gnz"] > 0.0
+
+    garden = GardenOrchestrator(feature_dim=16, num_attractors=4, device="cpu")
+    garden_out = garden.evolve_garden(torch.randn(3, 16), dt=0.1)
+    assert "estimated_beta_gnz" in garden_out
+    assert "widom_rowlinson_insertion_energy" in garden_out
+
+    # HC-5: Dynamic q-Hierarchical Grounded View-Tree V_D(T_Q) Index Migration
+    fossilizer = DyadFossilizer(storage_dir=str(tmp_path), feature_dim=16)
+    fossilizer._index_ready.wait(timeout=5.0)
+    fossilizer.update_fossil_view_weight("dyad_alpha.pt", delta_weight=1.5)
+    fossilizer.update_fossil_view_weight("dyad_beta.pt", delta_weight=0.2)
+    top_leaf = fossilizer.select_fossil_by_weighted_rank(0.1)
+    assert top_leaf == "dyad_alpha.pt"
+
+    mp = MemoryPalace(feature_dim=16)
+    mp.plant_room("room_1", torch.randn(16), variance=1.0, residue_tuple=(1, 2, 3), seam_tension=0.8)
+    mp.plant_room("room_2", torch.randn(16), variance=1.0, residue_tuple=(4, 5, 6), seam_tension=0.3)
+    new_w = mp.update_room_view_weight("room_2", delta_weight=2.0)
+    assert new_w > 2.0
+    ranked_rooms = mp.query_ranked_rooms_view_tree(k_limit=2)
+    assert ranked_rooms[0].room_id == "room_2"
+
+
+
+

@@ -183,9 +183,65 @@ class CODESConstraintFramework(nn.Module):
             "f_void": f_void,
             "coprime_bypass_active": bypassed,
             "trap_averted": bypassed,
-            "gasket_diagnostics": self.chern_simons_gasket.get_diagnostics() if bypassed else {}
+            "gasket_diagnostics": self.chern_simons_gasket.get_diagnostics() if bypassed else {},
+            "gnz_local_insertion_energy": self.compute_gnz_local_insertion_energy(routed_state)["mean_local_insertion_energy"],
+            "estimated_beta_gnz": getattr(self, "last_gnz_diagnostics", {}).get("estimated_beta_gnz", 1.0),
+            "partition_free_gnz": True,
         }
     
+    def compute_gnz_local_insertion_energy(
+        self,
+        state: torch.Tensor,
+        configuration_gamma: Optional[torch.Tensor] = None,
+    ) -> Dict[str, Any]:
+        """
+        Partition-Free Georgii-Nguyen-Zessin (GNZ) Local Insertion Energy & Variational Beta
+        (David Dereudre, docs/1701.08105v2.pdf):
+          Computes local insertion energy h(x, gamma) = E(x union gamma) - E(gamma) across
+          active constraint channels or batch points without evaluating the intractable
+          global partition function Z_Lambda^{z, beta}, and estimates variational beta_hat.
+        """
+        from src.core.invariants import compute_gibbs_gnz_variational_beta
+
+        s = state.detach().float()
+        if s.dim() == 1:
+            s = s.unsqueeze(0)
+        if s.shape[-1] != self.state_dim:
+            if s.shape[-1] > self.state_dim:
+                s = s[..., :self.state_dim]
+            else:
+                pad = torch.zeros((s.shape[0], self.state_dim - s.shape[-1]), dtype=s.dtype, device=s.device)
+                s = torch.cat([s, pad], dim=-1)
+
+        if configuration_gamma is not None:
+            gamma = configuration_gamma.detach().float().to(s.device)
+            if gamma.dim() == 1:
+                gamma = gamma.unsqueeze(0)
+            if gamma.shape[-1] != self.state_dim:
+                gamma = gamma[..., :self.state_dim] if gamma.shape[-1] > self.state_dim else F.pad(gamma, (0, self.state_dim - gamma.shape[-1]))
+        else:
+            gamma = 0.85 * s.mean(dim=0, keepdim=True).expand_as(s)
+
+        local_h_list = []
+        with torch.no_grad():
+            for i in range(self.max_constraints):
+                if self.active_constraints[i]:
+                    e_union = self.compute_constraint_energy(0.5 * (s + gamma), i)
+                    e_bg = self.compute_constraint_energy(gamma, i)
+                    h_i = (e_union - e_bg).mean()
+                    local_h_list.append(h_i)
+
+        if len(local_h_list) >= 2:
+            h_tensor = torch.stack(local_h_list)
+        else:
+            half = max(1, s.shape[-1] // 2)
+            h_tensor = (s[..., :half] - gamma[..., :half]).pow(2).mean(dim=0)
+
+        gnz_res = compute_gibbs_gnz_variational_beta(local_energies_h=h_tensor)
+        gnz_res["local_energies_h"] = [float(v) for v in h_tensor.detach().cpu().tolist()[:8]]
+        self.last_gnz_diagnostics = gnz_res
+        return gnz_res
+
     def evolve_state(self, state: torch.Tensor, num_steps: int = 10, f_void: float = 0.0) -> Tuple[torch.Tensor, Dict]:
         """
         Evolve state using constraint-oriented differential equations.
@@ -243,6 +299,9 @@ class CODESConstraintFramework(nn.Module):
             'converged': convergence_history[-1] < self.convergence_threshold if convergence_history else False,
             'stability_score': hessian_diagnostics.get('stability_score', 1.0),
             'hessian_8x8_ledger': hessian_diagnostics,
+            'gnz_local_insertion_energy': bypass_diag.get('gnz_local_insertion_energy', 0.0),
+            'estimated_beta_gnz': bypass_diag.get('estimated_beta_gnz', 1.0),
+            'partition_free_gnz': True,
             'constraint_satisfaction': self._compute_constraint_satisfaction(current_state)
         }
         

@@ -599,6 +599,92 @@ class ZeitgeistRouter(nn.Module):
         # Anchored to the Prime Resonance Ladder: phase depends on generator 'energy'
         return (abs(generator) * math.pi) / self.M
 
+    def compute_affordance_dwell_gibbs_routing(
+        self,
+        g: torch.Tensor,
+        grazing_pressure: float,
+        pas_h: float = 0.5,
+        temperature: float = 1.0,
+        beta_reward: float = 1.0,
+    ) -> Dict[str, Any]:
+        """
+        Affordance-Reset Dwell-Time Gibbs Routing (Takahashi & El Hady, docs/2611.02220v1.pdf):
+        Computes length-biased dwell-time Gibbs occupation probabilities
+            p_beta(a) = [m(a) * lambda(a) * exp(beta * Psi(a))] / Z_beta,  m(a) = tau_0 * exp(-E(a)/T)
+        and the exact first-order coexistence phase transition threshold
+            beta^* = [ln(m_1 / m_2) + ln(lambda_1 / lambda_2)] / (Psi_2 - Psi_1)
+        both across the 3 polytope modes ('interior', 'grazing', 'switching') and across
+        the M CRT facets (providing non-terminating trust_scalars for ModularAttention).
+        """
+        from src.core.invariants import compute_affordance_reset_gibbs_occupation
+
+        gp = float(max(0.0, min(2.0, grazing_pressure)))
+        pas_clamped = float(max(0.05, min(1.0, pas_h)))
+        f_void = float(getattr(self, '_current_f_void', 0.0))
+
+        # 1. Mode-level Affordance-Reset Gibbs distribution: [interior, grazing, switching]
+        # Deeper attractor well -> lower exit barrier E(a) = -J_bar^a -> longer dwell time m(a)
+        mode_exit_barriers = [
+            -pas_clamped * (1.0 - 0.5 * gp),              # interior SLERP well
+            -(1.0 - abs(gp - 0.35)),                      # grazing LERP well
+            -(gp + 0.5 * f_void),                         # switching braid well
+        ]
+        mode_proposals = [
+            max(0.05, 1.0 - gp),
+            max(0.05, 0.5 + 0.5 * (1.0 - abs(gp - 0.4))),
+            max(0.05, gp),
+        ]
+        mode_rewards = [
+            pas_clamped,
+            0.5 * pas_clamped + 0.5 * gp,
+            gp * (1.0 + 0.5 * (1.0 - pas_clamped)),
+        ]
+        mode_gibbs = compute_affordance_reset_gibbs_occupation(
+            exit_barriers=mode_exit_barriers,
+            proposal_weights=mode_proposals,
+            reward_potentials=mode_rewards,
+            temperature=max(0.1, float(temperature)),
+            beta_reward=float(beta_reward),
+        )
+
+        # 2. Facet-level Affordance-Reset Gibbs distribution across M CRT channels
+        g_mean = g.detach().float().abs().mean(dim=0).flatten() if g.dim() >= 2 else g.detach().float().abs().flatten()
+        if g_mean.numel() < self.M:
+            g_pad = torch.ones(self.M, dtype=torch.float32, device=g_mean.device) * 0.5
+            g_pad[:g_mean.numel()] = g_mean
+            g_mean = g_pad
+        else:
+            g_mean = g_mean[:self.M]
+
+        thresh = self.facet_thresholds.detach().float().to(g_mean.device)[:self.M]
+        facet_barriers = -(thresh - (g_mean - thresh).abs())
+        facet_proposals = torch.clamp(g_mean + 0.1, min=1e-4)
+        facet_rewards = torch.clamp(1.0 - (g_mean - thresh).abs(), min=0.05)
+
+        facet_gibbs = compute_affordance_reset_gibbs_occupation(
+            exit_barriers=facet_barriers,
+            proposal_weights=facet_proposals,
+            reward_potentials=facet_rewards,
+            temperature=max(0.1, float(temperature)),
+            beta_reward=float(beta_reward),
+        )
+
+        mode_names = ['interior', 'grazing', 'switching']
+        dom_idx = int(mode_gibbs.get("dominant_index", 0))
+        dominant_mode = mode_names[min(max(dom_idx, 0), 2)]
+
+        return {
+            "dominant_gibbs_mode": dominant_mode,
+            "mode_occupation_probs": mode_gibbs["occupation_probs"],
+            "mode_dwell_times": mode_gibbs["dwell_times"],
+            "coexistence_beta_star": float(mode_gibbs["coexistence_beta_star"]),
+            "partition_clock_z0": float(mode_gibbs["partition_clock_z0"]),
+            "helmholtz_free_energy": float(mode_gibbs["helmholtz_free_energy"]),
+            "facet_dwell_occupation_probs": facet_gibbs["occupation_probs"],
+            "facet_dwell_times": facet_gibbs["dwell_times"],
+            "facet_coexistence_beta_star": float(facet_gibbs["coexistence_beta_star"]),
+        }
+
     # ------------------------------------------------------------------ #
     # Core CRT switch computation                                          #
     # ------------------------------------------------------------------ #
@@ -606,7 +692,8 @@ class ZeitgeistRouter(nn.Module):
         self,
         x: torch.Tensor,
         state: ZeitgeistState,
-        boundary=None
+        boundary=None,
+        gibbs_routing: Optional[Dict[str, Any]] = None,
     ) -> Tuple[torch.Tensor, int, List[int], float]:
         """
         Compute new Symmetric Tensor CRT index M_ij.
@@ -619,6 +706,17 @@ class ZeitgeistRouter(nn.Module):
         # Apply Betti-Aware Bias
         betti_bias = self.betti_router(x).mean(dim=0)  # [M]
         delta_soft = delta_soft + 0.4 * betti_bias
+
+        # Apply length-biased facet dwell-time Gibbs occupation modulation (docs/2611.02220v1.pdf)
+        switch_threshold = 0.5
+        if gibbs_routing is not None:
+            facet_probs = gibbs_routing.get("facet_dwell_occupation_probs", [])
+            if len(facet_probs) == self.M:
+                fp_tensor = torch.tensor(facet_probs, dtype=delta_soft.dtype, device=delta_soft.device)
+                delta_soft = delta_soft * (0.7 + 0.3 * fp_tensor * float(self.M))
+            beta_star = float(gibbs_routing.get("coexistence_beta_star", 0.0))
+            # Modulate coexistence transition barrier around 0.5 using tanh(beta^*)
+            switch_threshold = float(max(0.25, min(0.75, 0.5 + 0.15 * math.tanh(beta_star))))
         
         if boundary is not None and hasattr(boundary, 'stress_tensor') and boundary.stress_tensor is not None:
             stress_flat = boundary.stress_tensor.flatten()
@@ -634,7 +732,7 @@ class ZeitgeistRouter(nn.Module):
         
         for i in range(1, self.M):
             pressure = delta_soft[i-1]
-            if pressure > 0.5:
+            if pressure > switch_threshold:
                 sign = 1 if i % 2 == 0 else -1
                 new_word = self.apply_generator(new_word, i, sign=sign)
                 new_cs_phase += self.chern_simons_increment(i * sign)
@@ -825,9 +923,20 @@ class ZeitgeistRouter(nn.Module):
             out_x = x.squeeze(0) if is_1d and x.dim() == 2 and x.shape[0] == 1 else x
             return mode, new_state, diag, out_x
 
-        #  3. Mode dispatch  #
-        if not any_grazing:
-            # Interior: x is safely inside P_  no switch, no pressure
+        #  3. Mode dispatch (Affordance-Reset Dwell-Time Gibbs Routing, docs/2611.02220v1.pdf)  #
+        pas_h_est = float(tadc_kwargs.get('pas_h', max(0.1, 1.0 - grazing_pressure))) if tadc_kwargs else max(0.1, 1.0 - grazing_pressure)
+        gibbs_routing = self.compute_affordance_dwell_gibbs_routing(
+            g=g,
+            grazing_pressure=grazing_pressure,
+            pas_h=pas_h_est,
+            temperature=max(0.15, float(entropy) if isinstance(entropy, (int, float)) else 0.5),
+            beta_reward=1.0 + grazing_pressure,
+        )
+        self._last_gibbs_routing = gibbs_routing
+
+        # Coexistence phase transition check: if grazing_pressure is absent AND dominant Gibbs mode is interior
+        if not any_grazing and gibbs_routing.get("dominant_gibbs_mode", "interior") == "interior":
+            # Interior: x is safely inside P_alpha -> SLERP geodesic dwell
             mode = 'interior'
             new_state = state.switched(
                 new_alpha_tensor=state.alpha_tensor,
@@ -836,13 +945,17 @@ class ZeitgeistRouter(nn.Module):
                 boundary=boundary,
             )
         else:
-            # Grazing or crossing  execute non-commutative CRT switch
-            new_alpha_tensor, new_level, new_word, new_cs_phase = self._compute_switch(x, state, boundary=boundary)
+            # Grazing or crossing -> execute non-commutative CRT switch with dwell-time Gibbs threshold beta^*
+            new_alpha_tensor, new_level, new_word, new_cs_phase = self._compute_switch(
+                x, state, boundary=boundary, gibbs_routing=gibbs_routing
+            )
             # If the alpha residues (diagonal) actually changed, this is a full switch
             if not torch.equal(new_alpha_tensor, state.alpha_tensor):
                 mode = 'switching'
-            else:
+            elif any_grazing or gibbs_routing.get("dominant_gibbs_mode") in ("grazing", "switching"):
                 mode = 'grazing'
+            else:
+                mode = 'interior'
             new_state = state.switched(
                 new_alpha_tensor=new_alpha_tensor,
                 new_level=new_level,
@@ -859,7 +972,6 @@ class ZeitgeistRouter(nn.Module):
         from src.core.hardware_monitor import HardwareMonitor
         t_route_start_ns = getattr(self, '_route_start_ns', time.perf_counter_ns())
         routing_latency_ms = max(0.001, (time.perf_counter_ns() - t_route_start_ns) / 1e6)
-        pas_h_est = float(tadc_kwargs.get('pas_h', max(0.1, 1.0 - grazing_pressure))) if tadc_kwargs else max(0.1, 1.0 - grazing_pressure)
         spec_timing = HardwareMonitor.get_instance().evaluate_speculative_routing_timings(
             execution_ms=routing_latency_ms,
             h_spec=float(entropy) if isinstance(entropy, (int, float)) else 0.3,
@@ -988,6 +1100,10 @@ class ZeitgeistRouter(nn.Module):
     ) -> Dict:
         """Build the diagnostics dictionary embedded in the metrics payload."""
         spec_timing = spec_timing or {}
+        gibbs = getattr(self, '_last_gibbs_routing', None)
+        if not gibbs or len(gibbs.get('facet_dwell_occupation_probs', [])) != self.M:
+            gibbs = self.compute_affordance_dwell_gibbs_routing(g=g, grazing_pressure=grazing_pressure)
+            self._last_gibbs_routing = gibbs
         d = {
             # Core state
             'mode': mode,
@@ -1020,6 +1136,12 @@ class ZeitgeistRouter(nn.Module):
             'word_length': len(new_state.braid_word),
             'gasket_tension': len(new_state.braid_word) / self.M,
             'f_void': getattr(self, '_current_f_void', 0.0),
+            # Affordance-Reset Dwell-Time Gibbs Routing (docs/2611.02220v1.pdf)
+            'dwell_occupation_probs': gibbs.get('mode_occupation_probs', [1.0, 0.0, 0.0]),
+            'facet_dwell_occupation_probs': gibbs.get('facet_dwell_occupation_probs', [1.0 / self.M] * self.M),
+            'coexistence_beta_star': gibbs.get('coexistence_beta_star', 0.0),
+            'partition_clock_z0': gibbs.get('partition_clock_z0', 1.0),
+            'helmholtz_free_energy': gibbs.get('helmholtz_free_energy', 0.0),
             # Serialised state for payload
         }
         d['state'] = new_state.to_dict()

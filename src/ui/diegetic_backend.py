@@ -1662,6 +1662,27 @@ class DiegeticPhysicsEngine(nn.Module):
                         # Apply dynamically modulated SDE fractional step
                         fractional_step = 0.01 * max(0.1, hunger)
                         param.data.sub_(fractional_step * param.grad)
+
+                # PROVE Perturb-Repair-Verify Self-Play DrGRPO Weight Mutation (docs/2611.05158v1.pdf)
+                if hasattr(self.larynx, 'prove_self_play_drgrpo_step'):
+                    try:
+                        love_prot = getattr(getattr(self, 'orchestrator', None), 'love_protector', None)
+                        prove_stats = self.larynx.prove_self_play_drgrpo_step(
+                            seed_state=curr_state.detach(),
+                            love_protector=love_prot,
+                            group_size=4,
+                            lr=0.003 * max(0.1, hunger),
+                        )
+                        self.last_prove_self_play_stats = prove_stats
+                        # Non-terminating closed-loop feedback into DyadFossilizer view-tree & BulletinBoard
+                        r_mean = float(prove_stats.get('group_mean_reward', 0.0))
+                        if hasattr(self, 'dyad_fossilizer') and self.dyad_fossilizer is not None and hasattr(self.dyad_fossilizer, 'update_fossil_view_weight'):
+                            if getattr(self, 'fossil_cache', None):
+                                top_f = self.fossil_cache[0].get('_fossil_filename')
+                                if top_f:
+                                    self.dyad_fossilizer.update_fossil_view_weight(top_f, delta_weight=0.05 * (r_mean - 0.5))
+                    except Exception:
+                        pass
             
             self.larynx.eval()
             return avg_loss_val

@@ -1121,6 +1121,8 @@ class UniversalOrchestrator(nn.Module):
         # Fast cop takes N micro-steps of rapid, heuristic drafting.
         # This loop uses 'Play' logic to explore the local neighborhood.
         current_state = state.clone()
+        micro_state_history = [current_state.clone()]
+        micro_residual_history = []
         
         for micro_idx in range(self.micro_steps):
             prev_micro_state = current_state.clone()
@@ -1287,6 +1289,36 @@ class UniversalOrchestrator(nn.Module):
                  # Leaks provide "internet archetype concealment" - sigmoid masks
                  # This creates a "void" that the system must navigate without owning.
                  current_state = current_state + 0.05 * leak_vector * harvest_honest_jitter((1,), device=current_state.device, scaled=False)
+
+            micro_state_history.append(current_state.clone())
+            micro_residual_history.append((current_state - prev_micro_state).detach())
+
+        # 2.2. PARALLEL-IN-ITERATION R-MGRIT + ANDERSON ACCELERATION AA(w) + BEVY RUNAHEAD
+        # (Araujo et al., docs/2611.03621v1.pdf; Yu et al., docs/2611.04794v1.pdf; Kara et al., docs/2611.04519v1.pdf)
+        if hasattr(self.schedule, 'compute_rmgrit_schedule_and_anderson_acceleration'):
+            try:
+                rmgrit_res = self.schedule.compute_rmgrit_schedule_and_anderson_acceleration(
+                    state_history=micro_state_history,
+                    residual_history=micro_residual_history,
+                    total_micro_steps=self.micro_steps,
+                    gamma=0.2,
+                    window_w=3,
+                    request_layers=[0, int(getattr(self, 'current_depth', 1)), 2],
+                )
+                if rmgrit_res.get("anderson_applied", False) and rmgrit_res.get("accelerated_state") is not None:
+                    current_state = rmgrit_res["accelerated_state"]
+                if hasattr(self, 'telemetry_state') and isinstance(self.telemetry_state, dict):
+                    self.telemetry_state['rmgrit_anderson'] = {
+                        k: v for k, v in rmgrit_res.items() if k != "accelerated_state"
+                    }
+                # Bevy l_min Runahead Prefetching from Grounded View-Tree V_D(T_Q)
+                fossilizer_ref = getattr(self, 'fossilizer', None)
+                if fossilizer_ref is not None and hasattr(fossilizer_ref, 'recover_fossils_ranked_direct_access'):
+                    prefetch_list = fossilizer_ref.recover_fossils_ranked_direct_access(rank_offset=0, limit=1)
+                    if prefetch_list and isinstance(self.telemetry_state, dict):
+                        self.telemetry_state['bevy_prefetched_fossil'] = prefetch_list[0].get('_fossil_filename', 'cached')
+            except Exception:
+                pass
 
         # 2.5. MANIFOLD HUNGER (Closing the Severed Nerve)
         # ------------------------------------------------
@@ -1558,7 +1590,8 @@ class UniversalOrchestrator(nn.Module):
                 except Exception:
                     pass
 
-            # Phase 22: CODES Constraint Framework (EBM Energy & Void Friction Coprime Bypass)
+            # Phase 22: CODES Constraint Framework (EBM Energy, Partition-Free GNZ Insertion Energy & Coprime Bypass)
+            codes_gnz_beta = 1.0
             if hasattr(self, 'codes_framework'):
                 try:
                     f_void_val = float(actual_flux.mean().item() if isinstance(actual_flux, torch.Tensor) else actual_flux)
@@ -1566,6 +1599,10 @@ class UniversalOrchestrator(nn.Module):
                         state=state_final,
                         f_void=f_void_val
                     )
+                    codes_gnz_beta = float(void_diag.get('estimated_beta_gnz', 1.0))
+                    if hasattr(self, 'telemetry_state') and isinstance(self.telemetry_state, dict):
+                        self.telemetry_state['codes_gnz_beta'] = codes_gnz_beta
+                        self.telemetry_state['codes_gnz_insertion_energy'] = float(void_diag.get('gnz_local_insertion_energy', 0.0))
                     if void_diag.get('coprime_bypass_active', False):
                         print("[ORCHESTRATOR] CODES Void Friction Bypass Triggered - Coprime Gasket routing.")
                         state_final = state_routed
@@ -1597,36 +1634,58 @@ class UniversalOrchestrator(nn.Module):
                 except Exception:
                     pass
 
-            # Phase 24: Zeitgeist CRT Polytope Routing (Phase 18 Multi-Meaning Dispatch)
+            # Phase 24: Zeitgeist CRT Polytope Routing (Affordance-Reset Dwell-Time Gibbs Routing, docs/2611.02220v1.pdf)
             zg_mode = "interior"
             zg_diags = {}
             if hasattr(self, 'zeitgeist_router'):
                 try:
                     zg_mode, self._zeitgeist_state, zg_diags, state_final = self.zeitgeist_router(
                         state_final,
-                        state=self._zeitgeist_state
+                        state=self._zeitgeist_state,
+                        tadc_kwargs={
+                            'pas_h': pas_h,
+                            'entropy': max(0.1, float(atrophy)),
+                            'mischief': float(mischief_metrics.get('H_mischief', 0.5)),
+                        },
                     )
+                    if hasattr(self, 'telemetry_state') and isinstance(self.telemetry_state, dict):
+                        self.telemetry_state['dwell_gibbs_trust_scalars'] = zg_diags.get('facet_dwell_occupation_probs', [])
+                        self.telemetry_state['coexistence_beta_star'] = float(zg_diags.get('coexistence_beta_star', 0.0))
                 except Exception:
                     pass
 
-            # Phase 24b: Garden Statistical Attractors (Cymatic Chladni Nodal Lines & Play-to-Seriousness Transition)
+            # Phase 24b: Garden Statistical Attractors (Widom-Rowlinson GNZ Repulsion & Play-to-Seriousness Transition)
             if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
                 try:
                     h_mischief = float(mischief_metrics.get('H_mischief', 0.5))
-                    garden_res = self.garden_orchestrator.evolve_garden(state_final, dt=float(dt))
-                    if h_mischief < 0.4 and isinstance(garden_res, dict) and 'evolved_concepts' in garden_res:
-                        evolved = garden_res['evolved_concepts']
-                        if evolved.shape == state_final.shape:
-                            state_final = 0.85 * state_final + 0.15 * evolved
+                    eff_dt = float(dt) / max(0.25, min(4.0, codes_gnz_beta))
+                    garden_res = self.garden_orchestrator.evolve_garden(state_final, dt=eff_dt)
+                    if isinstance(garden_res, dict):
+                        if hasattr(self, 'telemetry_state') and isinstance(self.telemetry_state, dict):
+                            self.telemetry_state['garden_gnz_beta'] = float(garden_res.get('estimated_beta_gnz', 1.0))
+                            self.telemetry_state['widom_rowlinson_insertion_energy'] = float(garden_res.get('widom_rowlinson_insertion_energy', 1.0))
+                        if h_mischief < 0.4 and 'evolved_concepts' in garden_res:
+                            evolved = garden_res['evolved_concepts']
+                            if evolved.shape == state_final.shape:
+                                state_final = 0.85 * state_final + 0.15 * evolved
+                    # Non-terminating feedback into MemoryPalace view-tree weights
+                    mp = getattr(self, 'memory_palace', None)
+                    if mp is not None and hasattr(mp, 'query_ranked_rooms_view_tree'):
+                        top_rooms = mp.query_ranked_rooms_view_tree(k_limit=1)
+                        if top_rooms:
+                            mp.update_room_view_weight(top_rooms[0].room_id, delta_weight=0.05 * (float(pas_h) - 0.45))
                 except Exception:
                     pass
 
-            # Phase 25: Speculative Coprime Chiral Coherence Gating (SCCCG Structure Recovery)
+            # Phase 25: Speculative Coprime Chiral Coherence Gating (SCCCG Structure Recovery + View-Tree Weight Update)
             if hasattr(self, 'speculative_coprime_gate') and (pas_h < 0.6 or is_red_zone):
                 try:
                     scccg_res = self.speculative_coprime_gate(state_final, pas_h=pas_h)
                     if scccg_res.get('recovered', False):
                         state_final = scccg_res.get('state', state_final)
+                        donor_fname = scccg_res.get('donor_fossil_filename', None)
+                        if donor_fname and getattr(self, 'fossilizer', None) is not None and hasattr(self.fossilizer, 'update_fossil_view_weight'):
+                            self.fossilizer.update_fossil_view_weight(donor_fname, delta_weight=0.15)
                     if hasattr(self.speculative_coprime_gate, 'shadow_logs') and self.speculative_coprime_gate.shadow_logs:
                         self.shadow_logs.extend(self.speculative_coprime_gate.shadow_logs)
                         self.speculative_coprime_gate.shadow_logs.clear()

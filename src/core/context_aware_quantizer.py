@@ -249,6 +249,32 @@ class ContextAwareQuantizer(nn.Module):
         self._alpha = 0
         self._level = 0
 
+    def audit_novikov_double_descent(
+        self,
+        step_t: int = 1,
+        active_cells_k: Optional[int] = None,
+        total_budget_c: float = 2.0
+    ) -> Dict[str, Any]:
+        """
+        Audits quantization cell partition count K against Novikov's double-descent
+        error peak K*(t) = t + 1 (Novikov, docs/2611.05224v1.pdf).
+        """
+        from src.core.invariants import compute_novikov_optimal_training_allocation
+        lvl = min(self._level, self.max_depth)
+        k_cells = max(2, int(active_cells_k) if active_cells_k is not None else int(2 ** (lvl + 1)))
+        env_probs = [1.0 / float(k_cells)] * k_cells
+        novikov_diag = compute_novikov_optimal_training_allocation(
+            env_probs=env_probs,
+            budget_d=max(1.1, float(total_budget_c)),
+            current_step_t=max(1, int(step_t))
+        )
+        peak_k = novikov_diag["double_descent_peak_k_star"]
+        is_at_peak = (k_cells == peak_k)
+        novikov_diag["active_quantization_cells_k"] = k_cells
+        novikov_diag["is_at_double_descent_peak"] = bool(is_at_peak)
+        novikov_diag["recommended_safe_cells_k"] = (k_cells + 1) if is_at_peak else k_cells
+        return novikov_diag
+
     def get_diagnostics(self) -> Dict:
         """Return diagnostics from the most recent forward() call."""
         return dict(self._last_diag)

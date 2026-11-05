@@ -85,15 +85,35 @@ class OpenGliderKinematics:
             self.state = GliderDeploymentState.RETRACTING
         return self.state
 
+    def compute_ground_effect_aerodynamics(
+        self,
+        altitude_agl: float,
+        chord_length: float = 2.0
+    ) -> Dict[str, Any]:
+        """
+        Evaluates Wing-in-Ground-Effect (WIGE) cushion lift/drag and critical Venturi
+        flow choking at h/c <= 0.09 (Zhang et al., Ground-Wing, docs/2611.04571v1.pdf).
+        """
+        from src.core.invariants import compute_wige_venturi_aerodynamics
+        h_over_c = float(altitude_agl) / max(0.1, float(chord_length))
+        return compute_wige_venturi_aerodynamics(
+            h_over_c=h_over_c,
+            base_lift=self.config.base_lift,
+            base_drag=self.config.drag_coeff,
+        )
+
     def update_flight_kinematics(
         self,
         velocity: Tuple[float, float, float],
         orientation_pitch_yaw_roll: Tuple[float, float, float],
         ambient_wind: Tuple[float, float, float],
-        dt: float = 0.02
+        dt: float = 0.02,
+        altitude_agl: Optional[float] = None,
+        chord_length: float = 2.0
     ) -> Tuple[Tuple[float, float, float], Dict[str, Any]]:
         """
         Calculates new velocity vector combating wind gradients and generating aerodynamic lift.
+        Integrates Wing-in-Ground-Effect (WIGE) and Venturi choking when altitude_agl is provided.
         """
         vx, vy, vz = velocity
         pitch, yaw, roll = orientation_pitch_yaw_roll
@@ -119,12 +139,22 @@ class OpenGliderKinematics:
         v_air_z = vz - wz * self.config.wind_sensitivity
         airspeed = math.sqrt(v_air_x**2 + v_air_y**2 + v_air_z**2) + 1e-6
 
+        wige_diag = None
+        eff_base_lift = self.config.base_lift
+        eff_drag_coeff = self.config.drag_coeff
+        pitch_delta_deg = 0.0
+        if altitude_agl is not None:
+            wige_diag = self.compute_ground_effect_aerodynamics(altitude_agl, chord_length)
+            eff_base_lift = wige_diag["effective_lift"]
+            eff_drag_coeff = wige_diag["effective_drag"]
+            pitch_delta_deg = wige_diag["pitch_moment_delta"] * 10.0
+
         # Aerodynamic lift & forward conversion
-        lift_force = 0.5 * 1.225 * (airspeed ** 2) * self.config.base_lift * self.deployment_progress
-        drag_force = 0.5 * 1.225 * (airspeed ** 2) * self.config.drag_coeff * self.deployment_progress
+        lift_force = 0.5 * 1.225 * (airspeed ** 2) * eff_base_lift * self.deployment_progress
+        drag_force = 0.5 * 1.225 * (airspeed ** 2) * eff_drag_coeff * self.deployment_progress
 
         # Pitch influence: nose down accelerates forward, nose up increases lift then stalls
-        pitch_rad = math.radians(pitch)
+        pitch_rad = math.radians(pitch + pitch_delta_deg)
         forward_accel = math.sin(pitch_rad) * 4.0 - drag_force * 0.1
         target_vy = -max(0.5, (9.81 - lift_force * 0.15)) * (1.0 - 0.7 * self.deployment_progress)
 
@@ -142,7 +172,8 @@ class OpenGliderKinematics:
             "airspeed": airspeed,
             "durability": self.durability,
             "distance_km": self.distance_traveled / 1000.0,
-            "active_model": self.config.first_person_model if True else self.config.third_person_model
+            "active_model": self.config.first_person_model if True else self.config.third_person_model,
+            "wige_aerodynamics": wige_diag,
         }
         return (new_vx, new_vy, new_vz), telemetry
 

@@ -1036,3 +1036,25 @@ class ResonanceCavity(nn.Module):
         
         return topology_vectors
 
+    def evaluate_nonlocal_wave_damping_and_dn_potential(
+        self,
+        state_u: Optional[torch.Tensor] = None,
+        r_viscous: float = 0.25,
+        s_elastic: float = 0.75,
+        dt: float = 0.1
+    ) -> Dict[str, Any]:
+        """
+        Evaluates the weakly viscous nonlocal fractional wave energy identity
+        ([partial_t^2 + 2*(-Delta)^r partial_t + (-Delta)^s + q(x,t)] u = 0, 0 <= r < s)
+        and recovers the interior cavity potential q(x,t) via the fractional Laplacian
+        Entanglement Principle (Zimmermann, docs/2611.04789v1.pdf).
+        """
+        from src.core.invariants import compute_nonlocal_wave_viscous_damping_and_dn_potential
+        target_state = state_u if state_u is not None else self.M
+        return compute_nonlocal_wave_viscous_damping_and_dn_potential(
+            state_u=target_state,
+            r_viscous=r_viscous,
+            s_elastic=s_elastic,
+            dt=dt,
+        )
+

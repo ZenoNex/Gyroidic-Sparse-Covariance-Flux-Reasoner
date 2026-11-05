@@ -193,6 +193,7 @@ class LegibilityTripwire(nn.Module):
         # SATURATION_ESCALATION TRIGGER: Legibility > 0.8 means the system has collapsed
         # into a frictionless, easily decodable ML model. We must trigger an escalation.
         saturation_escalation = selected_coherence > 0.8
+        stein_anomaly = self.audit_hypergraph_stein_degree_anomaly(selected_embeddings)
         
         return {
             'warning': torch.as_tensor(is_warning, device=device),
@@ -204,8 +205,28 @@ class LegibilityTripwire(nn.Module):
             'rejected_clustering': rejected_clustering,
             'is_crystallized': torch.as_tensor(is_crystallized, device=device),
             'is_fractured': torch.as_tensor(is_fractured, device=device),
-            'saturation_escalation': torch.as_tensor(saturation_escalation, device=device)
+            'saturation_escalation': torch.as_tensor(saturation_escalation, device=device),
+            'stein_hypergraph_anomaly': stein_anomaly,
         }
+
+    def audit_hypergraph_stein_degree_anomaly(
+        self,
+        embeddings: torch.Tensor,
+        order_k: int = 3
+    ) -> Dict[str, object]:
+        """
+        Evaluates Chen-Stein random hypergraph vertex degree heterogeneity and
+        exchangeable-pair eigenvalue ratio tau (Zhu, Xu, Reinert, docs/2611.04705v1.pdf)
+        to detect rich-club attractor bias or artificial crystallization.
+        """
+        from src.core.invariants import compute_hypergraph_stein_degree_anomaly
+        if embeddings.numel() == 0:
+            return compute_hypergraph_stein_degree_anomaly([1.0, 1.0], order_k=order_k)
+        # Treat L1 activation magnitude per configuration/axis as empirical hypergraph vertex degree proxy
+        deg_proxy = embeddings.detach().float().abs().sum(dim=-1)
+        if deg_proxy.numel() < 2:
+            deg_proxy = embeddings.detach().float().abs().flatten()
+        return compute_hypergraph_stein_degree_anomaly(deg_proxy, order_k=order_k)
 
     
     def reset(self):

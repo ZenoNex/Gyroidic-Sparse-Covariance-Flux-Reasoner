@@ -412,7 +412,7 @@ class VolitionalDriveInjector(nn.Module):
             if not self._fossils_loaded:
                 if fossilizer is not None and hasattr(fossilizer, 'recover_fossils'):
                     try:
-                        fossils = fossilizer.recover_fossils(limit=100)
+                        fossils = fossilizer.recover_fossils_ranked_direct_access(rank_offset=0, limit=100) if hasattr(fossilizer, 'recover_fossils_ranked_direct_access') else fossilizer.recover_fossils(limit=100)
                         for payload in fossils:
                             tags = payload.get('tags', [])
                             breather = payload.get('video_breather')

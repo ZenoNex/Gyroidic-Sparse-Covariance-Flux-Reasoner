@@ -137,6 +137,15 @@ class MetaInfraIntraMonitor(nn.Module):
             'rho_intra': self.rho_intra.item()
         }
 
+    def audit_alabama_apportionment_paradox(self, house_size_h: int) -> Dict[str, float]:
+        """
+        Audits discrete compute/veto slot apportionment across the 3 structural layers
+        (Meta, Infra, Intra) for McCune's mod-3 Hamilton Alabama Paradox
+        (p(H) -> 1/36, max jump I_max(H) = H - 2; McCune, docs/2610.40682v1.pdf).
+        """
+        from src.core.invariants import compute_alabama_apportionment_paradox_prob
+        return compute_alabama_apportionment_paradox_prob(house_size_h)
+
 class FailureGaslightSycophancyGate(nn.Module):
     """
     Failure Gaslight Sycophancy Gate (Anti-Gaslighting Monitor).

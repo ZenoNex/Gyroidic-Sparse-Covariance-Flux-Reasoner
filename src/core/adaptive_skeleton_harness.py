@@ -471,8 +471,17 @@ class AdaptiveSkeletonHarness(nn.Module):
         # 2. Silicon Scars (Dreaded Self): Topological rupture propagation for generative defect seeds
         scar_rupture = self.garden_orchestrator.defect_attractors(batched_target)
         
-        # Apply the psychological forces
+        # Apply the psychological forces + Widom-Rowlinson GNZ halo repulsion (docs/1701.08105v2.pdf)
         composite_target = batched_target + 0.1 * ideal_pull + 0.05 * scar_rupture
+        if hasattr(self.garden_orchestrator, 'compute_widom_rowlinson_gnz_repulsion'):
+            try:
+                gnz_stats = self.garden_orchestrator.compute_widom_rowlinson_gnz_repulsion(composite_target)
+                self.last_garden_gnz_stats = gnz_stats
+                wr_force = gnz_stats.get("repulsion_force")
+                if isinstance(wr_force, torch.Tensor) and wr_force.shape == composite_target.shape:
+                    composite_target = composite_target + wr_force.to(composite_target.device, composite_target.dtype)
+            except Exception:
+                pass
         if composite_target.shape[0] == 1 and demand_vector.dim() == 1:
             composite_target = composite_target.squeeze(0)
 

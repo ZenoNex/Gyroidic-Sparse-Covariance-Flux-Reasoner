@@ -1,0 +1,75 @@
+@import url('icons/css/fontello.css');
+@import url('assets/ionicons/css/ionicons.min.css');
+/* For contents  created by Content builder plugin to be loaded in front end also*/
+iframe.background{pointer-events: none;}
+
+.size-12 {font-size:12px}
+.size-14 {font-size:14px}
+.size-16 {font-size:16px}
+.size-18 {font-size:18px}
+.size-21 {font-size:21px}
+.size-24 {font-size:24px}
+.size-32 {font-size:32px}
+.size-48 {font-size:48px}
+.size-64 {font-size:64px}
+.size-80 {font-size:80px}
+.size-96 {font-size:96px}
+@media all and (max-width: 1024px) {
+    .size-12 {font-size:12px}
+    .size-14 {font-size:14px}
+    .size-16 {font-size:16px}
+    .size-18 {font-size:18px}
+    .size-21 {font-size:21px}
+    .size-24 {font-size:24px}
+    .size-32 {font-size:28px}
+    .size-48 {font-size:32px}
+    .size-64 {font-size:36px}
+    .size-80 {font-size:40px}
+    .size-96 {font-size:44px}
+}
+.cp-color-picker { z-index: 999999 !important;}
+
+.cb-image-align-center {
+  display: grid;
+  place-items: center;
+}
+
+.cb-image-align-left {
+  display: grid;
+  place-items: flex-start;
+}
+
+.cb-image-align-right {
+  display: grid;
+  place-items: flex-end;
+}
+
+.figure-left, .figure-right{
+	display: table;
+}
+.figure-left{
+	float: left;
+	margin: 0 20px 20px 0;
+}
+.figure-right{
+	float: right;
+	margin: 0 0 20px 20px;
+}
+
+.figure-center {
+  display: block;
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.figure-center img {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.figure-center .ui-wrapper {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}

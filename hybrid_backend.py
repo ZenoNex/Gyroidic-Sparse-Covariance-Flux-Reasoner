@@ -2076,14 +2076,19 @@ class HybridAI:
 
 
 
-            # 5. INTEGRATE CODES ENERGY AND CHIRAL DYNAMICS (Moved up for dependency resolution)
+            # 5. INTEGRATE CODES ENERGY, PARTITION-FREE GNZ INSERTION ENERGY, AND CHIRAL DYNAMICS
             codes_energy = 0.0
+            gnz_beta_est = 1.0
             if self.codes_framework:
                 try:
                     with torch.no_grad():
                         # total_energy returns a scalar-like tensor
                         energy_tensor = self.codes_framework.compute_total_energy(self.hidden_state_scarred.unsqueeze(0))
                         codes_energy = float(energy_tensor.mean().item())
+                        if hasattr(self.codes_framework, 'compute_gnz_local_insertion_energy'):
+                            gnz_res = self.codes_framework.compute_gnz_local_insertion_energy(self.hidden_state_scarred.unsqueeze(0))
+                            gnz_beta_est = float(gnz_res.get('estimated_beta_gnz', 1.0))
+                            codes_energy = 0.7 * codes_energy + 0.3 * abs(float(gnz_res.get('mean_local_insertion_energy', 0.0)))
                 except Exception as e:
                     print(f"[WARN] CODES Energy computation failed: {e}")
                     codes_energy = 1.0 # Default stress on failure

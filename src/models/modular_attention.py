@@ -369,7 +369,7 @@ class ModularAttention(nn.Module):
             A_k = A_k.transpose(1, 2).contiguous().view(batch_size, seq_len, self.hidden_dim)
             
             # Weighted by trust if provided
-            if trust_scalars is not None:
+            if trust_scalars is not None and k < len(trust_scalars):
                 A_k = A_k * trust_scalars[k]
                 
             # Inverted Hypersphere Cosmology (IHC): 33-shell golden ratio ladder scaling
@@ -379,6 +379,35 @@ class ModularAttention(nn.Module):
             field_outputs.append(A_k)
 
             
+        # --- AFFORDANCE-RESET DWELL-TIME GIBBS FIELD ROUTING (docs/2611.02220v1.pdf) ---
+        if len(field_outputs) > 0:
+            from src.core.invariants import compute_affordance_reset_gibbs_occupation
+            field_norms = [float(torch.norm(f.detach().float()).item()) / max(1.0, float(f.numel()) ** 0.5) for f in field_outputs]
+            exit_barriers = [-fn for fn in field_norms]
+            if trust_scalars is not None and len(trust_scalars) >= len(field_outputs):
+                if isinstance(trust_scalars, torch.Tensor):
+                    prop_w = [float(v) for v in trust_scalars[:len(field_outputs)].detach().cpu().tolist()]
+                else:
+                    prop_w = [float(v) for v in list(trust_scalars)[:len(field_outputs)]]
+            else:
+                prop_w = [1.0 / float(len(field_outputs)) for _ in field_outputs]
+            reward_psi = [float(get_ihc_ladder_scale(idx, num_shells=33)) for idx in range(len(field_outputs))]
+            dwell_gibbs = compute_affordance_reset_gibbs_occupation(
+                exit_barriers=exit_barriers,
+                proposal_weights=prop_w,
+                reward_potentials=reward_psi,
+                temperature=max(0.15, 1.0 - 0.5 * float(effective_load)),
+                beta_reward=1.0 + float(hw_flux_factor),
+            )
+            self.last_dwell_gibbs_stats = dwell_gibbs
+            occ_probs = dwell_gibbs.get("occupation_probs", [])
+            n_active = float(len(field_outputs))
+            if len(occ_probs) == len(field_outputs):
+                field_outputs = [
+                    f_out * (0.5 + 0.5 * float(occ_probs[idx]) * n_active)
+                    for idx, f_out in enumerate(field_outputs)
+                ]
+
         # --- DOWNSTREAM CHERN-SIMONS GASKET ---
         # Data arrives at symbolic-geometric boundaries as CRT residues [Batch, K, Dim//K]
         if len(field_outputs) > 0:

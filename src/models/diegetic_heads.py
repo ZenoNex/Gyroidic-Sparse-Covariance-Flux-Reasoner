@@ -296,3 +296,120 @@ class ResonanceLarynx(nn.Module):
         }
         
         return final_trajectory, metrics
+
+    def prove_self_play_drgrpo_step(
+        self,
+        seed_state: torch.Tensor,
+        target_state: Optional[torch.Tensor] = None,
+        love_protector: Optional[Any] = None,
+        group_size: int = 4,
+        lr: float = 0.005,
+    ) -> Dict[str, Any]:
+        """
+        Live PROVE Perturb-Repair-Verify Self-Play DrGRPO Weight Mutation
+        (Huang, Du, Snoek, docs/2611.05158v1.pdf):
+          1. Mutator role: generates subtle topological perturbations z_tilde of clean seed_state
+             with reward r_M = 0.4 * I[y_1 = 1] + 0.6 * I[y_2 = 0] - 0.1 * C_M.
+          2. Dual-Check Verifier role: evaluates (y_1, y_2) on (clean, perturbed/repaired) pairs.
+          3. Repairer role: repairs z_tilde back toward the valid manifold with reward
+             r_R = 0.7 * I[y_2_rep = 1] + 0.3 * I[y_1 != y_2] - 0.1 * C_R.
+          4. Applies mean-centered DrGRPO group relative advantage A_i = r_i - mean(r_G)
+             to self.proj.weight, shielded by LoveInvariantProtector null-space projection.
+        """
+        from src.core.invariants import compute_prove_self_play_drgrpo_advantage
+
+        x = seed_state.detach().float()
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        if x.shape[-1] != self.hidden_dim:
+            if x.shape[-1] > self.hidden_dim:
+                x = x[..., :self.hidden_dim]
+            else:
+                pad = torch.zeros((x.shape[0], self.hidden_dim - x.shape[-1]), dtype=x.dtype, device=x.device)
+                x = torch.cat([x, pad], dim=-1)
+
+        if target_state is None:
+            with torch.no_grad():
+                tgt, _ = self.forward(x, temperature=0.8)
+                target = tgt.detach().float()
+        else:
+            target = target_state.detach().float()
+            if target.dim() == 1:
+                target = target.unsqueeze(0)
+            if target.shape[-1] != self.hidden_dim:
+                if target.shape[-1] > self.hidden_dim:
+                    target = target[..., :self.hidden_dim]
+                else:
+                    pad = torch.zeros((target.shape[0], self.hidden_dim - target.shape[-1]), dtype=target.dtype, device=target.device)
+                    target = torch.cat([target, pad], dim=-1)
+
+        g_size = max(2, int(group_size))
+        group_rewards = []
+        group_updates = []
+        y1_last, y2_last = 1, 0
+        edit_cost_last = 0.1
+
+        with torch.no_grad():
+            pred_clean, conf_clean = self.forward(x, temperature=1.0)
+            cos_clean = float(torch.nn.functional.cosine_similarity(pred_clean, target, dim=-1).mean().item())
+            y1_verdict = 1 if (cos_clean >= 0.15 or float(conf_clean.mean().item()) >= 0.45) else 0
+            y1_last = y1_verdict
+
+            for g_idx in range(g_size):
+                # 1. Mutator: subtle perturbation scaled by group index
+                scale = 0.08 * float(g_idx + 1)
+                jitter = harvest_honest_jitter(x.shape, device=x.device, scaled=True)
+                x_mutated = x + scale * torch.tanh(jitter)
+                edit_cost_m = float(torch.norm(x_mutated - x).item() / (torch.norm(x).item() + 1e-6))
+
+                # 2. Verifier on mutated state
+                pred_mut, _ = self.forward(x_mutated, temperature=1.0)
+                cos_mut = float(torch.nn.functional.cosine_similarity(pred_mut, target, dim=-1).mean().item())
+                # Subtle flaw: surface similarity remains moderate, but exact verification drops below clean
+                y2_mut_verdict = 0 if cos_mut < (cos_clean - 0.01) else 1
+                y2_last = y2_mut_verdict
+                edit_cost_last = edit_cost_m
+
+                # 3. Repairer: minimal targeted repair step
+                repair_dir = torch.nn.functional.normalize(target - pred_mut, p=2, dim=-1)
+                x_repaired = x_mutated + 0.15 * repair_dir
+                pred_rep, _ = self.forward(x_repaired, temperature=0.9)
+                cos_rep = float(torch.nn.functional.cosine_similarity(pred_rep, target, dim=-1).mean().item())
+                y2_rep_verdict = 1 if cos_rep >= cos_mut else 0
+
+                r_m = 0.4 * float(y1_verdict == 1) + 0.6 * float(y2_mut_verdict == 0) - 0.1 * edit_cost_m
+                r_r = 0.7 * float(y2_rep_verdict == 1) + 0.3 * float(y1_verdict != y2_mut_verdict) - 0.1 * edit_cost_m
+                combined_r = 0.5 * (r_m + r_r) + 0.2 * cos_rep
+                group_rewards.append(float(combined_r))
+
+                # Hebbian trace from repaired state -> target
+                upd = torch.einsum("bv,bh->vh", target, x_repaired) / float(max(1, x_repaired.shape[0]))
+                group_updates.append(upd)
+
+            prove_stats = compute_prove_self_play_drgrpo_advantage(
+                rewards=group_rewards,
+                y1_verdict=y1_last,
+                y2_verdict=y2_last,
+                edit_cost=edit_cost_last,
+            )
+            advantages = prove_stats["drgrpo_advantages"]
+
+            # Compute advantage-weighted policy gradient delta_W = sum_i A_i * upd_i
+            delta_w = torch.zeros_like(self.proj.weight)
+            for adv_i, upd_i in zip(advantages, group_updates):
+                delta_w = delta_w + float(adv_i) * upd_i.to(delta_w.device, delta_w.dtype)
+            delta_w = delta_w / float(g_size)
+
+            # Optional LoveInvariantProtector null-space shielding
+            if love_protector is not None and hasattr(love_protector, "Love") and love_protector.Love is not None:
+                love_vec = love_protector.Love.detach().float().to(delta_w.device).flatten()
+                if love_vec.numel() >= delta_w.shape[-1]:
+                    lv = torch.nn.functional.normalize(love_vec[:delta_w.shape[-1]], p=2, dim=0)
+                    proj_love = torch.mv(delta_w, lv).unsqueeze(-1) * lv.unsqueeze(0)
+                    delta_w = delta_w - proj_love
+
+            self.proj.weight.add_(float(lr) * delta_w)
+            self.proj.weight.div_(torch.norm(self.proj.weight, dim=1, keepdim=True) + 1e-8)
+
+        self.last_prove_stats = prove_stats
+        return prove_stats
