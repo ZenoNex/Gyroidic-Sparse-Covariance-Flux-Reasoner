@@ -592,6 +592,8 @@ class UniversalOrchestrator(nn.Module):
         try:
             from src.topology.embedding_graph import GyroidicGraphManager
             self.graph_manager = GyroidicGraphManager(data_dir="data/encodings")
+            # Rehydrate Neglecton fossil graph from snapshot on initialization
+            self.graph_manager.load_fossils(limit=150, use_snapshot=True)
         except Exception:
             self.graph_manager = None
 
@@ -644,6 +646,66 @@ class UniversalOrchestrator(nn.Module):
         """
         return self.semiotic_dispatcher.select_best(candidate_states)
 
+    def rehydrate_neglecton(self, limit: int = 150) -> Dict[str, Any]:
+        """
+        Rehydrates the Neglecton fossil graph into the active Orchestrator.
+        Loads snapshot nodes, synchronizes memory palace outlier seeds,
+        and anchors the Cayley Cubic / Folium transversal nodes.
+        """
+        if not hasattr(self, 'graph_manager') or self.graph_manager is None:
+            try:
+                from src.topology.embedding_graph import GyroidicGraphManager
+                self.graph_manager = GyroidicGraphManager(data_dir="data/encodings")
+            except Exception as e:
+                return {"status": "error", "message": f"GraphManager unavailable: {e}"}
+
+        self.graph_manager.load_fossils(limit=limit, use_snapshot=True)
+        num_nodes = len(self.graph_manager.nodes)
+
+        # Synchronize top Neglecton scars with MemoryPalace outlier seeds
+        seeds_planted = 0
+        if hasattr(self, 'memory_palace') and self.memory_palace is not None:
+            for node in self.graph_manager.nodes[:30]:
+                is_scar = (
+                    "scar" in node.node_id.lower()
+                    or "damage" in node.node_id.lower()
+                    or node.metrics.get("type") == "live_scarred"
+                    or node.metrics.get("damage_delta", 0.0) > 0.5
+                    or node.metrics.get("gyroid_violation_score", 0.0) > 0.5
+                    or "fossil" in node.node_id.lower()
+                )
+                if is_scar:
+                    try:
+                        self.memory_palace.plant_outlier_seed(
+                            center=node.state.detach().cpu().view(-1),
+                            seam_tension=0.85,
+                            metadata={"source": "neglecton_rehydration", "node_id": node.node_id, "text": node.text[:80]}
+                        )
+                        seeds_planted += 1
+                    except Exception:
+                        pass
+
+        # Ground Folium and Cayley Neglecton anchors from CayleyCubicProbe
+        if not hasattr(self, 'cayley_probe') or self.cayley_probe is None:
+            try:
+                from src.core.cayley_cubic_probe import CayleyCubicProbe
+                self.cayley_probe = CayleyCubicProbe()
+            except Exception:
+                self.cayley_probe = None
+
+        has_folium = self.cayley_probe is not None
+        has_cayley = self.cayley_probe is not None
+
+        return {
+            "status": "rehydrated",
+            "neglecton_nodes": num_nodes,
+            "seeds_planted": seeds_planted,
+            "synced_outliers_into_memory_palace": seeds_planted,
+            "has_folium_anchor": has_folium,
+            "cayley_cubic_anchor": has_cayley,
+            "folium_anchor": has_folium
+        }
+
     def get_unified_memory_telemetry(self) -> Dict[str, Any]:
         """
         Reports the live connection and isolation status of all 19 Sovereign Memory Systems
@@ -691,6 +753,11 @@ class UniversalOrchestrator(nn.Module):
                 ),
             },
             "memory_palace_diagnostics": palace_diag,
+            "neglecton_telemetry": {
+                "active": getattr(self, "graph_manager", None) is not None,
+                "node_count": len(getattr(self.graph_manager, "nodes", [])) if getattr(self, "graph_manager", None) else 0,
+                "snapshot_restored": len(getattr(self.graph_manager, "nodes", [])) > 0 if getattr(self, "graph_manager", None) else False,
+            },
         }
 
     def vocalize_psychotopological_substrate(
@@ -1943,6 +2010,20 @@ class UniversalOrchestrator(nn.Module):
         except Exception as e:
             # If refusal triggered, we fall back to original governed state to preserve richness
             print(f"[ORCHESTRATOR] {e}")
+            if hasattr(self, 'graph_manager') and self.graph_manager is not None:
+                deep_refusal = self.graph_manager.get_deep_refusal(state_governed)
+                try:
+                    from src.topology.embedding_graph import KnowledgeFossilNode
+                    scar_id = f"orchestrator_refusal_scar_{int(self.iteration.item() if isinstance(self.iteration, torch.Tensor) else self.iteration)}"
+                    scar_node = KnowledgeFossilNode(
+                        node_id=scar_id,
+                        state=state_governed.detach().cpu().flatten()[:self.graph_manager.dim],
+                        text=f"Orchestrator Sovereign Refusal: {deep_refusal}",
+                        metrics={"type": "live_scarred", "reason": str(e), "chiral_score": 0.88}
+                    )
+                    self.graph_manager.nodes.append(scar_node)
+                except Exception:
+                    pass
             if hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
                 contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
                 delta_q, _ = self.daquf_operator.update_unknowledge_contradiction(

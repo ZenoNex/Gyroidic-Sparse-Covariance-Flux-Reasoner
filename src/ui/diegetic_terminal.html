@@ -1312,7 +1312,7 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
                         <span>LIMIT:</span>
-                        <input type="number" id="graph-limit" value="5000"
+                        <input type="number" id="graph-limit" value="1000"
                             style="width: 65px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
                     </div>
 
@@ -3224,7 +3224,7 @@
             const includeTagsEl = document.getElementById('graph-include-tags');
 
             try {
-                const limit = limitEl ? parseInt(limitEl.value) || 5000 : 5000;
+                const limit = limitEl ? parseInt(limitEl.value) || 1000 : 1000;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
                 const response = await fetch(`${state.backend_url}/graph?limit=${limit}&force=${forceReload ? 'true' : 'false'}`);
@@ -3345,6 +3345,11 @@
                     }
                     window.Graph.graphData(gData);
                 } else {
+                    if (typeof ForceGraph3D === 'undefined') {
+                        console.warn("[GRAPH] ForceGraph3D library not loaded from CDN. Rendering high-performance 2D Poincare Canvas fallback.");
+                        renderPoincareFallback(container, gData);
+                        return;
+                    }
                     window.Graph = ForceGraph3D({
                         rendererConfig: { powerPreference: "high-performance", antialias: false, alpha: false }
                     })(container)
@@ -3481,6 +3486,87 @@
                 banner.style.display = 'block';
                 setTimeout(() => { if (banner) banner.style.display = 'none'; }, 4000);
             }
+        }
+
+        function renderPoincareFallback(container, gData) {
+            container.innerHTML = '';
+            const canvas = document.createElement('canvas');
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.display = 'block';
+            container.appendChild(canvas);
+
+            const ctx = canvas.getContext('2d');
+            let width = container.clientWidth || 800;
+            let height = container.clientHeight || 600;
+            canvas.width = width;
+            canvas.height = height;
+
+            const banner = document.getElementById('graph-status-banner');
+            if (banner) {
+                banner.innerText = `POINCARE COGNITIVE FIELD: ${gData.nodes.length} NODES | ${gData.links.length} LINKS (2D POINCARE RESILIENT VIEW)`;
+                banner.style.display = 'block';
+            }
+
+            function draw() {
+                ctx.fillStyle = '#030303';
+                ctx.fillRect(0, 0, width, height);
+
+                const cx = width / 2;
+                const cy = height / 2;
+                const r = Math.min(width, height) * 0.42;
+
+                ctx.strokeStyle = 'rgba(0, 242, 255, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+                ctx.stroke();
+
+                const nodeMap = new Map();
+                gData.nodes.forEach(n => {
+                    const nx = cx + (n.px || 0.0) * r * 0.9;
+                    const ny = cy + (n.py || 0.0) * r * 0.9;
+                    nodeMap.set(n.id, { x: nx, y: ny, node: n });
+                });
+
+                ctx.lineWidth = 0.5;
+                gData.links.slice(0, 2000).forEach(l => {
+                    const src = nodeMap.get(typeof l.source === 'object' ? l.source.id : l.source);
+                    const tgt = nodeMap.get(typeof l.target === 'object' ? l.target.id : l.target);
+                    if (src && tgt) {
+                        ctx.strokeStyle = l.type === 'tag-link' ? 'rgba(255, 215, 0, 0.18)' : 'rgba(0, 242, 255, 0.22)';
+                        ctx.beginPath();
+                        ctx.moveTo(src.x, src.y);
+                        ctx.lineTo(tgt.x, tgt.y);
+                        ctx.stroke();
+                    }
+                });
+
+                nodeMap.forEach(({ x, y, node }) => {
+                    ctx.beginPath();
+                    let color = 'rgba(0, 242, 255, 0.85)';
+                    let sz = 3.5;
+                    if (node.type === 'tag') {
+                        color = 'rgba(255, 215, 0, 0.9)';
+                        sz = 4.5;
+                    } else if (node.type === 'live_scarred' || (node.id && node.id.includes('scar'))) {
+                        color = 'rgba(255, 0, 128, 0.9)';
+                        sz = 5.0;
+                    }
+                    ctx.fillStyle = color;
+                    ctx.arc(x, y, sz, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
+
+            draw();
+            window.addEventListener('resize', () => {
+                width = container.clientWidth || 800;
+                height = container.clientHeight || 600;
+                canvas.width = width;
+                canvas.height = height;
+                draw();
+            });
         }
 
         function populateLinkDropdowns(nodes, tags) {

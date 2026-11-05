@@ -420,5 +420,43 @@ def test_five_highly_consequential_upgrades_and_closed_loop_stream(tmp_path):
     assert ranked_rooms[0].room_id == "room_2"
 
 
+def test_neglecton_rehydration_and_graph_bounds():
+    import json
+    from src.core.orchestrator import UniversalOrchestrator
+    from src.topology.embedding_graph import GyroidicGraphManager
+
+    orch = UniversalOrchestrator(dim=16)
+    telemetry = orch.get_unified_memory_telemetry()
+    assert "neglecton_telemetry" in telemetry
+    neg_telem = telemetry["neglecton_telemetry"]
+    assert "node_count" in neg_telem
+    assert neg_telem["node_count"] > 0
+    assert neg_telem["snapshot_restored"] is True
+
+    # Test explicit rehydration
+    rehydrate_res = orch.rehydrate_neglecton(limit=100)
+    assert rehydrate_res["status"] == "rehydrated"
+    assert rehydrate_res["neglecton_nodes"] > 0
+    assert "cayley_cubic_anchor" in rehydrate_res
+    assert "folium_anchor" in rehydrate_res
+    assert rehydrate_res["synced_outliers_into_memory_palace"] > 0
+
+    # Test graph export bounds and top-k degree pruning
+    graph_json_str = orch.graph_manager.export_graph_json()
+    graph_data = json.loads(graph_json_str)
+    assert "nodes" in graph_data
+    assert "links" in graph_data
+    assert len(graph_data["nodes"]) > 0
+    # Links must be pruned to avoid WebGL hairball freezes
+    assert len(graph_data["links"]) <= 3500
+
+    # Test GyroidicGraphManager limit handling does not trigger disk scan if snapshot has nodes
+    mgr = GyroidicGraphManager("data/encodings")
+    res = mgr.load_fossils(limit=5000, use_snapshot=True)
+    assert mgr.loaded_from_snapshot is True
+    assert len(mgr.nodes) > 0
+
+
+
 
 

@@ -57,6 +57,7 @@ class GyroidicGraphManager:
         from src.core.invariants import PHI_RECIPROCAL
         self.edge_threshold = PHI_RECIPROCAL  # Similarity threshold for edge creation via Golden Conjugate proxy
         self.dedup_threshold = 0.9999 # Threshold for identity (to prune duplicates)
+        self.loaded_from_snapshot = False
         
     def get_valid_node_count(self) -> int:
         """Returns the number of actual nodes, excluding uncollapsed homological ghost cycles."""
@@ -80,8 +81,10 @@ class GyroidicGraphManager:
                 print(f"[GRAPH] Loading Neglecton from snapshot: {snapshot_path}")
                 data = torch.load(snapshot_path, map_location='cpu')
                 self.load_memory_snapshot(data)
-                if len(self.nodes) >= limit:
+                if len(self.nodes) > 0:
                     loaded_from_snapshot = True
+                    if limit and 0 < limit < len(self.nodes):
+                        self.nodes = self.nodes[:limit]
             except Exception as e:
                 print(f"[GRAPH] Snapshot corrupt or incompatible: {e}. Falling back to scan.")
 
@@ -154,6 +157,7 @@ class GyroidicGraphManager:
                 except Exception as e:
                     print(f"Failed to load fossil {f}: {e}")
                     
+        self.loaded_from_snapshot = loaded_from_snapshot
         # Always inject live states at the end of load_fossils
         self._inject_live_gyroid_states()
 
@@ -266,10 +270,11 @@ class GyroidicGraphManager:
             return 0.0, 0.0
 
                 
-    def get_adjacency_list(self) -> List[Dict[str, Any]]:
+    def get_adjacency_list(self, top_k_per_node: int = 6, max_edges: int = 3500) -> List[Dict[str, Any]]:
         """
         Build an adjacency list where edges are weighted by:
         W = Sim(state_i, state_j) * exp(-abs(chiral_i - chiral_j))
+        Prunes dense meshes to top_k_per_node to prevent WebGL lockups and render clear Obsidian clusters.
         """
         if not self.nodes:
             return []
@@ -348,6 +353,29 @@ class GyroidicGraphManager:
                         "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
                     })
                     
+        # Prune dense hairballs (e.g. 62k edges down to top-k resonance links) to prevent browser lockups
+        if edges and top_k_per_node > 0 and len(edges) > max_edges:
+            node_edges = {}
+            for e in edges:
+                node_edges.setdefault(e['source'], []).append(e)
+                node_edges.setdefault(e['target'], []).append(e)
+            
+            pruned_pairs = set()
+            pruned_edges = []
+            for nid, elist in node_edges.items():
+                elist.sort(key=lambda x: x['weight'], reverse=True)
+                for edge in elist[:top_k_per_node]:
+                    pair = tuple(sorted([edge['source'], edge['target']]))
+                    if pair not in pruned_pairs:
+                        pruned_pairs.add(pair)
+                        pruned_edges.append(edge)
+            
+            if len(pruned_edges) > max_edges:
+                pruned_edges.sort(key=lambda x: x['weight'], reverse=True)
+                edges = pruned_edges[:max_edges]
+            else:
+                edges = pruned_edges
+
         # Rescue far-out isolated substrate nodes (degree == 0) via sub-percolation tether (p_c = 0.592746)
         if num_nodes > 1:
             from src.core.invariants import PERCOLATION_2D_SQUARE

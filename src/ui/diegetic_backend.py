@@ -7885,13 +7885,28 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 force_reload = query.get('force', ['false'])[0].lower() in ('true', '1')
 
                 try:
-                    # Serve cached graph structure immediately unless forced or uninitialized
-                    has_nodes = bool(getattr(ENGINE.graph_manager, 'nodes', None))
-                    if force_reload or not has_nodes:
-                        ENGINE.graph_manager.load_fossils(limit=limit)
+                    graph_mgr = getattr(ENGINE, 'graph_manager', None)
+                    if not graph_mgr:
+                        try:
+                            import hybrid_backend
+                            if hybrid_backend.AI_SYSTEM and getattr(hybrid_backend.AI_SYSTEM, 'graph_manager', None):
+                                graph_mgr = hybrid_backend.AI_SYSTEM.graph_manager
+                        except Exception:
+                            pass
+                    if not graph_mgr:
+                        from src.topology.embedding_graph import GyroidicGraphManager
+                        graph_mgr = GyroidicGraphManager(data_dir=ENCODING_DIR, dim=256)
+                        if ENGINE:
+                            ENGINE.graph_manager = graph_mgr
 
-                    graph_data = json.loads(ENGINE.graph_manager.export_graph_json())
-                    graph_data["total_index"] = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
+                    # Serve cached graph structure immediately unless forced or uninitialized
+                    has_nodes = bool(getattr(graph_mgr, 'nodes', None))
+                    if force_reload or not has_nodes:
+                        graph_mgr.load_fossils(limit=limit, use_snapshot=True)
+
+                    graph_data = json.loads(graph_mgr.export_graph_json())
+                    total_idx = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else len(getattr(graph_mgr, 'nodes', []))
+                    graph_data["total_index"] = total_idx
                     graph_data["cached"] = not force_reload and has_nodes
                     self._send_json(graph_data)
                 except Exception as e:

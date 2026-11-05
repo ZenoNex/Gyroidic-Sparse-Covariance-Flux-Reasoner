@@ -1149,6 +1149,8 @@ class HybridAI:
             fossil_limit = 16 if getattr(self, 'lightweight', False) else 150
             scan_limit = 32 if getattr(self, 'lightweight', False) else 250
             self.graph_manager.load_fossils(limit=fossil_limit, scan_limit=scan_limit)
+            if self.engine:
+                self.engine.graph_manager = self.graph_manager
             print(f"[OK] Gyroidic Graph Manager initialized with {self.graph_manager.get_valid_node_count()} fossils")
         except Exception as e:
             print(f"[FAIL] Graph Manager init failed: {e}")
