@@ -290,7 +290,7 @@ A deep keyword audit of architectural records across `docs/` clarifies what is i
 | **Veto Subspace Null Protection** | **Intentional** | Irreconcilable contradictory vectors are exiled to a null-space subspace to oscillate in isolation without corrupting higher-order polytopes. |
 | **Compute Affordances System** (`TypedComputeAffordance`, `has_compute_affordance`) | **Unintentional (Resolved)** | Discovered to be completely unreferenced in `UniversalOrchestrator` and `hybrid_backend.py`. Reconnected into the orchestrator core and exposed through `/api/affordances` and `/api/system_status`. |
 | **Signal DSP & Kinematics Engine** (`TextureDSPEngine`) | **Unintentional (Resolved)** | Unexported from `src/core/__init__.py` and uncalled in orchestrator passes. Reconnected into `UniversalOrchestrator` and package exports. |
-| **3D Gaussian Splat Ingestion** (`gltf_splat_ingestor.py`) | **Unintentional Vulnerability (Resolved)** | Raw splats imported into Voxelboxter risked direct Euclidean mesh reproduction. Intercepted generatively via `AdaptiveSkeletonHarness`, Bouligand tangent cone projection, and Wager #2 80/20 fossilization split for DMCA safety. |
+| **3D Gaussian Splat Ingestion & Agent Smith P2P Export** (`gltf_splat_ingestor.py`, `knowledge_dyad_fossilizer.py`, `agent_substrate_bridge.py`) | **Unintentional Vulnerability (Resolved)** | Raw splats imported into Voxelboxter or verbatim text left in `export_agent_smith` risked expressive reproduction/memorization. Intercepted generatively via `AdaptiveSkeletonHarness`, Bouligand tangent cone projection, Wager #2 80/20 fossilization split, and `AgentSubstrateBridge.sanitize_and_verify_non_memorization()` so only non-invertible structural algebra (Betti invariants, CRT residues, prime frequencies) is retained under the Idea-Expression Dichotomy and Transformative Fair Use (*Bartz v. Anthropic*, *Kadrey v. Meta*). |
 
 ### 7.2 Integration of Typed Compute Affordances into Core & API
 The categorical compute affordance engine from [`src/core/hardware_monitor.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) is now formally wired into the system's operational core:
@@ -302,8 +302,8 @@ The categorical compute affordance engine from [`src/core/hardware_monitor.py`](
   - Added new `/api/affordances` endpoint returning full typed telemetry, gauges, and headroom dimensionality.
   - Enhanced `/api/status` and `/api/system_status` to include real-time compute affordance health.
 
-### 7.3 Generative Interception of 3D Gaussian Splats in Voxelboxter
-* Both [`VoxelboxterEngine.ingest_gaussian_splats()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) and [`PointerlessOctree.ingest_gaussian_splats()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) now guarantee DMCA safety:
+### 7.3 Generative Interception of 3D Gaussian Splats in Voxelboxter & Non-Memorized P2P Solitons
+* Both [`VoxelboxterEngine.ingest_gaussian_splats()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) and [`PointerlessOctree.ingest_gaussian_splats()`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py) enforce the Idea-Expression Dichotomy and Non-Memorization (discarding raw Euclidean meshes and verbatim text rather than relying on any statutory loophole):
   - Raw splat records are distilled into continuous moment and chromaticity vectors.
   - Fed into [`AdaptiveSkeletonHarness`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/adaptive_skeleton_harness.py) with Bouligand tangent cone projections and KAN micro-waves.
   - Registered in the Ganbreeder vector stacker catalogue.

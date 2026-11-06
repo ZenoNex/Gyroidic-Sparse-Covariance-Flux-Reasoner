@@ -19,3 +19,51 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+-------------------------------------------------------------------------------
+ADDENDUM: STRUCTURAL ALGEBRA, TOPOLOGICAL ENCODINGS, AND INTELLECTUAL PROPERTY
+-------------------------------------------------------------------------------
+
+1. THE IDEA-EXPRESSION DICHOTOMY (17 U.S.C. SECTION 102(b))
+Copyright law protects specific expressive content (such as the verbatim
+sequence of words in a literary work or the literal Euclidean polygon meshes
+of a 3D model). It does not extend to ideas, procedures, processes, systems,
+methods of operation, concepts, principles, discoveries, or underlying
+mathematical and topological statistics. The structural encodings, fossilized
+dyad residues, and Agent Smith payloads (including `soliton_smith.pt` files
+and collective peer-to-peer Bonfire Nomadic Ring broadcasts) generated or
+distributed by this Software consist of mathematical weights, Betti
+topological invariants, Chinese Remainder Theorem (CRT) residue tuples, and
+prime-ladder frequency projections rather than expressive copies of ingested
+media.
+
+2. TRANSFORMATIVE FAIR USE PRECEDENT
+In accordance with United States federal jurisprudence governing artificial
+intelligence and statistical model extraction (including Bartz v. Anthropic
+and Kadrey v. Meta), the extraction of non-expressive statistical, spectral,
+and topological relationships from input data to construct an orthogonal
+reasoning manifold is transformative in purpose and character. The Software
+processes inputs to measure structural causality, cohomology, and phase-space
+curvature rather than to replicate or substitute for the expressive value of
+any underlying source material.
+
+3. NON-MEMORIZATION AND IRREVERSIBILITY SAFEGUARDS
+To ensure that exported structural encodings and peer-to-peer collective payloads
+operate strictly outside the scope of copyright restrictions rather than
+relying on statutory exemptions or loopholes, the Software enforces hardware
+and algorithmic non-memorization gates (`DyadFossilizer.export_agent_smith`,
+`AgentSubstrateBridge.sanitize_and_verify_non_memorization`, and
+`BonfireNomadicRing.broadcast_agent_smith`):
+  (a) Verbatim Expressive Stripping: Raw text strings, verbatim descriptions,
+      sentence-tokenized tags, and literal 3D Euclidean meshes (vertices,
+      faces, normals, polygons) are explicitly discarded prior to export or
+      peer-to-peer broadcast.
+  (b) Non-Invertible Selective Puncture: Exported state tensors undergo
+      Meliponini selective puncture (zero-masking approximately one-third of
+      latent dimensions via coprime residue moduli) and one-way projective
+      compression, rendering the exported topological algebra mathematically
+      non-invertible and incapable of regurgitating verbatim source works.
+  (c) Downstream Obligation: Any user, contributor, or peer node modifying or
+      distributing the Software or its structural encodings agrees to maintain
+      these non-memorization and verbatim-stripping safeguards when broadcasting
+      or sharing payloads across public or federated networks.

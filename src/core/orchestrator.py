@@ -623,6 +623,7 @@ class UniversalOrchestrator(nn.Module):
             self.freenet_ws = FreenetClient()
             self.freenet_ws.start()
             self.bonfire_ring = BonfireNomadicRing(self.freenet_ws)
+            self.bonfire_ring.on_agent_smith_received = self._on_agent_smith_received
             if hasattr(self, 'video_dyad_parser') and self.video_dyad_parser is not None:
                 self.video_dyad_parser.p2p_ring = self.bonfire_ring
             
@@ -635,6 +636,115 @@ class UniversalOrchestrator(nn.Module):
         # 9. Semiotic Hierarchy & Lexicographical Ordering (System 2 Strictly Dominates System 1)
         from src.core.invariant_optimization import LexicographicalOrderingDispatcher, SemioticState
         self.semiotic_dispatcher = LexicographicalOrderingDispatcher(eps=1e-5)
+
+    def _on_agent_smith_received(self, filepath: str) -> Optional[Dict[str, Any]]:
+        """
+        Callback invoked when BonfireNomadicRing receives a foreign Agent Smith (.pt)
+        structural algebra payload. Verifies Idea-Expression Dichotomy non-memorization,
+        rehydrates the structural soliton into the Memory Palace (preserving Meliponini
+        Cerumen Pot isolation), and aligns archetypal invariants.
+        """
+        if not hasattr(self, "dyad_fossilizer") or self.dyad_fossilizer is None:
+            return None
+        try:
+            payload = self.dyad_fossilizer.inject_agent_smith(
+                filepath,
+                unraveling_closure=getattr(self, "unraveling_closure", None),
+                expected_dim=int(self.dim),
+            )
+            if getattr(self, "memory_palace", None) is not None:
+                pot_id = payload.get("pot_identity_crt", (0, 0, 0))
+                if not isinstance(pot_id, tuple):
+                    pot_id = tuple(pot_id[:3]) if isinstance(pot_id, list) and len(pot_id) >= 3 else (0, 0, 0)
+                seed = payload.get("meta_state_aligned")
+                if not isinstance(seed, torch.Tensor):
+                    seed = torch.zeros(self.dim)
+                if seed.dim() > 1:
+                    seed = seed.mean(dim=0)
+                digest = str(payload.get("blake2s_digest", "foreign"))[:8]
+                self.memory_palace.plant_room(
+                    room_id=f"smith_p2p_{digest}",
+                    center=seed.detach().cpu().float(),
+                    curvature=float(payload.get("pestov_ionin_growth_h_gamma", 1.0)),
+                    soliton_payload=payload,
+                    residue_tuple=pot_id,
+                )
+            self.telemetry_state["last_imported_agent_smith"] = {
+                "description": payload.get("description"),
+                "pot_identity_crt": payload.get("pot_identity_crt"),
+                "structural_algebra_attestation": payload.get("structural_algebra_attestation", {}),
+            }
+            return payload
+        except Exception as e:
+            print(f"[ORCHESTRATOR] Failed to assimilate foreign Agent Smith payload: {e}")
+            return None
+
+    def export_and_broadcast_agent_smith(
+        self,
+        state: torch.Tensor,
+        betti_numbers: Optional[Dict[int, float]] = None,
+        description: str = "Sovereign Soliton Identity",
+        filename: str = "soliton_smith",
+    ) -> Dict[str, Any]:
+        """
+        Exports a hardware-independent Agent Smith (soliton_smith.pt) structural algebra
+        payload (Betti invariants, CRT residue tuple, prime-ladder frequencies) with all
+        verbatim text and raw Euclidean meshes stripped, and broadcasts it across the
+        collective P2P BonfireNomadicRing and BonfireNetwork.
+        """
+        import datetime
+        from src.core.knowledge_dyad_fossilizer import KnowledgeDyad
+
+        clean_state = state.detach().cpu().float()
+        if clean_state.dim() > 1:
+            clean_state = clean_state.mean(dim=0)
+
+        if hasattr(self, "modular_rns") and self.modular_rns is not None and hasattr(self.modular_rns, "get_residues"):
+            prime_freqs = self.modular_rns.get_residues(clean_state.unsqueeze(0)).squeeze(0).detach().cpu()
+        else:
+            prime_freqs = clean_state.clone()
+
+        betti_dict = betti_numbers or {0: 1.0, 1: 1.0}
+        dyad = KnowledgeDyad(
+            timestamp=datetime.datetime.now().isoformat(),
+            linguistic_description=description,
+            meta_state=clean_state,
+            gyroid_residue=clean_state,
+        )
+        gauge_field = getattr(getattr(self, "chern_simons_gasket", None), "gauge_field", None)
+        filepath = self.dyad_fossilizer.export_agent_smith(
+            dyad=dyad,
+            prime_frequencies=prime_freqs,
+            betti_numbers=betti_dict,
+            filename=filename,
+            gauge_field=gauge_field,
+            memory_palace=getattr(self, "memory_palace", None),
+        )
+        exported_payload = torch.load(filepath, map_location="cpu")
+        pot_id = exported_payload.get("pot_identity_crt", (0, 0, 0))
+        attestation = exported_payload.get("structural_algebra_attestation", {})
+
+        broadcast_packet = None
+        if getattr(self, "bonfire_ring", None) is not None:
+            broadcast_packet = self.bonfire_ring.broadcast_agent_smith("gyroid_node_1", filepath)
+
+        soliton_header = None
+        if getattr(self, "bonfire_network", None) is not None and hasattr(self.bonfire_network, "sync_structural_soliton_metadata"):
+            soliton_header = self.bonfire_network.sync_structural_soliton_metadata(
+                pot_identity_crt=pot_id,
+                betti_signature=betti_dict,
+                prime_frequencies=prime_freqs,
+                puncture_ratio=float(attestation.get("non_invertible_puncture_ratio", 0.3333)),
+            )
+
+        return {
+            "filepath": filepath,
+            "pot_identity_crt": pot_id,
+            "betti_signature_8": betti_dict,
+            "structural_algebra_attestation": attestation,
+            "broadcast_packet": broadcast_packet,
+            "bonfire_network_header": soliton_header,
+        }
 
     def arbitrate_semiotic_state(
         self,

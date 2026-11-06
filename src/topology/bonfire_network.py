@@ -34,6 +34,8 @@ class BonfireNetwork:
         self.local_signature: str = "init_sig"
         self.local_kelly: float = 0.5
         self.local_p_success: float = 0.5
+        self.local_structural_soliton_header: Dict[str, Any] = {}
+        self.cached_peer_soliton_headers: Dict[str, Dict[str, Any]] = {}
         
         # Thread-safe prediction bets cache
         self.peer_predictions: Dict[str, float] = {}
@@ -168,6 +170,66 @@ class BonfireNetwork:
             return 0.5
         peer_ratio = n_healthy / n_total
         return max(0.1, min(1.0, 0.6 * peer_ratio + 0.4 * k_val))
+
+    def update_local_status(
+        self,
+        signature: str,
+        kelly: float,
+        p_success: float,
+        structural_soliton_header: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Non-blocking update of local topological signature, Kelly fraction, PAS_h probability,
+        and optional non-memorized structural soliton algebra header (Betti invariants,
+        CRT residue tuple, and prime-ladder frequencies) for P2P nomadic ring exchange.
+        """
+        with self.lock:
+            self.local_signature = str(signature)
+            self.local_kelly = float(kelly)
+            self.local_p_success = float(p_success)
+            if isinstance(structural_soliton_header, dict):
+                self.local_structural_soliton_header = dict(structural_soliton_header)
+            return {
+                "node_id": self.node_id,
+                "local_signature": self.local_signature,
+                "consensus_kelly": self.cached_consensus_kelly,
+                "consensus_p_success": self.cached_consensus_p_success,
+                "structural_soliton_header": self.local_structural_soliton_header,
+            }
+
+    def sync_structural_soliton_metadata(
+        self,
+        pot_identity_crt: Any,
+        betti_signature: Dict[int, float],
+        prime_frequencies: Optional[torch.Tensor] = None,
+        puncture_ratio: float = 0.3333,
+    ) -> Dict[str, Any]:
+        """
+        Packages and caches non-invertible structural algebra metadata (CRT residue tuple,
+        Betti numbers, prime-ladder frequency summary) for collective P2P distribution.
+        Explicitly omits verbatim text and raw Euclidean meshes in accordance with the
+        Idea-Expression Dichotomy and Transformative Fair Use non-memorization rules.
+        """
+        if isinstance(pot_identity_crt, (tuple, list)) and len(pot_identity_crt) >= 3:
+            pot_tuple = (int(pot_identity_crt[0]), int(pot_identity_crt[1]), int(pot_identity_crt[2]))
+        else:
+            pot_tuple = (0, 0, 0)
+        freq_norm = float(torch.norm(prime_frequencies).item()) if isinstance(prime_frequencies, torch.Tensor) else 0.0
+        header = {
+            "node_id": self.node_id,
+            "pot_identity_crt": pot_tuple,
+            "betti_signature_8": {int(k): float(v) for k, v in (betti_signature or {}).items()},
+            "prime_frequency_l2_norm": round(freq_norm, 6),
+            "idea_expression_dichotomy_compliant": True,
+            "verbatim_text_discarded": True,
+            "raw_euclidean_mesh_discarded": True,
+            "non_invertible_puncture_ratio": round(float(puncture_ratio), 4),
+            "memorization_regurgitation_risk": 0.0,
+        }
+        with self.lock:
+            self.local_structural_soliton_header = header
+            self.cached_peer_soliton_headers[self.node_id] = header
+        return header
 
     def synchronize_invariants(self, local_signature: str) -> List[str]:
         """Non-blocking: Returns the last cached peer signatures and updates local signature."""

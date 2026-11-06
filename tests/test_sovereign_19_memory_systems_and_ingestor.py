@@ -555,6 +555,125 @@ def test_system1_system2_harmonization_tempolock_ema_and_honest_jitter_rehydrati
     assert orch.telemetry_state.get("honest_jitter_rehydrated") is True
 
 
+def test_p2p_collective_agent_smith_non_memorization_and_structural_algebra(tmp_path):
+    """
+    Verifies that DyadFossilizer.export_agent_smith, AgentSubstrateBridge, BonfireNomadicRing,
+    BonfireNetwork, and UniversalOrchestrator enforce the Idea-Expression Dichotomy and
+    Non-Memorization across local and collective P2P distribution:
+      1. Verbatim expressive text and raw Euclidean meshes are stripped from soliton_smith.pt.
+      2. Only Betti invariants, CRT residue tuples, prime-ladder frequencies, and selectively
+         punctured (~33% zeroed) structural weights are retained and broadcasted.
+    """
+    from src.core.knowledge_dyad_fossilizer import DyadFossilizer, KnowledgeDyad
+    from src.core.agent_substrate_bridge import AgentSubstrateBridge
+    from src.p2p.bonfire_consensus import BonfireNomadicRing
+    from src.core.orchestrator import UniversalOrchestrator
+
+    fossilizer = DyadFossilizer(storage_dir=str(tmp_path), feature_dim=16)
+    fossilizer._index_ready.wait(timeout=5.0)
+
+    verbatim_sentence = "It was the best of times, it was the worst of times, in a copyrighted novel."
+    raw_mesh_vertices = [[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]]
+    dyad = KnowledgeDyad(
+        timestamp="2026-11-06T09:00:00",
+        linguistic_description=verbatim_sentence,
+        meta_state=torch.ones(16),
+        gyroid_residue=torch.linspace(0.1, 1.6, 16),
+        metadata={
+            "raw_text": verbatim_sentence,
+            "vertices": raw_mesh_vertices,
+            "polygons": [[0, 1, 2]],
+            "tags": ["novel_chapter_one", "It was the best of times"],
+            "domain": "topology_test",
+        },
+    )
+    prime_freqs = torch.linspace(2.0, 17.0, 16)
+    betti_dict = {0: 1.0, 1: 2.0, 2: 0.0}
+
+    export_path = fossilizer.export_agent_smith(
+        dyad=dyad,
+        prime_frequencies=prime_freqs,
+        betti_numbers=betti_dict,
+        filename="soliton_smith_test.pt",
+    )
+    saved = torch.load(export_path, map_location="cpu")
+
+    # 1. Verbatim text and raw mesh polygons/vertices must be completely absent
+    assert saved["description"] != verbatim_sentence
+    assert saved["description"].startswith("structural_soliton_crt_")
+    assert "worst" not in saved["tags"]
+    assert "times," not in saved["tags"]
+    assert "raw_text" not in saved["dyad_metadata"]
+    assert "vertices" not in saved["dyad_metadata"]
+    assert "polygons" not in saved["dyad_metadata"]
+    assert saved["dyad_metadata"].get("domain") == "topology_test"
+
+    # 2. Structural algebra attestation and ~33% Meliponini puncture must be present
+    attest = saved["structural_algebra_attestation"]
+    assert attest["idea_expression_dichotomy_compliant"] is True
+    assert attest["verbatim_text_discarded"] is True
+    assert attest["raw_euclidean_mesh_discarded"] is True
+    assert attest["memorization_regurgitation_risk"] == 0.0
+    assert 0.25 <= attest["non_invertible_puncture_ratio"] <= 0.45
+
+    shielded = saved["meta_state_shielded"]
+    zero_fraction = float((shielded == 0).sum().item()) / float(shielded.numel())
+    assert 0.25 <= zero_fraction <= 0.45
+
+    # 3. Verify P2P BonfireNomadicRing broadcast & reception strips any injected verbatim fields
+    class DummyFreenet:
+        def __init__(self):
+            self.subs = {}
+            self.published = []
+
+        def subscribe(self, contract_id, cb):
+            self.subs[contract_id] = cb
+
+        def publish(self, contract_id, payload):
+            self.published.append((contract_id, payload))
+            if contract_id in self.subs:
+                self.subs[contract_id](payload)
+
+    dummy_fn = DummyFreenet()
+    ring = BonfireNomadicRing(dummy_fn)
+
+    received_payloads = []
+    ring.on_agent_smith_received = lambda p: received_payloads.append(
+        fossilizer.inject_agent_smith(p, expected_dim=16)
+    )
+
+    # Corrupt the saved file on disk with a verbatim field to prove broadcast_agent_smith sanitizes it
+    corrupted = dict(saved)
+    corrupted["description"] = verbatim_sentence
+    corrupted["raw_mesh"] = raw_mesh_vertices
+    corrupted_path = str(tmp_path / "corrupted_smith.pt")
+    torch.save(corrupted, corrupted_path)
+
+    pkt = ring.broadcast_agent_smith("peer_alpha", corrupted_path)
+    assert pkt is not None
+    assert pkt["structural_algebra_attestation"]["verbatim_text_discarded"] is True
+    assert len(received_payloads) == 1
+    rehydrated = received_payloads[0]
+    assert rehydrated["description"].startswith("structural_soliton_crt_")
+    assert "raw_mesh" not in rehydrated
+    assert "meta_state_aligned" in rehydrated
+    assert rehydrated["meta_state_aligned"].shape[-1] == 16
+
+    # 4. Verify UniversalOrchestrator.export_and_broadcast_agent_smith end-to-end
+    orch = UniversalOrchestrator(dim=16)
+    orch.dyad_fossilizer = fossilizer
+    orch.bonfire_ring = ring
+    export_info = orch.export_and_broadcast_agent_smith(
+        state=torch.randn(1, 16),
+        betti_numbers={0: 1.0, 1: 3.0},
+        description=verbatim_sentence,
+        filename="orch_smith.pt",
+    )
+    assert export_info["structural_algebra_attestation"]["idea_expression_dichotomy_compliant"] is True
+    assert export_info["bonfire_network_header"]["verbatim_text_discarded"] is True
+
+
+
 
 
 

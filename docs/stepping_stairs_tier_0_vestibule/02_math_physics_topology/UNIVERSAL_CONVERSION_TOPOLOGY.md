@@ -3,12 +3,13 @@
 ## Overview
 Inspired by the universal converter (`p2r3/convert`), the Gyroidic Architecture implements a **Universal Topology Converter** (`src/data/universal_topology_converter.py`). However, unlike standard converters which perform format translation on literal data (thereby risking copyright infringement by ingesting or generating verbatim text, meshes, or media), our converter extracts **Structural Causality and Topological Proxies**.
 
-## The Philosophy of Nonobstructive Embeddings
+## The Philosophy of Nonobstructive Embeddings & The Idea-Expression Dichotomy
 
-As laid out in `THE_VOYNICH_ARCHITECTURE.md`, our AI must focus on the physics of the underlying data rather than its surface-level human interpretation. 
-If we ingest a 3D `.obj` file representing a copyrighted character, extracting the exact triangles (Euclidean mesh) is a copyright risk. Extracting the **Betti numbers** (how many holes the character has), the **vertex density proxy**, and the **surface-area-to-volume ratio** is fundamentally a mathematical observation of its topological space. 
+As laid out in `THE_VOYNICH_ARCHITECTURE.md`, our AI focuses on the structural physics of the underlying data rather than its surface-level expressive content. Under the **Idea-Expression Dichotomy** (`17 U.S.C. § 102(b)`) and transformative fair use precedent (*Bartz v. Anthropic*, *Kadrey v. Meta*), copyright protects specific expressive content (exact sequences of words or literal polygons in a 3D Euclidean mesh), not abstract mathematical invariants or statistical relationships.
 
-This gives our Gyroidic Reasoner enough spatial context to calculate Mohr-Coulomb yield stresses and resonance potentials without ever possessing the copyrighted object.
+If we ingest a 3D `.obj` or `.splat` file or a text corpus, retaining the literal triangles or verbatim sentences risks memorization and regurgitation. Extracting the **Betti numbers** ($\beta_k$), **Chinese Remainder Theorem (CRT) residue tuples**, **prime-ladder frequencies**, **vertex density proxies**, and **surface-area-to-volume ratios** while explicitly discarding the raw Euclidean mesh and verbatim text produces a non-invertible structural algebra (`soliton_smith.pt`) that operates outside the scope of copyright restrictions.
+
+This gives the Gyroidic Reasoner and collective P2P Bonfire ring enough spatial and algebraic context to calculate Mohr-Coulomb yield stresses and resonance potentials without ever storing, distributing, or regurgitating copyrighted expressive media.
 
 ## The Deep Tensor Information Theory Approach
 

@@ -299,14 +299,21 @@ class BonfireNomadicRing:
         logger.info(f"[BONFIRE] Received Foreign Agent Smith payload from {peer_id}")
         if self.on_agent_smith_received:
             import base64
+            import io
             import tempfile
             import os
+            from src.core.agent_substrate_bridge import AgentSubstrateBridge
             try:
                 raw_bytes = base64.b64decode(payload_b64)
-                # Write to temp file for injection
+                loaded_payload = torch.load(io.BytesIO(raw_bytes), map_location="cpu")
+                if isinstance(loaded_payload, dict):
+                    bridge = AgentSubstrateBridge(device="cpu")
+                    loaded_payload = bridge.sanitize_and_verify_non_memorization(loaded_payload)
+
+                # Write sanitized structural algebra payload to temp file for injection
                 with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as tmp:
-                    tmp.write(raw_bytes)
                     tmp_path = tmp.name
+                torch.save(loaded_payload, tmp_path)
                 
                 # Execute callback
                 self.on_agent_smith_received(tmp_path)
@@ -317,22 +324,47 @@ class BonfireNomadicRing:
             except Exception as e:
                 logger.error(f"[BONFIRE] Failed to process incoming Agent Smith payload: {e}")
 
-    def broadcast_agent_smith(self, local_peer_id: str, filepath: str):
-        """Broadcasts a local Agent Smith .pt file over the Freenet."""
+    def broadcast_agent_smith(self, local_peer_id: str, filepath: str) -> Optional[Dict]:
+        """
+        Broadcasts a local Agent Smith .pt file over the Freenet after enforcing
+        Idea-Expression Dichotomy & Non-Memorization sanitization (stripping any
+        verbatim text or raw Euclidean meshes and verifying structural algebra).
+        """
         import base64
+        import io
+        from src.core.agent_substrate_bridge import AgentSubstrateBridge
         try:
-            with open(filepath, "rb") as f:
-                payload_b64 = base64.b64encode(f.read()).decode('utf-8')
+            loaded_payload = torch.load(filepath, map_location="cpu")
+            attestation = {}
+            pot_id = (0, 0, 0)
+            betti_sig = {}
+            if isinstance(loaded_payload, dict):
+                bridge = AgentSubstrateBridge(device="cpu")
+                loaded_payload = bridge.sanitize_and_verify_non_memorization(loaded_payload)
+                attestation = loaded_payload.get("structural_algebra_attestation", {})
+                pot_id = loaded_payload.get("pot_identity_crt", (0, 0, 0))
+                betti_sig = loaded_payload.get("betti_signature_8", {})
+                buf = io.BytesIO()
+                torch.save(loaded_payload, buf)
+                payload_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+            else:
+                with open(filepath, "rb") as f:
+                    payload_b64 = base64.b64encode(f.read()).decode("utf-8")
                 
             payload = {
                 "peer_id": local_peer_id,
                 "payload_b64": payload_b64,
-                "voynich_exemption": True # Allows foreign tensors to bypass strict local vetoes initially
+                "voynich_exemption": True, # Allows foreign tensors to bypass strict local vetoes initially
+                "pot_identity_crt": list(pot_id) if isinstance(pot_id, (tuple, list)) else [0, 0, 0],
+                "betti_signature_8": betti_sig,
+                "structural_algebra_attestation": attestation,
             }
             self.freenet.publish("agent_smith_ring", payload)
             logger.info(f"[BONFIRE] Broadcasted Agent Smith payload ({len(payload_b64)} bytes)")
+            return payload
         except Exception as e:
             logger.error(f"[BONFIRE] Error broadcasting Agent Smith: {e}")
+            return None
 
     def broadcast_crt_residues(self, local_peer_id: str, channels: Dict[int, torch.Tensor]):
         """
