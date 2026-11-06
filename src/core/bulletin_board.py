@@ -10,10 +10,11 @@ class BulletinBoard(nn.Module):
     Allows independent execution of the residue repair loop and the 
     topological constraint verification loop.
     """
-    def __init__(self, size: int, device: str = None):
+    def __init__(self, size: int, device: str = None, alpha: float = 0.15):
         super().__init__()
         self.size = size
         self.device = device
+        self.alpha = alpha
         # Metrics registry for diagnostic reporting
         self.metrics = {}
         # Global Force Register:  F_i
@@ -26,16 +27,26 @@ class BulletinBoard(nn.Module):
         self.register_buffer('residue_history', torch.zeros(8, size, device=device))
         self.history_idx = 0
         
-    def post_force(self, force: torch.Tensor):
-        """System 2 posts a local constraint force to the board."""
+    def post_force(self, force: torch.Tensor, alpha: float = None):
+        """
+        System 2 posts a local constraint force to the board.
+        Uses tuned EMA (default alpha=0.15 with shock damping) so System 1
+        retains relational persistence before physical constraints overwrite the state.
+        """
         # Handle batch dimension by taking the mean
         if force.dim() > 1:
             force = force.mean(dim=0)
             
-        # Use exponential moving average to avoid sudden rupture
-        alpha = 0.3
         force_flat = force.detach().view(-1)
-        self.force_register.copy_((1.0 - alpha) * self.force_register + alpha * force_flat)
+        if force_flat.shape[0] < self.size:
+            force_flat = torch.nn.functional.pad(force_flat, (0, self.size - force_flat.shape[0]))
+        elif force_flat.shape[0] > self.size:
+            force_flat = force_flat[:self.size]
+
+        base_alpha = float(alpha if alpha is not None else self.alpha)
+        shock_norm = float(torch.norm(force_flat).item())
+        eff_alpha = base_alpha / (1.0 + 0.15 * shock_norm)
+        self.force_register.copy_((1.0 - eff_alpha) * self.force_register + eff_alpha * force_flat.to(self.force_register.device))
         self.update_count += 1
         
     def read_force(self) -> torch.Tensor:

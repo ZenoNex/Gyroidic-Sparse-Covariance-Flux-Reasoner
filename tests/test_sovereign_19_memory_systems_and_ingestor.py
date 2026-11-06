@@ -509,6 +509,53 @@ def test_arxiv_eprint_multiformat_payload_extraction():
     assert tar_extracted[0] == jpeg_bytes
 
 
+def test_system1_system2_harmonization_tempolock_ema_and_honest_jitter_rehydration():
+    from src.core.manifold_time import TwoCopsSchedule
+    from src.core.bulletin_board import BulletinBoard
+    from src.core.spectral_coherence_repair import apply_energy_based_stabilization
+    from src.core.orchestrator import UniversalOrchestrator
+
+    # 1. TEMPOLOCK Prime Gate Calibration (gcd(step, active_prime) > 1 or kappa > 0.35)
+    sched = TwoCopsSchedule(macro_steps=5, use_tempolock=True, alpha=0.15)
+    # Step 1: active_prime is 3 (since 2 is skipped when macro_steps > 2), step=1 -> False
+    _, sync_1 = sched.step(torch.tensor(0.1), curvature=0.1)
+    assert sync_1 is False
+    # Step 2: step=2, active_prime=3 -> False
+    _, sync_2 = sched.step(torch.tensor(0.1), curvature=0.1)
+    assert sync_2 is False
+    # Step 3: step=3 shares divisor with active_prime=3 -> True
+    _, sync_3 = sched.step(torch.tensor(0.1), curvature=0.1)
+    assert sync_3 is True
+    # Step 4 with Red Zone curvature (kappa = 0.42 > 0.35) -> True even outside prime divisor
+    _, sync_4_red = sched.step(torch.tensor(0.1), curvature=0.42)
+    assert sync_4_red is True
+
+    # 2. Bulletin Board EMA (alpha = 0.15 with shock damping)
+    bb = BulletinBoard(size=8, alpha=0.15)
+    bb.force_register.fill_(1.0)
+    bb.post_force(torch.zeros(8))
+    # With alpha=0.15 and 0 force norm, new force should be 0.85 * 1.0 = 0.85 (preserving 85% persistence)
+    assert torch.allclose(bb.read_force(), torch.full((8,), 0.85), atol=1e-4)
+
+    # 3. Honest Jitter Birkhoff Rehydration on NaN stasis
+    orch = UniversalOrchestrator(dim=16)
+    stasis_state = torch.full((1, 16), 0.5)
+    stasis_state[0, :8] = float("nan")  # Drop half the state into NaN stasis
+    rehydrated = apply_energy_based_stabilization(
+        stasis_state.clone(),
+        birkhoff_projector=orch.birkhoff_projector,
+    )
+    assert not torch.isnan(rehydrated).any()
+    # Rehydrated dimensions must have genuine physical energy (> 0.01), not crushed to 1e-8
+    assert torch.norm(rehydrated[0, :8]).item() > 0.01
+
+    # End-to-end Orchestrator step recovery from NaN stasis
+    out = orch.step(stasis_state)
+    assert not torch.isnan(out["state"]).any()
+    assert orch.telemetry_state.get("honest_jitter_rehydrated") is True
+
+
+
 
 
 

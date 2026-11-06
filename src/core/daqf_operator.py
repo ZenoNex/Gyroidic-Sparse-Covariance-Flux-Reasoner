@@ -67,7 +67,8 @@ class DAQUFOperator(nn.Module):
         self, 
         failures: torch.Tensor, 
         mischief_boost: Optional[torch.Tensor] = None,
-        valence: Optional[torch.Tensor] = None
+        valence: Optional[torch.Tensor] = None,
+        input_state: Optional[torch.Tensor] = None,
     ):
         """
         (f_i) = sum(I(Phi(f_i) = bot)) + PlayMutation + Valence
@@ -75,6 +76,14 @@ class DAQUFOperator(nn.Module):
         # Load includes standard failures
         load = failures.detach().clone()
         
+        if input_state is not None and hasattr(self, 'fossils') and self.fossils is not None:
+            try:
+                s_flat = input_state.detach().view(-1)[:self.fossil_dim]
+                if s_flat.shape[0] == self.fossil_dim:
+                    self.fossils[0] = 0.9 * self.fossils[0] + 0.1 * s_flat.to(self.fossils.device)
+            except Exception:
+                pass
+
         # Mischief boost rewards "Good Bugs"
         if mischief_boost is not None:
             mb = mischief_boost.detach()
@@ -92,6 +101,8 @@ class DAQUFOperator(nn.Module):
         self.contradiction_load += load
         self.diegetic_cost += load
         self.tau += 1.0
+        Q_f, Delta_q = self.quantize_fossils()
+        return Delta_q, Q_f
 
     def get_diegetic_amortization(self) -> torch.Tensor:
         """C_tilde = C_tau / dim(N_tau)"""

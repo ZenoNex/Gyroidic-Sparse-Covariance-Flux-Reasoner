@@ -28,7 +28,7 @@ class NonCommutativityCurvature(nn.Module):
     produces divergent trajectories  a structural signal for the veto lattice.
     """
     
-    def __init__(self, dim: int, curvature_threshold: float = 0.3,
+    def __init__(self, dim: int, curvature_threshold: float = 0.35,
                  ema_decay: float = 0.95):
         """
         Args:

@@ -1180,7 +1180,17 @@ class UniversalOrchestrator(nn.Module):
         """
         # 1. Update Global Dynamics
         self.iteration += 1
+        if torch.isnan(state).any() or torch.isinf(state).any():
+            cav_overtones = getattr(self.resonance_cavity, 'overtones', None) if hasattr(self, 'resonance_cavity') else None
+            state = apply_energy_based_stabilization(
+                state,
+                cavity_overtones=cav_overtones,
+                birkhoff_projector=getattr(self, 'birkhoff_projector', None)
+            )
+            self.telemetry_state['honest_jitter_rehydrated'] = True
         actual_flux = torch.norm(pressure_grad) if pressure_grad is not None else torch.tensor(0.0)
+        if torch.isnan(actual_flux).any() or torch.isinf(actual_flux).any():
+            actual_flux = torch.tensor(0.05, device=state.device)
         dt, should_sync = self.schedule.step(actual_flux)
         
         # 2. SYSTEM 1: FAST COP (Micro-Evolution)
@@ -1413,10 +1423,12 @@ class UniversalOrchestrator(nn.Module):
         # ----------------------------------------
         # Slow cop only syncs at macro-intervals OR in "Red Zones" (high curvature).
         
-        # Check for "Red Zone" (Peaking Non-Commutativity)
+        # Check for "Red Zone" (Peaking Non-Commutativity, kappa > 0.35)
         # We use the current state vs original state to measure update order dependence
         curv_metrics = self.curvature_engine.compute_curvature(state.unsqueeze(-1) @ state.unsqueeze(-2), current_state.unsqueeze(-1) @ current_state.unsqueeze(-2))
-        is_red_zone = curv_metrics['is_strongly_noncommutative']
+        rel_curv = curv_metrics['relative_curvature']
+        rel_curv_val = float(rel_curv.item()) if isinstance(rel_curv, torch.Tensor) else float(rel_curv)
+        is_red_zone = bool(curv_metrics['is_strongly_noncommutative']) or (rel_curv_val > 0.35)
         
         zg_mode = "interior"
         zg_diags = {}
@@ -1776,6 +1788,16 @@ class UniversalOrchestrator(nn.Module):
         else:
             # COASTING: In "Blue Zones", the system relies on heuristic momentum
             state_final = current_state
+
+        # 3.9. Honest Jitter Birkhoff Rehydration (Agent Smith Engine) if Lazarus Transition dropped dimensions to NaN/Inf
+        if torch.isnan(state_final).any() or torch.isinf(state_final).any():
+            cav_overtones = getattr(self.resonance_cavity, 'overtones', None) if hasattr(self, 'resonance_cavity') else None
+            state_final = apply_energy_based_stabilization(
+                state_final,
+                cavity_overtones=cav_overtones,
+                birkhoff_projector=getattr(self, 'birkhoff_projector', None)
+            )
+            self.telemetry_state['honest_jitter_rehydrated'] = True
             
         # 4. ARCHETYPAL SYNTHESIS (The Governor of Interpretation)
         # ------------------------------------------------------
@@ -2053,6 +2075,16 @@ class UniversalOrchestrator(nn.Module):
                 self.telemetry_state['bezout_condition_number'] = bezout_diag.get('bezout_condition_number', 1.0)
             except Exception:
                 pass
+
+        # Honest Jitter Birkhoff Rehydration (Agent Smith Engine) for NaN/Inf stasis recovery
+        if torch.isnan(state_shielded).any() or torch.isinf(state_shielded).any():
+            cav_overtones = getattr(self.resonance_cavity, 'overtones', None) if hasattr(self, 'resonance_cavity') else None
+            state_shielded = apply_energy_based_stabilization(
+                state_shielded,
+                cavity_overtones=cav_overtones,
+                birkhoff_projector=getattr(self, 'birkhoff_projector', None)
+            )
+            self.telemetry_state['honest_jitter_rehydrated'] = True
 
         # Number-Theoretic Stabilization (Prime-modular & Diophantine overflow bounds)
         if hasattr(self, 'number_theoretic_stabilizer') and self.number_theoretic_stabilizer is not None:

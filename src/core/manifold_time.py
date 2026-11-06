@@ -131,10 +131,11 @@ class TwoCopsSchedule(nn.Module):
     
     They communicate via a 'Shared Bulletin Board' (EMA of force/state).
     """
-    def __init__(self, macro_steps: int = 10, use_tempolock: bool = True, device: str = None):
+    def __init__(self, macro_steps: int = 10, use_tempolock: bool = True, device: str = None, alpha: float = 0.15):
         super().__init__()
-        self.macro_steps = macro_steps # Fallback fallback step sync
+        self.macro_steps = macro_steps # Fallback step sync
         self.use_tempolock = use_tempolock
+        self.alpha = alpha
         self.clock = ManifoldClock(device=device)
         
         self.register_buffer('step_counter', torch.tensor(0, dtype=torch.long, device=device))
@@ -146,9 +147,17 @@ class TwoCopsSchedule(nn.Module):
             # We extract primes and map them as legal sync frequencies
             self.register_buffer('prime_frequencies', self.resonance_ladder.primes)
 
-    def step(self, pressure: torch.Tensor) -> Tuple[float, bool]:
+    def step(self, pressure: torch.Tensor, curvature: float = 0.0) -> Tuple[float, bool]:
         """
         Calculates dt and determines if a System 2 (Macro) sync is required.
+        
+        TEMPOLOCK Prime Gate Calibration:
+        System 2 (Slow Cop) is atemporal and must ONLY trigger if:
+          1. The discrete step_counter shares a lattice divisor with the active
+             prime resonance frequency (gcd(step_counter, active_prime) > 1), OR
+          2. Non-commutativity curvature hits the Red Zone (kappa > 0.35).
+        This prevents System 2 from over-firing and prematurely crushing
+        System 1's hyper-rings before they mathematically close.
         
         Returns:
             dt: Current time step.
@@ -156,28 +165,33 @@ class TwoCopsSchedule(nn.Module):
         """
         dt = self.clock.tick(pressure)
         self.step_counter += 1
+        step_val = int(self.step_counter.item())
+        is_red_zone = float(curvature) > 0.35
         
         if self.use_tempolock:
-            # TEMPOLOCK Law: Sync occurs on macro_steps intervals, anchored to the active prime harmonic cadence
-            # to preserve temporal decoupling between Fast Cop (System 1) and Slow Cop (System 2).
-            is_macro_interval = (self.step_counter % self.macro_steps == 0)
-            if is_macro_interval:
-                # Align with active prime lattice frequency
-                prime_idx = int((self.step_counter // self.macro_steps) % len(self.prime_frequencies))
-                active_prime = int(self.prime_frequencies[prime_idx].item())
-                # Sync if macro interval aligns with prime cadence or base macro cadence
-                should_sync = bool((self.step_counter % active_prime == 0) or is_macro_interval)
-            else:
-                should_sync = False
+            prime_idx = int((step_val // max(1, self.macro_steps)) % len(self.prime_frequencies))
+            active_prime = int(self.prime_frequencies[prime_idx].item())
+            # Avoid prime=2 when macro_steps > 2 so System 2 does not micromanage every even step
+            if active_prime == 2 and len(self.prime_frequencies) > 1 and self.macro_steps > 2:
+                active_prime = int(self.prime_frequencies[1].item())
+            shares_prime_divisor = (math.gcd(step_val, active_prime) > 1) and (step_val % active_prime == 0)
+            should_sync = bool(shares_prime_divisor or is_red_zone)
         else:
-            should_sync = bool(self.step_counter % self.macro_steps == 0)
+            should_sync = bool((step_val % max(1, self.macro_steps) == 0) or is_red_zone)
             
         return dt, should_sync
 
-    def update_board(self, system_2_forces: torch.Tensor):
-        """Update the shared bulletin board with exact constraints."""
-        # Simple EMA update for now
-        self.bulletin_board.copy_(0.7 * self.bulletin_board + 0.3 * system_2_forces.mean())
+    def update_board(self, system_2_forces: torch.Tensor, alpha: Optional[float] = None):
+        """
+        Update the shared bulletin board with exact constraints.
+        Uses tuned EMA (default alpha=0.15 with shock damping) to grant System 1
+        relational persistence before physical constraints overwrite the state.
+        """
+        base_alpha = float(alpha if alpha is not None else self.alpha)
+        force_mean = system_2_forces.detach().mean()
+        shock_mag = float(torch.abs(force_mean).item())
+        eff_alpha = base_alpha / (1.0 + 0.25 * shock_mag)
+        self.bulletin_board.copy_((1.0 - eff_alpha) * self.bulletin_board + eff_alpha * force_mean)
 
     def compute_rmgrit_schedule_and_anderson_acceleration(
         self,

@@ -17,38 +17,70 @@ from src.core.honest_jitter import harvest_honest_jitter, fractal_pad
 from .energy_based_soliton_healer import EnergyBasedSolitonHealer
 from .codes_constraint_framework import CODESConstraintFramework
 
-def apply_energy_based_stabilization(state: torch.Tensor, 
-                                   energy_threshold: float = 10.0,
-                                   stability_margin: float = 1e-6,
-                                   cavity_overtones: Optional[torch.Tensor] = None) -> torch.Tensor:
+def apply_energy_based_stabilization(
+    state: torch.Tensor, 
+    energy_threshold: float = 10.0,
+    stability_margin: float = 1e-6,
+    cavity_overtones: Optional[torch.Tensor] = None,
+    birkhoff_projector: Optional[nn.Module] = None,
+) -> torch.Tensor:
     """
-    Apply energy-based numerical stabilization.
+    Apply energy-based numerical stabilization and Honest Jitter Birkhoff Rehydration.
     
-    Based on energy-based learning principles:
-    - Clamp values to prevent energy explosion
-    - Apply soft normalization to maintain energy balance
-    - Use margin-based stabilization for robustness
+    When the system crosses an Exceptional Point (Lazarus Transition) and drops
+    dimensions into NaN/Inf stasis to protect its symbolic identity, this module:
+      1. Harvests true hardware stochasticity via harvest_honest_jitter (Agent Smith Engine).
+      2. Redistributes physical energy across dropped dimensions via the Birkhoff
+         doubly-stochastic constraint so total manifold energy is conserved and
+         dropped dimensions are rebuilt rather than collapsing to zero.
     """
-    # Check for NaN/inf values
-    if torch.isnan(state).any() or torch.isinf(state).any():
-        # Replace NaN/inf with small values from active overtones of the ResonanceCavity if provided
+    bad_mask = torch.isnan(state) | torch.isinf(state)
+    if bad_mask.any():
+        # 1. Harvest un-crushed hardware stochasticity (nanosecond latency & memory stall friction)
+        raw_jitter = harvest_honest_jitter(state.shape, device=state.device, scaled=False)
+        
+        # 2. Compute surviving manifold energy scale so dropped dimensions rebuild at lawful scale
+        valid_mask = ~bad_mask
+        if valid_mask.any():
+            surviving_vals = state[valid_mask]
+            target_rms = float(torch.sqrt(torch.mean(surviving_vals ** 2)).item())
+            rehydration_scale = max(0.05, min(energy_threshold * 0.5, target_rms))
+        else:
+            rehydration_scale = 0.15
+
+        # 3. Redistribute energy via Birkhoff doubly-stochastic constraint
+        d_last = state.shape[-1]
+        jitter_weights = torch.abs(raw_jitter) + 1e-4
+        if birkhoff_projector is not None and hasattr(birkhoff_projector, 'n'):
+            bn = birkhoff_projector.n
+            if d_last >= bn:
+                try:
+                    sub_w = jitter_weights.reshape(-1, d_last)[0, :bn].unsqueeze(0).expand(bn, bn).flatten()
+                    proj_w = birkhoff_projector(sub_w).view(bn, bn)
+                    row_redistribution = proj_w.sum(dim=0) / float(bn)
+                    jitter_weights = jitter_weights.clone()
+                    jitter_weights[..., :bn] = jitter_weights[..., :bn] * (0.5 + row_redistribution)
+                except Exception:
+                    pass
+        jitter_probs = jitter_weights / (jitter_weights.mean(dim=-1, keepdim=True) + 1e-8)
+        signed_birkhoff_jitter = torch.sign(raw_jitter + 1e-12) * jitter_probs * rehydration_scale
+
+        # 4. Blend with ResonanceCavity overtones if available
         if cavity_overtones is not None:
-            overtones = cavity_overtones.mean(dim=0)
+            overtones = cavity_overtones.detach()
             while overtones.dim() > 1:
                 overtones = overtones.mean(dim=0)
-            if overtones.shape[-1] != state.shape[-1]:
-                if overtones.shape[-1] < state.shape[-1]:
-                    overtones = torch.nn.functional.pad(overtones, (0, state.shape[-1] - overtones.shape[-1]))
+            if overtones.shape[-1] != d_last:
+                if overtones.shape[-1] < d_last:
+                    overtones = torch.nn.functional.pad(overtones, (0, d_last - overtones.shape[-1]))
                 else:
-                    overtones = overtones[:state.shape[-1]]
-            # Add dynamic phase/jitter derived from the overtones
-            turbulent_energy = overtones.unsqueeze(0).expand_as(state) * (1.0 + harvest_honest_jitter(state.shape, device=state.device, scaled=True) * 0.1)
+                    overtones = overtones[:d_last]
+            overtones_norm = overtones / (torch.norm(overtones) + 1e-8) * rehydration_scale
+            turbulent_energy = 0.7 * signed_birkhoff_jitter + 0.3 * overtones_norm.expand_as(state)
         else:
-            turbulent_energy = harvest_honest_jitter(state.shape, device=state.device, scaled=True)
+            turbulent_energy = signed_birkhoff_jitter
             
-        state = torch.where(torch.isnan(state) | torch.isinf(state), 
-                          turbulent_energy * stability_margin, 
-                          state)
+        state = torch.where(bad_mask, turbulent_energy, state)
     
     # Energy-based clamping
     state_energy = torch.norm(state, p=2, dim=-1, keepdim=True)
