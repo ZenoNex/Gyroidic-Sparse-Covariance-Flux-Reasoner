@@ -374,21 +374,28 @@ class GovernanceManager:
 
     @staticmethod
     def is_searxng_running(url: str = "http://127.0.0.1:8888") -> bool:
-        """Check if SearXNG is active and responding on its HTTP endpoint."""
-        for target_url in (url, "http://localhost:8888"):
-            try:
-                import urllib.request
-                req = urllib.request.Request(f"{target_url.rstrip('/')}/")
-                with urllib.request.urlopen(req, timeout=1.5) as resp:
-                    if resp.status == 200:
-                        return True
-            except Exception:
-                pass
-        return False
+        """Check if SearXNG is active and responding on its HTTP endpoint with zero DNS lag."""
+        try:
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.2)
+            res = s.connect_ex(('127.0.0.1', 8888))
+            s.close()
+            return res == 0
+        except Exception:
+            return False
 
     @staticmethod
-    def start_searxng() -> bool:
+    def start_searxng(async_boot: bool = False) -> bool:
         """Boot up SearXNG daemon in WSL if installed and not already listening."""
+        if async_boot:
+            t = threading.Thread(target=GovernanceManager._start_searxng_sync, daemon=True, name="SearXNGBootThread")
+            t.start()
+            return True
+        return GovernanceManager._start_searxng_sync()
+
+    @staticmethod
+    def _start_searxng_sync() -> bool:
         if not GovernanceManager.is_searxng_installed():
             return False
         if GovernanceManager.is_searxng_running():
@@ -410,8 +417,8 @@ class GovernanceManager:
                 creationflags=creation_flags
             )
             
-            # Poll for readiness up to 18 seconds (cold start)
-            for _ in range(36):
+            # Poll for readiness non-blocking up to 20 seconds (cold start)
+            for _ in range(40):
                 time.sleep(0.5)
                 if GovernanceManager.is_searxng_running():
                     print("[SEARXNG] SearXNG successfully booted and listening on http://127.0.0.1:8888.", flush=True)
@@ -446,7 +453,7 @@ class GovernanceManager:
                     ["wsl", "-d", "Ubuntu", "--", "pkill", "-f", "searx.webapp"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    timeout=2,
+                    timeout=5,
                     creationflags=creation_flags
                 )
                 print("[SEARXNG] SearXNG daemon stopped.", flush=True)
@@ -4197,9 +4204,9 @@ def main():
     except Exception:
         pass
 
-    # Boot SearXNG daemon if installed in WSL and available
+    # Boot SearXNG daemon in the background if installed in WSL and available
     try:
-        GovernanceManager.start_searxng()
+        GovernanceManager.start_searxng(async_boot=True)
     except Exception as e:
         print(f"[SEARXNG] Startup auto-boot check note: {e}")
 
