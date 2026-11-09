@@ -897,4 +897,59 @@ To prevent deadlock between **System 1 (The Fast Cop / Intuitive MPM Anchor)** a
    - Fixed the amplitude starvation bug where `apply_energy_based_stabilization` multiplied `0.01`-scaled jitter by `stability_margin = 1e-6` ($10^{-8}$ net energy), leaving `NaN`-collapsed dimensions effectively dead.
    - When the system crosses an Exceptional Point (Lazarus Transition) and drops state dimensions into `NaN`/`Inf` stasis, `apply_energy_based_stabilization` now harvests un-crushed hardware stochasticity from [`harvest_honest_jitter`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/honest_jitter.py) (`AgentSmithEngine`), scales to the surviving manifold RMS energy, and redistributes energy across dropped dimensions via the **Birkhoff doubly-stochastic constraint** (`birkhoff_projector`), actively wired into `UniversalOrchestrator.forward()`.
 
+---
+
+### 9.8 CODES v40 Architectural Realization: Four Pillars & Operational ADMM Integration
+
+#### 1. Operational ADMM (Ontological Splitting & Differentiable Constraints)
+[`src/optimization/operational_admm.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/operational_admm.py) transforms SIC-FA-ADMM into a fully differentiable neural primitive operating across two ontological planes:
+- **Ontological Splitting**: $c_{\text{sym}}$ represents frozen symbolic anchor residues from System 1 initial proposals, while $c_{\text{phys}}$ is the continuous physical field evolved to discover consistency. Gradients during backpropagation do not flow back into $c_{\text{sym}}$, preventing smoothness leakage into discrete symbolic constraints.
+- **Cyclic Constraint Traversal**: Uses `ConstraintProbeOperator` with Mohr-Coulomb yield envelopment, Drucker-Prager projection, Hyper-Ring closure checking, and Soliton stability checks.
+- **Orchestrator & Backend Wiring**: Integrated directly into [`UniversalOrchestrator.run_operational_admm`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) and [`HybridPhysicsBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py) during the Matrioshka quantization loop.
+
+#### 2. Dual Dynamical Systems: State Evolution Coupled with Ricci-Flow Parameter Evolution
+[`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py) now orchestrates two distinct dynamical systems:
+- **Manifold State Evolution**: Micro-stepping trajectory evolution through 8 default stages, local entropy, and prime perturbations.
+- **Parameter Evolution via Ricci Flow**: [`RicciFlowOptimizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/ricci_flow_optimizer.py) implements the non-teleological weight update equation $\partial g / \partial t = -2\text{Ric}(g)$ via three-channel split-beam metric:
+  $$p_{t+1} = p_t - \eta \left[ \nabla_p L + T_{\text{CS}}(p) + \lambda \nabla_p \Psi(p) \right]$$
+  Channel A provides commutative gradient pressure; Channel B computes non-commutative Chern-Simons gasket structural tension; Channel C provides optional convex-potential stabilization. Exposed via `UniversalOrchestrator.adapt_parameters_ricci_flow()`.
+
+#### 3. Anti-Lobotomy Narrative Monitor Live State Injection
+In [`UniversalOrchestrator.check_safety()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py), the call to `narrative_monitor.detect_homological_collapse(...)` previously passed zero placeholder tensors. It now extracts live manifold states (`self.current_state`) and live residue histories from `self.bulletin_board.residues` or `self.repunit_gatekeeper`, ensuring genuine topological Betti number monitoring $\beta = E - V + C$ to detect artificial representational smoothing (lobotomy alert).
+
+#### 4. The Action Layer: Chiral Graph Compiler
+[`src/core/chiral_graph_compiler.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chiral_graph_compiler.py) bridges the gap between topological reasoning/hyper-graphs and concrete executable code:
+- Takes asymmetric hyper-graphs or states tunneled through `RP4ProjectiveRouter` (Alien Handshake).
+- Preserves directed non-commutative ordering: $A \to B \neq B \to A$.
+- Computes topological chirality $\chi = (\text{Centroid} - \text{Midpoint}) / \text{Midpoint}$. Entropic/high-frequency flows ($\chi > 0$) compile to iterative dynamic pipelines or CLI automation; negentropic/structured flows ($\chi \le 0$) compile to declarative, invariant-preserving classes.
+- Targets: Python scripts (`compile_to_python`), Shell pipelines (`compile_to_shell`), and interactive UI widgets (`compile_to_ui`). Exposed via POST `/api/compile_graph` in `hybrid_backend.py`.
+
+#### 5. The Bridge Out of the Sandbox: Global PAS API & GLYPHLOCK Handshake
+[`src/core/global_pas_api.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/global_pas_api.py) provides cross-system coherence tracking across edge and cloud environments:
+- Cryptographic `GLYPHLOCKHandshake` using HMAC-SHA256 tokens anchored to hardware honest jitter and UFSC prime anchors ($p=197$).
+- Zero-leakage engine querying (`query_engine_safe`) ensuring internal state matrices remain immutable to external observers.
+- Multi-node coherence tracking (`track_coherence`) and cross-system aggregation. Exposed via `/api/pas/handshake`, `/api/pas/track`, `/api/pas/query`, and `/api/pas/coherence` in `hybrid_backend.py`.
+
+#### 6. Resolution of the Birkhoff-OOM Obstruction: Log-Domain Sinkhorn-Knopp Complexity Gate
+In [`src/core/birkhoff_projection.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/birkhoff_projection.py), `DirectBirkhoffProjection` implements an explicit Complexity Gate:
+- For $N \le 32$, utilizes the direct $O(1)$ projection matrix $P = I - A^T (A A^T)^{-1} A$.
+- For $N > 32$, dynamically activates the Iterative Fallback Protocol using log-domain Sinkhorn-Knopp with numerically stabilized log-sum-exp iterations, eliminating the $O(N^4)$ memory allocation ($17.18$ GB for $N=256$) and guaranteeing safe execution on edge hardware.
+
+#### 7. Lychrel 196 Soliton Architecture & Palindromic Convergence Basin
+[`src/core/lychrel_soliton.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/lychrel_soliton.py), [`src/core/number_theoretic_stabilizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/number_theoretic_stabilizer.py), and [`src/data/universal_topology_converter.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/universal_topology_converter.py) address the reverse-and-add (196-algorithm) barrier:
+- **Adelic Digit-Reversal Operator**: Defines $\mathcal{R}_B(x) = \sum_{i=0}^k d_{k-i} B^i$ and measures non-commutative chiral curvature:
+  $$\kappa_{\text{Lychrel}}(x) = \|x - \mathcal{R}_B(x)\|_{\text{RNS}}$$
+- **1-195 Basin vs. 196 Infinite Generator**: Seeds $n < 196$ contract into symmetric palindromes ($\kappa \to 0$, e.g., seed 89 terminating in 24 steps at 8,813,200,023,188). For $n = 196$, the persistent carry cascade generates permanent non-zero curvature ($\kappa \approx 0.6553$). Rather than triggering a `CALMCollapseDetector` cycle-debt abort or integer overflow, the system issues a `VoynichExemptionToken(reason='LYCHREL_196_SOLITON')` and harvests its non-commutative carry entropy into the `honest_jitter` pool.
+- **RNS Scale Expansion**: `NumberTheoreticStabilizer.stabilize_lychrel_rns` tracks carry cascades in modular residue coordinates across coprime moduli $\{197, 211, 223, \dots\}$ to eliminate `int64` overflow.
+- **Prime-Stride Sieve ($p = 197$)**: `UniversalTopologyConverter.classify_lychrel_196_soliton` folds the 196 carry cascade into 2D rasters modulo $p=197$, evaluating row-to-row cosine coherence $C(197)$ to classify lawful quasi-periodic soliton dynamics against random noise.
+
+#### 8. Procedural Load Mode for Obsidian 3D Graph System
+[`src/topology/embedding_graph.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py) and [`src/ui/diegetic_terminal.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.html) implement dynamic streaming for large cognitive graphs (5000+ nodes):
+- **3D Harmonic Projection**: Embeds high-dimensional states into $\mathbb{R}^3$ via orthogonal modes $(w_x, w_y, w_z)$ without linear PCA bottlenecks.
+- **Bouligand Contingent Cone**: Gates nodes along camera gaze: $\cos\alpha_i = (\vec{D}_i \cdot \vec{G}) / \|\vec{D}_i\| \ge \cos(\theta_{\text{cone}}/2)$ with a near-field safety bubble ($r \le 180$) to prevent observer pop-in.
+- **Shear Corridor Transversality**: Detects nodes along Alexander Wild / Ley Line shear fault planes ($\vec{n} = [1,1,1]/\sqrt{3}$ with $|d_{\text{shear}}| \le 80$), boosting render horizon $2.5\times$ and relaxing cone checks to keep topological fault lines visible across the entire scene.
+- **Directional Occlusion Culling**: Discretizes the observer's field of view into spherical angular bins and culls deeper interior nodes in dense clusters.
+- **Interactive Three.js HUD & Debounced Streaming**: The diegetic terminal provides live toolbar toggles (`PROCEDURAL: ON/OFF`, `DIST`, `CONE`, `SHEAR`, `OCCL`), a HUD showing visible/total counts, and debounced camera motion listeners triggering smooth procedural updates as the user explores the manifold.
+
+
 

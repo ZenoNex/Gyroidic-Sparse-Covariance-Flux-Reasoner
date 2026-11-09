@@ -17,7 +17,7 @@ RIC-SRI Integration (Equations 1-10):
 import torch
 import torch.nn as nn
 import math
-from typing import Dict, Tuple, Optional, Any, List, Union
+from typing import Dict, Tuple, Optional, Any, List, Union, Callable
 
 from src.core.love_vector import LoveVector
 from src.core.failure_token import FailureToken, RuptureFunctional
@@ -520,6 +520,23 @@ class UniversalOrchestrator(nn.Module):
             
         self.last_dyad = None
         self.last_fossil_path = None
+
+        # Operational ADMM (Ontological Splitting & Differentiable Constraints)
+        try:
+            from src.optimization.operational_admm import OperationalAdmm
+            self.operational_admm = OperationalAdmm(degree=self.poly_degree, max_iters=10)
+        except Exception:
+            self.operational_admm = None
+
+        # Ricci Flow Parameter Optimizer (Couples parameter evolution to state manifold)
+        self.ricci_optimizer = None
+
+        # Chiral Graph Compiler (Action Layer - Asymmetric Flow to Executable Form)
+        try:
+            from src.core.chiral_graph_compiler import ChiralGraphCompiler
+            self.chiral_compiler = ChiralGraphCompiler(state_dim=dim)
+        except Exception:
+            self.chiral_compiler = None
 
         # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, Gyroid Probes, CALM Veto & Diegetic Heads)
         self.gyroid_probe = SparseGyroidCovarianceProbe(
@@ -2565,9 +2582,30 @@ class UniversalOrchestrator(nn.Module):
         lobotomy_alert = False
         if hasattr(self, 'narrative_monitor'):
             try:
+                # Live manifold state and live residues
+                live_manifold = getattr(self, 'current_state', None)
+                if live_manifold is None or live_manifold.numel() == 0:
+                    live_manifold = torch.randn((self.dim,), device=self.device) * 0.05
+                else:
+                    live_manifold = live_manifold.detach().flatten()[:self.dim]
+                
+                live_residues = []
+                if hasattr(self, 'bulletin_board') and self.bulletin_board is not None:
+                    bb_residues = getattr(self.bulletin_board, 'residues', [])
+                    if bb_residues:
+                        live_residues = [r.detach().flatten()[:self.dim] for r in bb_residues[-5:] if r is not None and r.numel() > 0]
+                
+                if not live_residues:
+                    if hasattr(self, 'repunit_gatekeeper') and self.repunit_gatekeeper is not None:
+                        mod = self.repunit_gatekeeper.get_hybrid_modulus().to(live_manifold.device)
+                        int_x = (live_manifold * self.repunit_gatekeeper.scale_factor).long()
+                        live_residues = [torch.remainder(int_x, mod.long()).float()]
+                    else:
+                        live_residues = [live_manifold.clone()]
+
                 is_collapse, _ = self.narrative_monitor.detect_homological_collapse(
-                    residues=[torch.zeros((self.dim,))],
-                    manifold=torch.zeros((self.dim,)),
+                    residues=live_residues,
+                    manifold=live_manifold,
                     current_gradient_norm=grad_norm
                 )
                 lobotomy_alert = bool(is_collapse)
@@ -2609,6 +2647,61 @@ class UniversalOrchestrator(nn.Module):
             except Exception:
                 return False
         return False
+
+    def adapt_parameters_ricci_flow(self, loss: torch.Tensor, parameters=None, lr: float = 1e-3) -> Optional[float]:
+        """
+        Executes parameter evolution via Ricci flow dg/dt = -2Ric.
+        Couples parameter evolution to state manifold evolution.
+        """
+        if parameters is None:
+            if hasattr(self, 'parameters') and callable(getattr(self, 'parameters')):
+                parameters = list(self.parameters())
+            else:
+                return None
+        
+        if not parameters:
+            return None
+            
+        from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
+        if self.ricci_optimizer is None:
+            self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=lr, engine=self)
+            
+        def closure():
+            return loss
+            
+        self.ricci_optimizer.zero_grad()
+        if hasattr(loss, 'requires_grad') and loss.requires_grad:
+            loss.backward(retain_graph=True)
+        self.ricci_optimizer.step(closure)
+        return float(loss.item()) if hasattr(loss, 'item') else float(loss)
+
+    def run_operational_admm(
+        self,
+        initial_c: torch.Tensor,
+        forward_op: Optional[Callable] = None,
+        gcve_pressure: Optional[torch.Tensor] = None,
+        chirality: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        """
+        Executes differentiable Operational ADMM constraint solving with ontological splitting.
+        """
+        if self.operational_admm is None:
+            try:
+                from src.optimization.operational_admm import OperationalAdmm
+                self.operational_admm = OperationalAdmm(degree=self.poly_degree, max_iters=10)
+            except Exception:
+                return initial_c
+        
+        if forward_op is None:
+            forward_op = lambda x: x
+            
+        return self.operational_admm(
+            initial_c=initial_c,
+            forward_op=forward_op,
+            gcve_pressure=gcve_pressure,
+            chirality=chirality,
+            bulletin_board=getattr(self, 'bulletin_board', None)
+        )
 
     def resolve_containment_pressure(self, x: torch.Tensor, chat_history: Any = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """

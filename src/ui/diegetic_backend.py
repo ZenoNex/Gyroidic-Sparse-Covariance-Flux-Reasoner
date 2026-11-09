@@ -602,6 +602,12 @@ class DiegeticPhysicsEngine(nn.Module):
         else:
             self.caq = None
 
+        try:
+            from src.optimization.operational_admm import OperationalAdmm
+            self.operational_admm = OperationalAdmm(degree=4, max_iters=5)
+        except Exception:
+            self.operational_admm = None
+
         # trust_scalars: per-field trust scores evolved by TemporalAssociationTrainer.
         # Shape [k] -- one scalar per polynomial coprime field.
         self.register_buffer('trust_scalars', torch.ones(k, device=device))
@@ -4141,11 +4147,35 @@ class DiegeticPhysicsEngine(nn.Module):
                     # Evolve through physics surrogate: F(Q_Z(x))
                     with torch.no_grad():
                         q_evolved = self.kagh_drafter(q_inner)
+
+                    # Operational ADMM: Differentiable Ontological Splitting constraint repair
+                    if hasattr(self, 'operational_admm') and self.operational_admm is not None:
+                        try:
+                            q_evolved = self.operational_admm(
+                                initial_c=q_evolved,
+                                forward_op=lambda s: s
+                            )
+                        except Exception:
+                            pass
+
                     # Outer quantization: Q_Z(F(Q_Z(x)))
                     seed_state, _b_outer = self.caq(q_evolved, pas_scores=_pas_scores, voynich_token=voynich_token)
-                    # Detect critical shell ceiling -- induce Hyperspherical Inversion (originally Sphere Eversion) to avoid lobotomy
+
+                    # Check for NaNs and apply Lazarus Rehydration
+                    if torch.isnan(seed_state).any() or torch.isinf(seed_state).any():
+                        print("[LAZARUS] NaN/Inf detected in Matrioshka shell state. Applying honest jitter rehydration...")
+                        seed_state = torch.nan_to_num(seed_state, nan=0.0, posinf=1.0, neginf=-1.0)
+                        seed_state = seed_state + self._harvest_honest_jitter(seed_state.shape) * 0.02
+                        if hasattr(self.caq, 'step_outward'):
+                            outward_lvl = self.caq.step_outward()
+                            print(f"[MATRIOSHKA] Popped outward to shell level {outward_lvl} due to NaN instability.")
+
+                    # Detect critical shell ceiling -- pop outward to coarser resolution shell and invert
                     if _b_outer is not None and _b_outer.is_critical():
-                        print(f"[SHELL] Critical refusal boundary hit. Inducing Hyperspherical Inversion protocol...")
+                        if hasattr(self.caq, 'step_outward'):
+                            outward_lvl = self.caq.step_outward()
+                            print(f"[SHELL] Critical refusal boundary hit. Popped outward to shell level {outward_lvl}.")
+                        print(f"[SHELL] Inducing Hyperspherical Inversion protocol...")
                         # Hyperspherical Inversion: Map coordinates via x -> x / ||x||^2 to project state outside the boundary obstruction
                         with torch.no_grad():
                             _norm_sq = torch.sum(seed_state * seed_state, dim=-1, keepdim=True) + 1e-8
@@ -4316,9 +4346,16 @@ class DiegeticPhysicsEngine(nn.Module):
                     pass
             return None, False
 
+        # Prepare query state tensor with safe non-scalar dimensions
+        safe_query_state = seed_state.detach()
+        if safe_query_state.dim() > 1 and safe_query_state.shape[0] > 0:
+            safe_query_state = safe_query_state[0]
+        elif safe_query_state.dim() == 0:
+            safe_query_state = seed_state.flatten()[:self.dim]
+
         # If survived Ego Death, pass into 5-Gate Tri-State with live retrieval & affordance arbitration
         gate_out = self.five_gate_pipeline.process_pipeline(
-            query_state=seed_state[0],
+            query_state=safe_query_state,
             internal_certainty=1.0 - abort_score,
             current_pas_h=pas_h_live,
             target_mischief=self.mischief_probe.H_mischief.item(),
@@ -7899,15 +7936,51 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         if ENGINE:
                             ENGINE.graph_manager = graph_mgr
 
-                    # Serve cached graph structure immediately unless forced or uninitialized
-                    has_nodes = bool(getattr(graph_mgr, 'nodes', None))
-                    if force_reload or not has_nodes:
-                        graph_mgr.load_fossils(limit=limit, use_snapshot=True)
+                    # Serve cached graph structure if sufficient nodes exist, unless forced
+                    current_node_count = len(getattr(graph_mgr, 'nodes', []))
+                    has_sufficient_nodes = current_node_count >= (limit or 100)
+                    if force_reload or not has_sufficient_nodes:
+                        # Reload with specified limit and expanded scan window
+                        graph_mgr.load_fossils(
+                            limit=limit,
+                            scan_limit=max(1000, (limit * 2) if limit else 1000),
+                            use_snapshot=(not force_reload and (limit or 150) <= 500)
+                        )
 
-                    graph_data = json.loads(graph_mgr.export_graph_json())
+                    # Check for Procedural Load Mode (Geometry Cones, Render Distance, Shear Planes, Occlusion)
+                    is_procedural = query.get('procedural', ['false'])[0].lower() in ('true', '1')
+                    if is_procedural and hasattr(graph_mgr, 'query_procedural_graph'):
+                        try:
+                            cx = float(query.get('cam_x', [0.0])[0])
+                            cy = float(query.get('cam_y', [0.0])[0])
+                            cz = float(query.get('cam_z', [800.0])[0])
+                            gx = float(query.get('gaze_x', [0.0])[0])
+                            gy = float(query.get('gaze_y', [0.0])[0])
+                            gz = float(query.get('gaze_z', [-1.0])[0])
+                            dist = float(query.get('dist', [800.0])[0])
+                            fov = float(query.get('fov', [65.0])[0])
+                            shear_on = query.get('shear', ['true'])[0].lower() in ('true', '1')
+                            occl_on = query.get('occlusion', ['true'])[0].lower() in ('true', '1')
+
+                            graph_data = graph_mgr.query_procedural_graph(
+                                camera_pos=(cx, cy, cz),
+                                gaze_dir=(gx, gy, gz),
+                                fov_deg=fov,
+                                render_distance=dist,
+                                enable_shear_corridor=shear_on,
+                                enable_occlusion_culling=occl_on,
+                                max_nodes=limit or 2500
+                            )
+                        except Exception as proc_err:
+                            print(f"[PROCEDURAL GRAPH] Fallback to standard export: {proc_err}")
+                            graph_data = json.loads(graph_mgr.export_graph_json())
+                    else:
+                        graph_data = json.loads(graph_mgr.export_graph_json())
+
                     total_idx = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else len(getattr(graph_mgr, 'nodes', []))
                     graph_data["total_index"] = total_idx
-                    graph_data["cached"] = not force_reload and has_nodes
+                    graph_data["cached"] = not force_reload and has_sufficient_nodes
+                    graph_data["procedural_mode"] = is_procedural
                     self._send_json(graph_data)
                 except Exception as e:
                     self._send_json({

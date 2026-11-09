@@ -1312,7 +1312,8 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
                         <span>LIMIT:</span>
-                        <input type="number" id="graph-limit" value="1000"
+                        <input type="number" id="graph-limit" value="1000" min="50" max="10000" step="100"
+                            onchange="refreshGraph(true)" onkeydown="if(event.key==='Enter')refreshGraph(true)"
                             style="width: 65px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
                     </div>
 
@@ -1325,6 +1326,29 @@
 
                     <button id="btn-toggle-graph-mode" onclick="toggleGraphNavigationMode()"
                         style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Toggle between Rotate and Pan on Left Drag">MODE: ROTATE</button>
+
+                    <button id="btn-toggle-procedural-load" onclick="toggleProceduralGraphLoad()"
+                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Toggle Procedural Cone / Occlusion / Shear Load Mode">PROCEDURAL: OFF</button>
+
+                    <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888;" title="Render Horizon Distance">
+                        <span>DIST</span>
+                        <input type="number" id="graph-render-dist" value="800" min="200" max="3000" step="50" style="width: 50px; background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888;" title="Viewing Cone Field of View (Degrees)">
+                        <span>CONE</span>
+                        <input type="number" id="graph-cone-fov" value="65" min="20" max="180" step="5" style="width: 42px; background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888; cursor: pointer;" title="Expand horizon along Alexander Wild Shear planes">
+                        <input type="checkbox" id="graph-shear-corridor" checked style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                        <span>SHEAR</span>
+                    </label>
+
+                    <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888; cursor: pointer;" title="Directional depth ray occlusion culling">
+                        <input type="checkbox" id="graph-occlusion-cull" checked style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                        <span>OCCL</span>
+                    </label>
 
                     <button id="btn-graph-fit" onclick="fitGraphView()"
                         style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #ccc; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Reset camera to fit all nodes">FIT VIEW</button>
@@ -1349,6 +1373,10 @@
                 <div id="graph-container"
                     style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 400px; height: 100%;">
                     <div id="graph-canvas-container" style="width: 100%; height: 100%; flex: 1;"></div>
+                    <div id="graph-procedural-hud"
+                        style="position: absolute; top: 10px; right: 10px; background: rgba(5,5,5,0.88); border: 1px solid var(--terminal-blue); padding: 6px 10px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.65rem; color: var(--terminal-blue); z-index: 100; pointer-events: none; display: none; text-shadow: 0 0 5px rgba(0,242,255,0.4);">
+                        PROCEDURAL HUD: VISIBLE: <span id="hud-visible-nodes">0</span> | TOTAL: <span id="hud-total-nodes">0</span> | HORIZON: <span id="hud-render-dist">800</span>
+                    </div>
                     <div id="graph-info-overlay"
                         style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid var(--glass-border); padding: 8px; border-radius: 6px; font-size: 0.75rem; color: #ddd; max-height: 100px; overflow-y: auto; pointer-events: auto; display: none; z-index: 100;">
                     </div>
@@ -3096,7 +3124,32 @@
         let graphDataGlobal = null;
         let graphPhysicsFrozen = true;
         let graphNavMode = 'rotate'; // 'rotate' | 'pan'
+        let graphProceduralLoad = false;
+        let proceduralUpdateTimer = null;
         const graphNodePositions = new Map();
+
+        function toggleProceduralGraphLoad() {
+            graphProceduralLoad = !graphProceduralLoad;
+            const btn = document.getElementById('btn-toggle-procedural-load');
+            const hud = document.getElementById('graph-procedural-hud');
+            if (btn) {
+                if (graphProceduralLoad) {
+                    btn.innerText = "PROCEDURAL: ON";
+                    btn.style.color = "var(--terminal-green)";
+                    btn.style.borderColor = "var(--terminal-green)";
+                    btn.style.background = "rgba(0, 255, 65, 0.15)";
+                } else {
+                    btn.innerText = "PROCEDURAL: OFF";
+                    btn.style.color = "var(--terminal-blue)";
+                    btn.style.borderColor = "var(--terminal-blue)";
+                    btn.style.background = "rgba(0, 242, 255, 0.1)";
+                }
+            }
+            if (hud) {
+                hud.style.display = graphProceduralLoad ? 'block' : 'none';
+            }
+            refreshGraph(false);
+        }
 
         function toggleGraphNavigationMode() {
             graphNavMode = (graphNavMode === 'rotate') ? 'pan' : 'rotate';
@@ -3227,7 +3280,49 @@
                 const limit = limitEl ? parseInt(limitEl.value) || 1000 : 1000;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
-                const response = await fetch(`${state.backend_url}/graph?limit=${limit}&force=${forceReload ? 'true' : 'false'}`);
+                let url = `${state.backend_url}/graph?limit=${limit}&force=${forceReload ? 'true' : 'false'}`;
+                if (graphProceduralLoad) {
+                    let cam_x = 0, cam_y = 0, cam_z = 500;
+                    let gaze_x = 0, gaze_y = 0, gaze_z = -1;
+                    if (window.Graph && window.Graph.camera) {
+                        try {
+                            const cam = window.Graph.camera();
+                            if (cam && cam.position) {
+                                cam_x = cam.position.x || 0;
+                                cam_y = cam.position.y || 0;
+                                cam_z = cam.position.z || 500;
+                                if (typeof THREE !== 'undefined' && THREE.Vector3) {
+                                    const dir = new THREE.Vector3();
+                                    cam.getWorldDirection(dir);
+                                    gaze_x = dir.x;
+                                    gaze_y = dir.y;
+                                    gaze_z = dir.z;
+                                } else {
+                                    const d = Math.sqrt(cam_x*cam_x + cam_y*cam_y + cam_z*cam_z) || 1.0;
+                                    gaze_x = -cam_x / d;
+                                    gaze_y = -cam_y / d;
+                                    gaze_z = -cam_z / d;
+                                }
+                            }
+                        } catch (camErr) {
+                            console.warn("[GRAPH] Camera vector inspection degraded:", camErr);
+                        }
+                    }
+
+                    const renderDistEl = document.getElementById('graph-render-dist');
+                    const coneFovEl = document.getElementById('graph-cone-fov');
+                    const shearEl = document.getElementById('graph-shear-corridor');
+                    const occlEl = document.getElementById('graph-occlusion-cull');
+
+                    const dist = renderDistEl ? parseFloat(renderDistEl.value) || 800 : 800;
+                    const fov = coneFovEl ? parseFloat(coneFovEl.value) || 65 : 65;
+                    const shear = shearEl ? shearEl.checked : true;
+                    const occl = occlEl ? occlEl.checked : true;
+
+                    url += `&procedural=true&cam_x=${cam_x.toFixed(2)}&cam_y=${cam_y.toFixed(2)}&cam_z=${cam_z.toFixed(2)}&gaze_x=${gaze_x.toFixed(3)}&gaze_y=${gaze_y.toFixed(3)}&gaze_z=${gaze_z.toFixed(3)}&dist=${dist}&fov=${fov}&shear=${shear}&occlusion=${occl}`;
+                }
+
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -3235,6 +3330,16 @@
                 graphDataGlobal = data;
 
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+                if (data.procedural || graphProceduralLoad) {
+                    const hudVis = document.getElementById('hud-visible-nodes');
+                    const hudTot = document.getElementById('hud-total-nodes');
+                    const hudHor = document.getElementById('hud-render-dist');
+                    const rDistEl = document.getElementById('graph-render-dist');
+                    if (hudVis) hudVis.innerText = (data.nodes || []).length;
+                    if (hudTot) hudTot.innerText = data.total_nodes || (data.nodes || []).length;
+                    if (hudHor && rDistEl) hudHor.innerText = rDistEl.value;
+                }
 
                 // Build GraphData object
                 const gData = {
@@ -3259,17 +3364,23 @@
                         tags: node.tags || []
                     };
 
-                    // Anchor with cached position and freeze coordinates if physics is halted
+                    // Anchor with cached position or backend 3D projection, and freeze if physics halted
                     if (graphNodePositions.has(node.id)) {
                         const pos = graphNodePositions.get(node.id);
                         gNode.x = pos.x;
                         gNode.y = pos.y;
                         gNode.z = pos.z;
-                        if (graphPhysicsFrozen) {
-                            gNode.fx = pos.x;
-                            gNode.fy = pos.y;
-                            gNode.fz = pos.z;
-                        }
+                    } else if (node.x !== undefined && node.y !== undefined && node.z !== undefined) {
+                        gNode.x = node.x;
+                        gNode.y = node.y;
+                        gNode.z = node.z;
+                        graphNodePositions.set(node.id, { x: node.x, y: node.y, z: node.z });
+                    }
+
+                    if (graphPhysicsFrozen && gNode.x !== undefined) {
+                        gNode.fx = gNode.x;
+                        gNode.fy = gNode.y;
+                        gNode.fz = gNode.z;
                     }
 
                     gData.nodes.push(gNode);
@@ -3418,6 +3529,16 @@
                             controls.mouseButtons.LEFT = (graphNavMode === 'pan') ? 2 : 0;
                             controls.mouseButtons.MIDDLE = 1;
                             controls.mouseButtons.RIGHT = 2;
+                        }
+                        if (controls.addEventListener) {
+                            controls.addEventListener('change', () => {
+                                if (graphProceduralLoad) {
+                                    if (proceduralUpdateTimer) clearTimeout(proceduralUpdateTimer);
+                                    proceduralUpdateTimer = setTimeout(() => {
+                                        refreshGraph(false);
+                                    }, 220);
+                                }
+                            });
                         }
                     }
 

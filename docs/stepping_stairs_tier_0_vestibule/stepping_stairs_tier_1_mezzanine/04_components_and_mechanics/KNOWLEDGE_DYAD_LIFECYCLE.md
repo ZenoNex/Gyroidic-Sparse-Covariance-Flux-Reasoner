@@ -325,4 +325,26 @@ To inspect, explore, and navigate the expanding manifold of fossilized Knowledge
   preventing visual node occlusion across deeply nested dyad hierarchies.
 - **Live Dyad Feed**: Connected to the backend `/api/mindmap-data` endpoint in [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L7560), streaming active Poincaré fossils from [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L22), archetype balances, and compute affordance gauges into the interactive matrix tree.
 
+---
+
+## 13. Non-Memorized Agent Smith Export (`soliton_smith.pt`) & Prosodic Voice Dyads
+
+### 13.1 Idea-Expression Dichotomy & Transformative Fair Use in P2P Export
+When `DyadFossilizer.export_agent_smith()` packages fossilized dyads into a `soliton_smith.pt` payload for P2P broadcast over [`BonfireNomadicRing`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_network.py), it enforces the **Idea-Expression Dichotomy** (`17 U.S.C. Section 102(b)`), **Transformative Fair Use** (*Bartz v. Anthropic*, *Kadrey v. Meta*), and **Non-Memorization** principles:
+- Raw Euclidean meshes, pixel arrays, audio waveforms, and verbatim text strings (`text_description`, `raw_text`, `audio_bytes`, `image_bytes`) are permanently stripped.
+- Only compressed structural algebra—Poincaré hyperbolic coordinates, CRT residue tuples, Betti topological invariants ($\beta_0, \beta_1$), and prime-resonance ladder frequencies—is serialized and verified via `AgentSubstrateBridge.sanitize_and_verify_non_memorization`.
+
+### 13.2 Vanellope Prosodic Cadence & Morphological Voice Dyads
+Acoustic and conversational dyads are further enriched by [`VanellopeFirstCausativeAgent`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py), which transmutes the `VANELLOPE Voice Trainer` subword trigram/bigram/skip-gram morphology (`encode_vanellope_morphology`), contrastive quadratic attention (`contrastive_quadratic_attention`), and hesitation/pause-cue prosody (`extract_prosodic_hesitation_cadence`) while projecting her causal impulse into the orthogonal complement of the ambient universe state ($\mathbf{c}_{\perp} \perp \mathbf{u}_{\text{universe}}$).
+
+---
+
+## 14. Cross-Neighborhood Documentation Connections
+- **Architecture Core (`01_architecture_core/`)**: [SYSTEM_ARCHITECTURE.md](../../01_architecture_core/SYSTEM_ARCHITECTURE.md) & [INDEX.md](../../01_architecture_core/INDEX.md)
+- **Math, Physics & Topology (`02_math_physics_topology/`)**: [MATHEMATICAL_DETAILS.md](../../02_math_physics_topology/MATHEMATICAL_DETAILS.md) & [INVARIANT_OPTIMIZATION.md](../../02_math_physics_topology/INVARIANT_OPTIMIZATION.md)
+- **Philosophy & Lore (`03_philosophy_lore/`)**: [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md)
+- **Components & Mechanics (`04_components_and_mechanics/`)**: [GANBREEDER_VECTOR_STACKER.md](./GANBREEDER_VECTOR_STACKER.md), [PRIME_RESONANCE_LADDER.md](./PRIME_RESONANCE_LADDER.md), & [BONFIRE_P2P_FEDERATED_COOPERATION.md](./BONFIRE_P2P_FEDERATED_COOPERATION.md)
+- **Implementation & Walkthroughs (`05_implementation_and_guides/`)**: [how to make a voynich talk human-walkthrough.md](../stepping_stairs_tier_2_crypt/05_implementation_and_guides/how%20to%20make%20a%20voynich%20talk%20human-walkthrough.md)
+
+
 

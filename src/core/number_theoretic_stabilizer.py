@@ -364,6 +364,31 @@ class NumberTheoreticStabilizer(nn.Module):
             "catalan_stieltjes_gain": float(cf_gain),
             "catalan_hankel_det": det_h3
         }
+
+    def stabilize_lychrel_rns(self, state: torch.Tensor, base: int = 10) -> Tuple[torch.Tensor, Dict]:
+        """
+        Applies dynamic multi-digit RNS expansion for reverse-and-add dynamics.
+        Maps the state into residue channels x_{k+1} = x_k + R_B(x_k) (mod m_i)
+        to prevent int64 integer overflow on high-entropy Lychrel cascades.
+        """
+        from src.core.lychrel_soliton import Lychrel196SolitonEngine
+        if not hasattr(self, '_lychrel_engine'):
+            moduli = self.primes[:5] if len(self.primes) >= 5 else [197, 211, 223, 227, 229]
+            self._lychrel_engine = Lychrel196SolitonEngine(base=base, rns_moduli=moduli)
+        
+        # Extract integer representative from primary state channel
+        norm_val = int(abs(state.flatten()[0].item()) * 1000) % 10000 + 1
+        rep = self._lychrel_engine.evaluate_seed(norm_val, max_steps=10)
+        
+        # Modulate state with the RNS residue phase
+        residues = rep.rns_residues
+        if residues:
+            phase_sum = sum(math.sin(2.0 * math.pi * r / m) for m, r in residues.items()) / len(residues)
+            state_stabilized = state * (0.95 + 0.05 * phase_sum)
+        else:
+            state_stabilized = state
+            
+        return state_stabilized, rep.to_dict()
     
     def comprehensive_stabilization(self, state: torch.Tensor) -> Tuple[torch.Tensor, Dict]:
         """

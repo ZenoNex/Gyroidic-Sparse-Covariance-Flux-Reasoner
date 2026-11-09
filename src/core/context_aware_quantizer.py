@@ -244,6 +244,11 @@ class ContextAwareQuantizer(nn.Module):
 
         return q, boundary
 
+    def step_outward(self) -> int:
+        """Pops outward to a coarser Matrioshka shell (level -> level - 1) on contradiction or NaN."""
+        self._level = max(0, self._level - 1)
+        return self._level
+
     def reset_shell_state(self) -> None:
         """Reset to outermost shell. Call at session start or after critical veto."""
         self._alpha = 0

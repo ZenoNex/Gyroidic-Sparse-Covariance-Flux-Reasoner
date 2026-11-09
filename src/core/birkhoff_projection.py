@@ -68,25 +68,41 @@ class DModuleRankProbe(nn.Module):
 
 class DirectBirkhoffProjection(nn.Module):
     """
-    Sturmfels-Thomas Direct Linear Projection.
+    Sturmfels-Thomas Direct Linear Projection with Iterative Fallback Protocol (Sinkhorn-Knopp).
     
-    Replaces O(N) iterative Sinkhorn with O(1) null-space projection
-    onto the Birkhoff subspace H_Delta.
+    Complexity Gate (Resolving the Birkhoff-OOM Obstruction):
+    - N <= 32: Direct O(1) null-space projection matrix onto the Birkhoff subspace H_Delta.
+    - N > 32: Iterative Sinkhorn-Knopp fallback protocol, bypassing the O(N^4) projection matrix
+              memory bottleneck (which would require 16GB for N=256) and tagging with an
+              Iterative Stability Metric.
     
     Ensures that T satisfies:
         sum_j T_{ij} = 1
         sum_i T_{ij} = 1
-    without iterative drift.
+    without uncontrolled memory growth.
     """
-    def __init__(self, n: int, device: str = None):
+    def __init__(self, n: int, device: str = None, max_iterations: int = 50, temperature: float = 1.0):
         super().__init__()
         self.n = n
         self.target_dim = n * n
+        self.max_iterations = max_iterations
+        self.temperature = temperature
+        self.stability_metric: float = 1.0
         
-        # Pre-compute the projection matrix onto the affine subspace Ax=b
-        # where A encodes the row/column sum constraints.
-        # This is high-memory for very large N, but O(1) at runtime.
-        self._init_projection_matrix(device)
+        # Complexity Gate:
+        # N <= 32: Direct O(1) projection matrix
+        # N > 32: Iterative Fallback Protocol (Sinkhorn-Knopp)
+        if self.n > 32:
+            self.use_iterative = True
+            self.register_buffer('P', torch.empty(0, device=device))
+            self.register_buffer('p_offset', torch.empty(0, device=device))
+        else:
+            self.use_iterative = False
+            self._init_projection_matrix(device)
+
+    @property
+    def use_iterative_fallback(self) -> bool:
+        return self.use_iterative
 
     def _init_projection_matrix(self, device):
         """Derive the projection matrix P derived from the constraint null-space."""
@@ -125,17 +141,47 @@ class DirectBirkhoffProjection(nn.Module):
 
     def forward(self, T: torch.Tensor) -> torch.Tensor:
         """
-        Direct O(1) projection.
-        T: [batch, n, n] or [batch, n*n]
+        Projection onto the Birkhoff polytope.
+        T: [batch, n, n] or [batch, n*n] or [n, n]
         """
-        shape = T.shape
-        batch_size = shape[0]
+        orig_shape = T.shape
+        if getattr(self, 'use_iterative', False) or self.n > 32:
+            # Iterative Fallback Protocol (Sinkhorn-Knopp) for high dimensions N > 32
+            if T.dim() == 2 and T.shape == (self.n, self.n):
+                T_3d = T.unsqueeze(0)
+            elif T.dim() == 2 and T.shape[-1] == self.n * self.n:
+                T_3d = T.view(-1, self.n, self.n)
+            elif T.dim() == 3:
+                T_3d = T
+            elif T.dim() == 1 and T.numel() == self.n * self.n:
+                T_3d = T.view(1, self.n, self.n)
+            else:
+                T_3d = T.view(-1, self.n, self.n)
+
+            # Log-domain Sinkhorn-Knopp for numerical stability
+            temp = max(0.01, float(self.temperature))
+            log_T = T_3d / temp
+            for _ in range(self.max_iterations):
+                log_T = log_T - torch.logsumexp(log_T, dim=-1, keepdim=True)
+                log_T = log_T - torch.logsumexp(log_T, dim=-2, keepdim=True)
+            T_ds = torch.exp(log_T)
+
+            # Stability-Aware Fossilization Metric:
+            row_err = (T_ds.sum(dim=-1) - 1.0).abs().max()
+            col_err = (T_ds.sum(dim=-2) - 1.0).abs().max()
+            max_dev = torch.max(row_err, col_err).item()
+            self.stability_metric = float(max(0.0, min(1.0, 1.0 - max_dev)))
+
+            return T_ds.view(orig_shape)
+
+        batch_size = orig_shape[0] if len(orig_shape) > 1 else 1
         T_vec = T.view(batch_size, -1)
         
         # Linear map: x_proj = P x + offset
         T_proj = torch.matmul(T_vec, self.P.T) + self.p_offset
+        self.stability_metric = 1.0
         
-        return T_proj.view(shape)
+        return T_proj.view(orig_shape)
 
 
 class ObscuredBirkhoffManifold(nn.Module):

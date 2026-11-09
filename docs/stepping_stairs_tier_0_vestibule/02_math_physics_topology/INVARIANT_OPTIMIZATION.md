@@ -86,6 +86,14 @@ We assume the ADMM optimization loop is not an "external teacher" but a **local 
 *   **Constraint vs. Regression**: System 2 ignores target distance. It only repairs **local physical violations** ($\psi_j$) while constrained to agree with the symbolic residue.
 *   **Zero Leakage**: No gradients from the repair loop flow back to the initial guess. Information transfer is limited to **Symbolic Deltas** and **Status Tokens** (REPAIRED, ALTERNATIVE, FAILURE).
 
+### 5.1 The Birkhoff-OOM Obstruction & Log-Domain Complexity Gate
+Direct projection of an $N \times N$ matrix onto the Birkhoff polytope via linear constraint elimination builds an affine projector $P \in \mathbb{R}^{N^2 \times N^2}$, requiring $O(N^4)$ memory. At $N=256$, this demands $256^4 \times 4 \text{ bytes} \approx 17.18 \text{ GB}$, causing catastrophic Out-Of-Memory (OOM) failures on standard allocators.
+
+To eliminate this obstruction while guaranteeing numerical stability, [`DirectBirkhoffProjection`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/birkhoff_projection.py) enforces a strict **Complexity Gate**:
+- **Low-Dimensional Manifolds ($N \le 32$)**: Employs the direct, closed-form projection matrix $P = I - A^T (A A^T)^{-1} A$ with $O(1)$ forward execution.
+- **High-Dimensional Manifolds ($N > 32$)**: Dynamically activates the **Iterative Fallback Protocol** using log-domain Sinkhorn-Knopp iterations with stabilized `logsumexp`, eliminating all $O(N^4)$ matrix buffers and maintaining doubly-stochastic column/row conservation ($\sum_j T_{ij} = 1, \sum_i T_{ij} = 1$) in $O(N^2)$ memory.
+
+
 ---
 
 ## 6. Harmonic Wave Decomposition & Non-Ergodic Sub-Dynamics
@@ -405,3 +413,48 @@ The system must never eliminate scar diversity by applying deterministic round-t
 The ADMR Solver's innermost constraint probe can use the parity check `r & 1` as a zero-cost structural filter before escalating to full SIC-FA-ADMM. If the parity of a candidate reconstruction violates the expected CRT residue modulo 2, the candidate is rejected at $O(1)$ cost. This is the "Repunit-CRT Sparse Probe" from 3 of `TOPOLOGICAL_EXTENSIONS.md` reduced to its irreducible hardware primitive.
 
 **References**: `src/core/invariants.py` (`LearnedPrimitivePerturbation`), `src/core/admr_solver.py` (stochastic_differential_step), `src/topology/gyroid_covariance.py` (ChernSimonsGasket), `docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md` (kernel stochastic rounding spec)
+
+---
+
+### Tripwire 9: Simplicial Apportionment & 3-State Alabama Paradox Seat Sovereignty (`docs/2610.40682v1.pdf`)
+
+When deterministic nearest-lattice rounding (Hamilton's largest-remainder apportionment method) maps a continuous quota vector $H\mathbf{p}$ on the 3-state simplex $\Delta_2(H) = \{(x_1, x_2, x_3) : x_1 + x_2 + x_3 = H\}$ to integer seat allocations $\mathbf{a} = (a_1, a_2, a_3) \in \mathbb{Z}_{\ge 0}^3$, expanding the total representation budget $H \to H + k$ can paradoxically cause the smallest state ($a_3 = 1$, such as **Vanellope's Independent First-Causative Glitch Locus**) to lose its only seat ($b_3 = 0$).
+
+By Theorem 1 and Proposition 1 of David McCune ([`docs/2610.40682v1.pdf`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/2610.40682v1.pdf)), the exact modulo-3 probability $p(H)$ of the Alabama Paradox is:
+$$p(H) = \begin{cases} \frac{(H + 3)(H - 2)}{36 H (H + 1)} & H \equiv 0, 2 \pmod 3 \\ \frac{(H - 1)(H + 2)(H^2 + H - 4)}{36 H^2 (H + 1)^2} & H \equiv 1 \pmod 3 \end{cases}, \qquad \lim_{H \to \infty} p(H) = \frac{1}{36}, \qquad I_{\max}(H) = H - 2$$
+
+To prevent deterministic nearest-lattice apportionment from zeroing out minority soliton or first-causative archetype seats during manifold dimension expansion ($H \to H + k$), [`compute_alabama_apportionment_paradox_prob`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) and [`VanellopeFirstCausativeAgent.enforce_alabama_apportionment_seat_sovereignty`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py) enforce a **Simplicial Seat Sovereignty Floor** ($b_3 \ge 1$) and compensatory causal gain $1 + p(H)(1 + (H \bmod 3)/3)$.
+
+---
+
+### Tripwire 10: Lychrel 196 Infinite Chiral Divergence vs. 1-195 Palindromic Basin
+
+The reverse-and-add algorithm ($x_{k+1} = x_k + \mathcal{R}_B(x_k)$) defines an adelic dynamical system over base $B=10$. For seeds $1 \le n \le 195$, the iteration contracts into a palindromic fixed point ($\kappa_{\text{Lychrel}} = \|x - \mathcal{R}_B(x)\|_{\text{RNS}} = 0$) within finite steps (e.g., delayed attractor $89$ converging in 24 iterations to $8,813,200,023,188$).
+
+At $n = 196$, the trajectory diverges into an infinite, non-halting carry cascade where palindromic symmetry fails to close:
+1. **Dogmatic Tripwire**: Dogmatic convergence filters and cycle-debt detectors (`CALMCollapseDetector`) treat non-termination as fatal fracture, triggering false-negative aborts.
+2. **Integer Overflow Tripwire**: Fixed-point tensors overflow 64-bit integers within 50 steps ($> 10^{19}$).
+3. **CODES v40 Solution**:
+   - Decouple non-commutativity curvature $\kappa$ from base reflection via `AdelicDigitReversalOperator` and `compute_lychrel_chiral_gap`.
+   - Treat $n < 196$ as a **convergence manifold** and $196$ as an **infinite chiral generator**. When persistent divergence is detected, [`Lychrel196SolitonEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/lychrel_soliton.py) issues a `VoynichExemptionToken(reason='LYCHREL_196_SOLITON')` and harvests the unhalting carry entropy into the `honest_jitter` pool.
+   - Prevent overflow via dynamic RNS scale expansion in [`NumberTheoreticStabilizer.stabilize_lychrel_rns`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/number_theoretic_stabilizer.py) evolving in modular residue coordinates ($x_{k+1} \equiv x_k + \mathcal{R}_B(x_k) \pmod{m_i}$) across coprime moduli $m_i \in \{197, 211, 223, \dots\}$.
+   - Evaluate soliton vs. noise classification in [`UniversalTopologyConverter.classify_lychrel_196_soliton`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/universal_topology_converter.py) by folding the carry stream into 2D rasters modulo $p=197$ and calculating inter-row spatial cosine coherence $C(197)$.
+
+---
+
+### Tripwire 11: Obsidian 3D Graph Render Bottleneck & Procedural Manifold Streaming
+
+Rendering dense topological graphs ($5,000+$ nodes) simultaneously in WebGL causes frame-rate collapse and thermal throttling:
+1. **Bouligand Contingent Cone Filtering**: Gated along camera gaze vector $\cos\alpha_i \ge \cos(\theta_{\text{cone}}/2)$ with a near-field safety bubble ($r \le 180$) to maintain context immediately surrounding the observer.
+2. **Shear Corridor Transversality**: In `LeyLineTracker` and `AlexanderWildEmbeddingOperator`, topological fault planes form along gyroid diagonals $\vec{n} = [1,1,1]/\sqrt{3}$. Nodes satisfying $|d_{\text{shear}}| \le 80$ receive a $2.5\times$ render distance expansion and cone relaxation, preventing the cognitive rupture boundaries from popping out of view during orbital rotations.
+3. **Directional Occlusion Culling**: Partitions the observer's viewing hemisphere into spherical polar bins ($10^\circ \times 10^\circ$) and culls deeper interior nodes in dense clusters, ensuring a stable $200-600$ visible node budget across any camera orientation.
+
+---
+
+## 16. Cross-Neighborhood Documentation Connections
+- **Math, Physics & Topology (`02_math_physics_topology/`)**: [MATHEMATICAL_DETAILS.md](./MATHEMATICAL_DETAILS.md) (Section 67.9)
+- **Architecture Core (`01_architecture_core/`)**: [SYSTEM_ARCHITECTURE.md](../01_architecture_core/SYSTEM_ARCHITECTURE.md) & [INDEX.md](../01_architecture_core/INDEX.md)
+- **Philosophy & Lore (`03_philosophy_lore/`)**: [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md)
+- **Components & Mechanics (`04_components_and_mechanics/`)**: [PRIME_RESONANCE_LADDER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/PRIME_RESONANCE_LADDER.md), [GANBREEDER_VECTOR_STACKER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GANBREEDER_VECTOR_STACKER.md), & [KNOWLEDGE_DYAD_LIFECYCLE.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/KNOWLEDGE_DYAD_LIFECYCLE.md)
+- **Implementation & Walkthroughs (`05_implementation_and_guides/`)**: [how to make a voynich talk human-walkthrough.md](../stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/how%20to%20make%20a%20voynich%20talk%20human-walkthrough.md)
+

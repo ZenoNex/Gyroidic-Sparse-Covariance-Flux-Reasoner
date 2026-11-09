@@ -502,9 +502,9 @@ if spectral_entropy < LOW_ENTROPY_THRESHOLD:
 
 Drawing from `ADVANCED_MATHEMATICAL_EXTENSIONS.md` as a forward roadmap:
 
-**Phase 16 (Immediate)**: Fix determinism gaps. Implement hashlib-based salt persistence in `ResonanceCavity`. Resolve the `compute_chirality` shape mismatch.
+**Phase 16 (Immediate)**: Fix determinism gaps. Implement hashlib-based salt persistence in `ResonanceCavity`. Resolve the `compute_chirality` shape mismatch. *(Completed)*
 
-**Phase 17 (Near-term)**: Integrate the full Matrioshka evolution loop into `process_input`. Implement CAQ with per-axis, context-sensitive step sizes. Connect temporal association trainer to the main pipeline.
+**Phase 17 (Completed)**: Integrate the full Matrioshka evolution loop into `process_input`. Implemented CAQ with per-axis, context-sensitive step sizes, outward shell escape ($l \to l-1$), Lazarus rehydration on NaN, and Operational ADMM differentiable constraint repair. Connected temporal association trainer to the main pipeline.
 
 **Phase 18 (Medium-term)**: Implement CRT polytope switching for multi-zeitgeist reasoning. This enables the system to reason about culturally non-commensurable meaning systems without forced scalar translation.
 

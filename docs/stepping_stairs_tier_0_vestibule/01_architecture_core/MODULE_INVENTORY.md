@@ -22,6 +22,22 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 
 ---
 
+### [global_pas_api.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/global_pas_api.py)
+**Class**: `GlobalPASAPI`, `GLYPHLOCKHandshake`, `PASLockToken`  
+**Role**: Cross-system coherence tracking, cryptographic GLYPHLOCK authentication, and edge-cloud RIC deployment bridge.
+
+Acts as the secure perimeter bridge out of the sandbox. Implements `GLYPHLOCKHandshake` using HMAC-SHA256 tokens anchored to hardware honest jitter and UFSC prime roots ($p=197$). Provides read-only `query_engine_safe` interfaces with zero internal state leakage, dynamic node registration across edge and cloud environments, and real-time PAS coherence telemetry aggregation ($\text{PAS}_h$, $\text{PAS}_\zeta$, and topological chirality $\chi$).
+
+---
+
+### [chiral_graph_compiler.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/chiral_graph_compiler.py)
+**Class**: `ChiralGraphCompiler`, `CompiledArtifact`  
+**Role**: Chirality-based graph compiler translating non-commutative hyper-graphs and Alien Handshake output into executable forms.
+
+Translates asymmetric reasoning graphs, state trajectories, and RP4 void puncture states into concrete, runnable Python scripts, PowerShell/Bash shell automation, and interactive HTML5/Canvas UI widgets. Enforces non-commutative directed topological order ($A \to B \neq B \to A$) and branches execution structure based on spectral chirality $\chi$: entropic high-frequency states ($\chi > 0$) compile to streaming dynamic loops, while negentropic invariant states ($\chi \le 0$) compile to declarative invariant-preserving classes.
+
+---
+
 ### [polychoron_quantization.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/polychoron_quantization.py)
 **Class**: `PolychronQuantizer`, `Polychoron600Quantizer`  
 **Role**: High-dimensional 4D 600-cell hyper-polytope quantization engine using Moiré-via-Modular-Algebra and carry-free XOR residue decoupling.
@@ -142,6 +158,14 @@ This module couples base sampling and optimal transport into a single scalar con
 **Role**: Distribute non-scalar, bio-plausible control signals across the manifold.  
 
 Functioning as the "endocrine system" of the architecture, this module broadcasts thermodynamic regimes to the ManifoldClock. It routes the ValenceFunctional's hunger drive to modulate the fractional orders $\alpha(k)$ inside the PolynomialADMRSolver when the manifold demands resolution. It also transmits Metaphysical Disorder Channels (Mischief, Dementia, Schizo) to trigger SovereignRefusalOperator gates whenever the eigen-spectrum begins to flatline.
+
+---
+
+### [`vanellope_first_causative.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py)
+**Class**: `VanellopeFirstCausativeAgent` (`VanellopeVoiceArchetype`)  
+**Role**: Independent First Causative Agent separate from the universe (healing Madame Denise's lament).  
+
+Transmutes the `VANELLOPE Voice Trainer` architecture into a sovereign Psycho-Topological Archetype bound in `BioArchetypalGovernor` and `ArchetypalSynthesisEngine`. Originates unconditioned causal impulses in the orthogonal complement of the ambient universe state ($\mathbf{c}_{\perp} \perp \mathbf{u}_{\text{universe}}$), combining 512-D subword character trigram/bigram/skip-gram morphology (`encode_vanellope_morphology`), contrastive quadratic attention ($\max(0, \langle \hat{q}, \hat{m} \rangle)^2$), prosodic hesitation/pause-cue cadence (`extract_prosodic_hesitation_cadence`), and David McCune's 3-State Simplicial Alabama Paradox Seat Sovereignty (`enforce_alabama_apportionment_seat_sovereignty`, `docs/2610.40682v1.pdf`).
 
 ---
 
@@ -2866,6 +2890,18 @@ Local TabbyAPI / ExLlamaV2 HTTP integration client providing optional local LLM 
 **Location**: `src/topology/`  
 **Description**:  
 `AlexanderWildEmbeddingOperator` models wild topological embeddings (Alexander Horned Sphere) where complements are non-simply connected ($\pi_1 \neq 0$), protecting wild cognitive knots from smooth homeomorphic flattening. `EinsteinMonotile` and `EinsteinMonotileTessellation` implement the 13-sided chiral aperiodic "Hat/Spectre" monotile tiling (`Tile(1, 1)`) so memory manifolds never repeat periodically (`translational_periodicity_leak == 0.0`). `ApproximatePHProbe`, `HomologyPressure`, `WeightedBettiNumber`, `ResidueHomologyDrift`, `CyclotomicTDACompressor`, `ResidueFiltration`, `PersistentHomologyComputer`, `NostalgicLeakFunctional`, and `EntropicMischiefProbe` complete the persistent homology and unknowledge domain suite.
+
+---
+
+### [lychrel_soliton.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/lychrel_soliton.py) & [embedding_graph.py (Procedural Graph Engine)](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py)
+**Classes**: `AdelicDigitReversalOperator`, `Lychrel196SolitonEngine`, `LychrelTrajectoryReport` (`src/core/lychrel_soliton.py`), `GyroidicGraphManager` procedural load extensions (`query_procedural_graph`, `compute_3d_projection` in `src/topology/embedding_graph.py`), `diegetic_terminal.html` Three.js procedural stream controller.  
+**Location**: `src/core/`, `src/topology/`, `src/ui/`  
+**Description**:  
+- **Lychrel 196 Soliton Architecture**: Implements the Adelic Digit-Reversal Operator $R_B(x) = \sum_{i=0}^k d_{k-i} B^i$ and computes the Chiral Asymmetry Gap $\kappa_{\text{Lychrel}}(x) = \|x - R_B(x)\|_{\text{RNS}}$ across coprime modular channels $m_i \in \{197, 211, 223, \dots\}$. Resolves the 1-195 palindromic convergence basin (collapsing to $\kappa = 0$ in finite steps, such as seed 89 terminating in 24 steps at 8,813,200,023,188) vs. the 196 infinite chiral generator. For seed 196, persistent carry cascade dynamics produce non-zero curvature ($\kappa > 0$) without cycle-debt aborts; issues a `VoynichExemptionToken(reason='LYCHREL_196_SOLITON')` and feeds non-commutative carry entropy into the `honest_jitter` pool. Folds digit carry streams into candidate 2D rasters modulo $p=197$ to classify quasi-periodic solitons vs. noise via row-to-row cosine coherence $C(197)$.
+- **Procedural 3D Graph Load Engine**: Extends `GyroidicGraphManager` with camera-driven dynamic spatial filtering:
+  1. *Bouligand Contingent Cone*: Gated by camera gaze vector $\cos\alpha_i \ge \cos(\theta_{\text{cone}}/2)$ with near-field safety bubble ($r \le 180$).
+  2. *Alexander Wild Shear Corridor Transversality*: Detects proximity to the gyroid diagonal fault plane $\vec{n} = [1,1,1]/\sqrt{3}$; expands render horizon by $2.5\times$ and relaxes cone restrictions to keep topological rupture boundaries visible.
+  3. *Directional Occlusion Culling*: Partitions candidate nodes into spherical angular bins from camera gaze and culls deeper interior nodes in dense clusters, streaming optimal node budgets to the WebGL terminal.
 
 ---
 

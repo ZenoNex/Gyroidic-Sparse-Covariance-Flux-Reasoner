@@ -413,3 +413,28 @@ Key architectural properties include:
 - **Archaeological Fallback (Survival Lattice)**: Under severe spectral atrophy ($PAS_h < 0.2$), the system triggers a constitutional safeguard, switching frequencies to the procedurally generated primes of the Fossilized Survival Lattice (via PrimeResonanceLadder). This ensures topological recovery even when the dynamic basis is completely collapsed.
 - **Anisotropic Gully Carving**: The pressure gradient acts as a directional force, while the FBM noise creates local, multi-scale valleys. Visiting these states repeatedly deepens the gullies, forming stable Morphological Set Points (Fossils) without target-seeking gradients.
 
+---
+
+## 11. Operational ADMM (`OperationalAdmm`)
+
+Implemented in [`src/optimization/operational_admm.py`](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/optimization/operational_admm.py), `OperationalAdmm` transforms theoretical SIC-FA-ADMM into a torch-differentiable neural module (`OperationalAdmmPrimitive`).
+
+### 11.1 Ontological Splitting
+The fundamental innovation is splitting state representation into two planes:
+1. $c_{\text{sym}}$: The frozen symbolic anchor from System 1 (initial proposal).
+2. $c_{\text{phys}}$: The continuous physical field evolved to discover consistency under constraints.
+
+During backward propagation, zero gradients flow back into $c_{\text{sym}}$, strictly upholding **Law 1 (Symbolic Non-Revisability)** and preventing representational blurring.
+
+### 11.2 Cyclic Constraint Traversal & Probe Suite
+The module integrates:
+- `MohrCoulombProjection` & `DruckerPragerProjection`: Smooth global yield envelopment.
+- `HyperRingClosureChecker`: Detection of non-closed topological fractures vs. trivial cycle collapses.
+- `SolitonStabilityHealer`: Verifies coherent wave packet transmission across constraint manifolds.
+- `ChiralDriftStabilizer`: Enforces non-reflective parity preservation ($\Delta\chi \neq 0$).
+
+### 11.3 Active Orchestration & Matrioshka Integration
+- In `UniversalOrchestrator`, accessible via `run_operational_admm(initial_c, forward_op, ...)`.
+- In `HybridPhysicsBackend._process_input_internal`, executed within the Matrioshka quantization loop (`q_evolved = self.operational_admm(q_evolved)`) to stabilize physical fields before outer quantization.
+
+

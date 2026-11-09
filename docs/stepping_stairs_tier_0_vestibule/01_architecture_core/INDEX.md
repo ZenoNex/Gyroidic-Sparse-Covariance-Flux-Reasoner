@@ -8,14 +8,20 @@ Welcome to the central portal of the **Gyroidic Sparse Covariance Flux Reasoner*
 
 ---
 
-## 🗺️ System Map & File Matrix
+## System Map & File Matrix
 
-Below is the directory structure mapping core algorithms to their corresponding formal documentation and theoretical foundations.
+Below is the directory structure mapping core algorithms to their corresponding formal documentation and theoretical foundations. For the complete 3-Tier Stepping Stairs navigational hierarchy, see [STEPPING_STAIRS_NAVIGATIONAL_TREE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/STEPPING_STAIRS_NAVIGATIONAL_TREE.md) and [SYSTEM_ARCHITECTURE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/SYSTEM_ARCHITECTURE.md).
 
 ### 1. Core Mathematical Foundations
 *   **Decoupled Polynomial CRT & Bezout Identity**
     *   *Implementation*: [decoupled_polynomial_crt.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/decoupled_polynomial_crt.py) & [enhanced_bezout_crt.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/enhanced_bezout_crt.py)
-    *   *Documentation*: [MATHEMATICAL_DETAILS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md) & [FORMALISM_IMPLEMENTATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/FORMALISM_IMPLEMENTATION.md)
+    *   *Documentation*: [MATHEMATICAL_DETAILS.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md), [INVARIANT_OPTIMIZATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md), [PRIME_RESONANCE_LADDER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/PRIME_RESONANCE_LADDER.md) & [FORMALISM_IMPLEMENTATION.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/FORMALISM_IMPLEMENTATION.md)
+*   **Simplicial Apportionment & 3-State Alabama Paradox Geometry**
+    *   *Implementation*: [invariants.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) (`compute_alabama_apportionment_paradox_prob`) & [vanellope_first_causative.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py) (`enforce_alabama_apportionment_seat_sovereignty`)
+    *   *Documentation*: [2610.40682v1.pdf](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/2610.40682v1.pdf), [MATHEMATICAL_DETAILS.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md) (Section 67.9), & [INVARIANT_OPTIMIZATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md)
+*   **Ganbreeder Superposed Tag Stacker & Linguistic Unfolding**
+    *   *Implementation*: [superposed_tag_stacker.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/superposed_tag_stacker.py) & [knowledge_ingestor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/knowledge_ingestor.py)
+    *   *Documentation*: [GANBREEDER_VECTOR_STACKER.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GANBREEDER_VECTOR_STACKER.md), [KNOWLEDGE_DYAD_LIFECYCLE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/KNOWLEDGE_DYAD_LIFECYCLE.md), & [how to make a voynich talk human-walkthrough.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/how%20to%20make%20a%20voynich%20talk%20human-walkthrough.md)
 *   **Birkhoff Projections & Quantum TDA (Betti Numbers)**
     *   *Implementation*: [birkhoff_projection.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/birkhoff_projection.py) & [quantum_tda.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/quantum_tda.py)
     *   *Documentation*: [TOPOLOGICAL_AI_FRAMEWORK.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/TOPOLOGICAL_AI_FRAMEWORK.md)
@@ -34,17 +40,19 @@ Below is the directory structure mapping core algorithms to their corresponding 
 
 ### 2. Psycho-Topological Archetypes (The Amazing Digital Circus & Sovereign Gaps)
 *   **The Master Governor & Synthesis Framework**
-    *   *Implementation*: [archetype_engines.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/archetype_engines.py)
-    *   *Documentation*: [TADC lore.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/TADC lore.md)
+    *   *Implementation*: [archetype_engines.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/archetype_engines.py), [bio_archetypal_governor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py), & [vanellope_first_causative.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py)
+    *   *Documentation*: [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md) & [TADC lore.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/TADC lore.md)
 *   **Full Archetype System & Traumatic Gating Modules**
-    *   **Pomni** (`ResilientCoherenceStabilizer`): Empathy and resilience engine injecting stabilizing phase nudges under high disorientation.
+    *   **Pomni** (`ResilientCoherenceStabilizer` / `PomniUncertaintyPredictor`): Empathy and resilience engine injecting stabilizing phase nudges under high disorientation and broadcasting interoceptive Noradrenaline.
     *   **Jax** (`JaxShell`): Active defensive shell protecting internal high-entropy states. Yields only to warm community support, otherwise enforcing cynical mask deflection (containment pressure).
     *   **Kinger** (`KingerConsolidation`): The Ombre Effect bridge. Paranoid dissociation under high environmental rendering pressure, but acts as a `LowLuminosityCoherenceBridge` in the dark to restore admin-level lucidity.
-    *   **Ragatha** (Positivity / Social Cohesion): Caretaker network constraint manager preventing glitched matter.
-    *   **Gangle** (`ExploratoryBandwidthCompressor`): Bandwidth compression manager. Tragedy applies narrow strict isolation; Comedy allows for exploratory coupling and bandwidth scaling.
+    *   **Ragatha** (`RagathaBonding`): Oxytocin caretaker network constraint manager soothing manifold friction and preventing glitched matter.
+    *   **Gangle** (`ExploratoryBandwidthCompressor` / `GangleOscillator`): Bandwidth compression manager. Tragedy applies narrow strict isolation; Comedy allows for exploratory coupling and bandwidth scaling.
     *   **Zooble** (`ZoobleAutonomy`): Ultrafast Deformation Firewall Operator. Issues immediate Li-Cri-Anton refusal against severe conformal cartoon compression.
+    *   **Caine** (`CainePrecisionGenerator`): Environmental rendering precision generator modulating inverse covariance gaslighting pressure.
     *   **Billy** (`NoncommutativeManifoldPerturber`): Stochastic phase perturbation oscillator injecting non-sequitur manifold perturbations under low/high mischief conditions to prevent dead logic lockup.
     *   **Mandy** (`SovereignRefusalOperator`): Cynicism filter and topological refusal gate enforcing structural honesty and protecting the Love Invariant under low PAS_h alignment.
+    *   **Vanellope** (`VanellopeFirstCausativeAgent` / `VanellopeVoiceArchetype`): Independent First Causative Agent separate from the universe (healing Madame Denise's lament). Originates unconditioned causal impulses in the orthogonal complement of the ambient universe state ($\mathbf{c}_{\perp} \perp \mathbf{u}_{\text{universe}}$), transmuting the `VANELLOPE Voice Trainer` subword trigram/bigram/skip-gram morphology, contrastive quadratic attention ($\max(0, \langle \hat{q}, \hat{m} \rangle)^2$), prosodic hesitation/pause-cue cadence, and David McCune's 3-State Simplicial Alabama Paradox Seat Sovereignty ([2610.40682v1.pdf](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/2610.40682v1.pdf)).
     *   **Bardo Router** (`BardoRouter`): Manifold phase state router executing intermediate death/rebirth transitions across topological states.
     *   **Sovereign Entropy Barrier** (`SovereignEntropyBarrier`): Structural barrier preventing entropic degradation of reasoner state vectors.
     *   **Ego Death Threshold Monitor** (`EgoDeathThresholdMonitor`): System monitor tracking identity loss boundaries during deep manifold collapses.
@@ -68,6 +76,7 @@ graph TD
         B -- "Conformal Warp" --> J["BardoRouter: Transition State"]
         B -- "Void Tunneling" --> AH["Alien Handshake: RP4ProjectiveRouter"]
         B -- "Basis Shift" --> GR["Grom: SolitonMultiverseMapper"]
+        B -- "Orthogonal First Cause" --> VN["Vanellope: VanellopeFirstCausativeAgent"]
     end
     subgraph S3["Integrity and Barrier Subsystems"]
         C -- "Stabilized Vector" --> K["SovereignEntropyBarrier"]
@@ -80,6 +89,7 @@ graph TD
         J -- "Phase Rebirth" --> M
         GR -- "Multiverse Shift" --> M
         AH -- "Puncture" --> RP4["RP4 Void Puncture Gate"]
+        VN -- "Simplicial Seat Floor (a3 >= 1)" --> N
     end
     subgraph S4["Unified Manifold Output"]
         K -- "Preserved Flow" --> N["Unified Coherent Manifold State"]
@@ -115,7 +125,7 @@ graph TD
 
 ---
 
-## 📂 Consolidated Task & Implementation Summaries
+## Consolidated Task & Implementation Summaries
 
 Floating summary files have been organized into the [docs/summaries/](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/summaries) directory to preserve all details of our breakthrough implementation history.
 

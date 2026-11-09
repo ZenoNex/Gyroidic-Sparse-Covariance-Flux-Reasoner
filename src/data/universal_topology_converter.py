@@ -305,6 +305,38 @@ class UniversalTopologyConverter:
             "prime_stride_scores": prime_scores
         }
 
+    def classify_lychrel_196_soliton(self, seed: int = 196, steps: int = 35) -> Dict[str, Any]:
+        """
+        Evaluates the Lychrel 196 carry cascade against the prime-stride UFSC sieve at p = 197.
+        Determines whether the unhalting carry propagation of 196 forms a lawful
+        quasi-periodic soliton across its immediate prime neighbor (197) or true noise.
+        """
+        from src.core.lychrel_soliton import Lychrel196SolitonEngine
+        engine = Lychrel196SolitonEngine()
+        report = engine.evaluate_seed(seed=seed, max_steps=steps)
+        
+        # Build stream from the digit sequence of trajectory
+        digit_stream = []
+        curr = seed
+        for _ in range(steps):
+            rev = engine.reverser.reverse_integer(curr)
+            curr += rev
+            digit_stream.extend([int(c) for c in str(curr)])
+            
+        sieve_res = self.prime_stride_ufsc_sieve(
+            torch.tensor(digit_stream, dtype=torch.float32),
+            candidate_primes=[17, 31, 61, 89, 127, 197]
+        )
+        return {
+            "seed": seed,
+            "chiral_curvature": report.chiral_curvature,
+            "is_lychrel_soliton": sieve_res.get("is_ufsc_soliton", False),
+            "ufsc_197_coherence": sieve_res.get("ufsc_197_coherence", 0.0),
+            "optimal_stride": sieve_res.get("optimal_prime_stride", 197),
+            "voynich_token_issued": report.voynich_token_issued,
+            "sieve_diagnostics": sieve_res
+        }
+
 
     def ingest_bep_dht_metadata(
         self,

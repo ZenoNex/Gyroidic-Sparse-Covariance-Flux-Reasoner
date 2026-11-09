@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from src.safety.red_teaming import TopologicalRefusalError
 from src.topology.homology_pressure import HomologyPressure
 from src.core.invariants import get_prime_ladder
+from src.core.honest_jitter import harvest_honest_jitter
 
 
 class BoundaryState:
@@ -197,7 +198,13 @@ class MetaPolytopeMatrioshka(nn.Module):
         
         # Instant level mapping (lower energy -> deeper shell)
         if math.isnan(conformal_energy):
-            target_level = -1
+            # Lazarus Rehydration: rehydrate vanished energy via honest jitter
+            x_lcft = torch.nan_to_num(x_lcft, nan=0.0) + harvest_honest_jitter(x_lcft.shape, device=x_lcft.device) * 0.01
+            conformal_energy = torch.norm(x_lcft, dim=-1).mean().item()
+            if math.isnan(conformal_energy):
+                target_level = 0
+            else:
+                target_level = int(self.max_depth * math.exp(-conformal_energy))
         else:
             target_level = int(self.max_depth * math.exp(-conformal_energy))
         level = max(0, min(self.max_depth, target_level))
@@ -206,67 +213,84 @@ class MetaPolytopeMatrioshka(nn.Module):
             level = -1
             
         if level >= 0:
-            delta = 1.0 / (2.0 ** (level + 1))
-            pressure_warp = torch.sigmoid(self.facet_pressure[alpha % len(self.crt_moduli)])
-            effective_delta = delta * (1.0 + 0.5 * pressure_warp)
-            
-            boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto) * exemption_scale * margin_factor
-            boundary_margin = boundary_margin_tensor.mean().item()
-            
-            if is_play:
-                floor_val = torch.floor(x_lcft / effective_delta) * effective_delta
-                ceil_val = torch.ceil(x_lcft / effective_delta) * effective_delta
-                d_floor = torch.abs(x_lcft - floor_val)
-                d_ceil = torch.abs(x_lcft - ceil_val)
-                temp = max(dt, 1e-6)
-                w_floor = torch.exp(-d_floor / temp)
-                w_ceil = torch.exp(-d_ceil / temp)
-                w_sum = w_floor + w_ceil + 1e-9
-                quantized = (w_floor * floor_val + w_ceil * ceil_val) / w_sum
-            else:
-                quantized = torch.round(x_lcft / effective_delta) * effective_delta
+            # Matrioshka Layer Escalation (l_max down to 0) - Shell Escape Loop
+            # When contradiction or parity failure occurs, pop outward (cand_level - 1)
+            cand_level = level
+            while cand_level >= 0:
+                delta = 1.0 / (2.0 ** (cand_level + 1))
+                pressure_warp = torch.sigmoid(self.facet_pressure[alpha % len(self.crt_moduli)])
+                effective_delta = delta * (1.0 + 0.5 * pressure_warp)
                 
-            best_quantization = quantized.clone()
-            
-            from src.core.modular_virtualization import ModularVirtualizationLayer
-            if not hasattr(self, '_repunit_gatekeeper'):
-                self._repunit_gatekeeper = ModularVirtualizationLayer(dim=x.shape[-1], device=x.device)
-            
-            modulus = self._repunit_gatekeeper.get_hybrid_modulus().to(x.device)
-            integerized_x = (x_lcft * self._repunit_gatekeeper.scale_factor).long()
-            target_residue = torch.remainder(integerized_x, modulus.long())
-            is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, target_residue)
-            
-            if not torch.all(is_valid_parity):
-                level = -1
-            else:
-                xq = quantized
-                if evolve_fn is not None:
-                    y = evolve_fn(xq, level)
-                else:
-                    y = xq
-                    
+                boundary_margin_tensor = effective_delta * (1.0 - 0.5 * total_veto) * exemption_scale * margin_factor
+                boundary_margin = boundary_margin_tensor.mean().item()
+                
                 if is_play:
-                    floor_y = torch.floor(y / effective_delta) * effective_delta
-                    ceil_y = torch.ceil(y / effective_delta) * effective_delta
-                    d_floor_y = torch.abs(y - floor_y)
-                    d_ceil_y = torch.abs(y - ceil_y)
+                    floor_val = torch.floor(x_lcft / effective_delta) * effective_delta
+                    ceil_val = torch.ceil(x_lcft / effective_delta) * effective_delta
+                    d_floor = torch.abs(x_lcft - floor_val)
+                    d_ceil = torch.abs(x_lcft - ceil_val)
                     temp = max(dt, 1e-6)
-                    w_floor_y = torch.exp(-d_floor_y / temp)
-                    w_ceil_y = torch.exp(-d_ceil_y / temp)
-                    w_sum_y = w_floor_y + w_ceil_y + 1e-9
-                    yq = (w_floor_y * floor_y + w_ceil_y * ceil_y) / w_sum_y
+                    w_floor = torch.exp(-d_floor / temp)
+                    w_ceil = torch.exp(-d_ceil / temp)
+                    w_sum = w_floor + w_ceil + 1e-9
+                    quantized = (w_floor * floor_val + w_ceil * ceil_val) / w_sum
                 else:
-                    yq = torch.round(y / effective_delta) * effective_delta
+                    quantized = torch.round(x_lcft / effective_delta) * effective_delta
                     
-                y_energy = torch.norm(y - yq, dim=-1).mean().item()
-                if y_energy < 0.01 * delta:
-                    return yq, alpha, level
-                elif y_energy < boundary_margin * 1.5:
-                    new_alpha = (alpha + int(yq.mean().item() * 10)) % len(self.crt_moduli)
-                    return yq, new_alpha, level
+                if best_quantization is None:
+                    best_quantization = quantized.clone()
+                
+                from src.core.modular_virtualization import ModularVirtualizationLayer
+                if not hasattr(self, '_repunit_gatekeeper'):
+                    self._repunit_gatekeeper = ModularVirtualizationLayer(dim=x.shape[-1], device=x.device)
+                
+                modulus = self._repunit_gatekeeper.get_hybrid_modulus().to(x.device)
+                integerized_x = (x_lcft * self._repunit_gatekeeper.scale_factor).long()
+                target_residue = torch.remainder(integerized_x, modulus.long())
+                is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, target_residue)
+                
+                if not torch.all(is_valid_parity):
+                    # Parity rupture: pop outward to lower resolution shell
+                    cand_level -= 1
+                    continue
                 else:
-                    level = -1
+                    xq = quantized
+                    if evolve_fn is not None:
+                        try:
+                            y = evolve_fn(xq, cand_level)
+                        except Exception:
+                            cand_level -= 1
+                            continue
+                    else:
+                        y = xq
+                    
+                    # Sanitize NaNs via Lazarus rehydration
+                    if torch.isnan(y).any():
+                        y = torch.nan_to_num(y, nan=0.0) + harvest_honest_jitter(y.shape, device=y.device) * (0.01 * delta)
+                        
+                    if is_play:
+                        floor_y = torch.floor(y / effective_delta) * effective_delta
+                        ceil_y = torch.ceil(y / effective_delta) * effective_delta
+                        d_floor_y = torch.abs(y - floor_y)
+                        d_ceil_y = torch.abs(y - ceil_y)
+                        temp = max(dt, 1e-6)
+                        w_floor_y = torch.exp(-d_floor_y / temp)
+                        w_ceil_y = torch.exp(-d_ceil_y / temp)
+                        w_sum_y = w_floor_y + w_ceil_y + 1e-9
+                        yq = (w_floor_y * floor_y + w_ceil_y * ceil_y) / w_sum_y
+                    else:
+                        yq = torch.round(y / effective_delta) * effective_delta
+                        
+                    y_energy = torch.norm(y - yq, dim=-1).mean().item()
+                    if y_energy < 0.01 * delta:
+                        return yq, alpha, cand_level
+                    elif y_energy < boundary_margin * 1.5:
+                        new_alpha = (alpha + int(yq.mean().item() * 10)) % len(self.crt_moduli)
+                        return yq, new_alpha, cand_level
+                    else:
+                        # Fixed point outside boundary: pop outward (cand_level - 1)
+                        cand_level -= 1
+            level = -1
                 
         # If l < 0 -> Topological Refusal
         # Calculate stress tensor from the original state vs the closest approximation

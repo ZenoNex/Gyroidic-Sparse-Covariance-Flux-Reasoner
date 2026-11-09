@@ -74,3 +74,21 @@ flowchart TD
 3. **Topological Refusal (NaN / BoundaryState):** If no layer's polytope can claim the state, the system correctly refuses to map the state, throwing a `BoundaryState` stress tensor (NaN). This represents an epistemic limit, preventing "lobotomized" hallucinations outside of valid reasoning polytopes.
 4. **IVST Side-Chaining and Lazarus Rehydration (Dropout):** When the state pressure drops below the chaotic envelope $y = \cos(\tau / Z)(\sin(30x) + 1)$, where $Z = 2^{-\text{level}}$ is the recursive Matrioshka shell scale, the corresponding dimensions are dropped out (`NaN`). To conserve mass, vanished energy is redistributed across the remaining active dimensions (Birkhoff constraint). The `NaN` values are then rehydrated using honest jitter via `apply_energy_based_stabilization`, breaking state collapse stasis.
 5. **Catalan Shell Parenthesization & Euler Tour Dyck Words:** For $B$ nested Russian-Doll / Matrioshka blocks (`HypergraphOrthogonalityPressure` in `src/core/polynomial_coprime.py`) or an $N$-node containment hierarchy (`EulerTourSparseTableLCA` in `src/core/euler_tour_lca.py`), the depth-step sequence of the Euler tour forms a canonical Dyck path of length $2(N-1)$, and the number of topologically distinct ordered rooted tree hierarchies (or binary parenthesizations of nested shells) is the Catalan number $C_{N-1} = \frac{1}{N}\binom{2(N-1)}{N-1}$.
+
+---
+
+## 6. Phase 17 Implementation: The Full Shell Escape Loop
+
+Phase 17 fully integrates the Matrioshka quantized evolution loop across [`MetaPolytopeMatrioshka`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/meta_polytope_matrioshka.py), [`ContextAwareQuantizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/context_aware_quantizer.py), and [`diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py):
+
+### 6.1 Shell Escape Outward Popping ($l \to l-1$)
+- When an evolved state hits an incompatibility boundary, fixed-point divergence ($y_{\text{energy}} \ge 1.5 \cdot \text{margin}$), or CRT parity mismatch, the system does **not** crash or abort immediately.
+- Instead, it initiates an iterative outward descent:
+  $$\text{cand\_level} \leftarrow \text{cand\_level} - 1$$
+  relaxing the quantization step size $\delta = 2^{-(\text{cand\_level} + 1)}$ to find structural containment at a coarser, more fault-tolerant shell.
+- Only when all valid levels down to $l < 0$ fail to claim the state does the system emit a formal `BoundaryState` (or trigger hyperbolic inversion in seriousness mode).
+
+### 6.2 Lazarus Rehydration on NaN / Exceptional Points
+- If surrogate evolution or floating-point instability yields `NaN` or `Inf` components, `sanitize_payload()` and `torch.nan_to_num()` rehydrate the missing energy using hardware-derived honest jitter (`harvest_honest_jitter`).
+- Simultaneously, `ContextAwareQuantizer.step_outward()` decrements the active shell level, ensuring that internal failure modes are predictable, legible, and non-fatal.
+

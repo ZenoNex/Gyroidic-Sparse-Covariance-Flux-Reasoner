@@ -29,6 +29,24 @@ class SearchGate(nn.Module):
                                   and the query is structurally sound to retrieve.
             query_embedding (Tensor): The refined query passed out to the retrieval module.
         """
+        # Ensure query_state matches device and dimension
+        if not isinstance(query_state, torch.Tensor):
+            query_state = torch.tensor(query_state, dtype=torch.float32)
+        device = next(self.well_posed_projector.parameters()).device
+        query_state = query_state.to(device)
+
+        if query_state.dim() == 0:
+            query_state = query_state.view(1, 1)
+        elif query_state.dim() == 1:
+            query_state = query_state.unsqueeze(0)
+        elif query_state.dim() > 2:
+            query_state = query_state.reshape(-1, query_state.shape[-1])
+
+        if query_state.shape[-1] < self.state_dim:
+            query_state = torch.nn.functional.pad(query_state, (0, self.state_dim - query_state.shape[-1]))
+        elif query_state.shape[-1] > self.state_dim:
+            query_state = query_state[..., :self.state_dim]
+
         if internal_certainty >= self.certainty_threshold:
             # We already know this
             return False, query_state

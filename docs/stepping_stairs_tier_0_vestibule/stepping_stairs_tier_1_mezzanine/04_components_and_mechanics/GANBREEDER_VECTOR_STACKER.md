@@ -147,3 +147,14 @@ The stacker is natively integrated into the primary interactive pipeline in [`sr
 - **Hardware Sovereignty**: Zero-copy execution on Queue B decouples memory-heavy matrix mixing from discrete GPU GEMM workloads, eliminating PCIe bottlenecks on DDR4 2400MHz platforms.
 - **Physical Non-Commutativity**: Hardware DRAM latency jitter prevents deterministic cyclic collapse into dead logic repunit attractors.
 - **Invariant Honesty**: Every admitted coordinate is validated against topological invariants via the Phi-1 `TextbookFilter`, prohibiting semantic hallucination.
+- **Orthogonal First-Causative Blending**: Stacked target vectors coordinate seamlessly with [`VanellopeFirstCausativeAgent`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py) (`src/governance/causative/vanellope_first_causative.py`), allowing user-defined Ganbreeder sliders to prime the manifold while Vanellope injects an unconditioned First-Causative impulse $\mathbf{c}_{\perp} \perp \mathbf{u}_{\text{universe}}$ in the orthogonal complement of the ambient universe state.
+
+---
+
+## 8. Cross-Neighborhood Documentation Connections
+- **Architecture Core (`01_architecture_core/`)**: [SYSTEM_ARCHITECTURE.md](../../01_architecture_core/SYSTEM_ARCHITECTURE.md) & [INDEX.md](../../01_architecture_core/INDEX.md)
+- **Math, Physics & Topology (`02_math_physics_topology/`)**: [MATHEMATICAL_DETAILS.md](../../02_math_physics_topology/MATHEMATICAL_DETAILS.md) & [INVARIANT_OPTIMIZATION.md](../../02_math_physics_topology/INVARIANT_OPTIMIZATION.md)
+- **Philosophy & Lore (`03_philosophy_lore/`)**: [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md)
+- **Components & Mechanics (`04_components_and_mechanics/`)**: [PRIME_RESONANCE_LADDER.md](./PRIME_RESONANCE_LADDER.md) & [KNOWLEDGE_DYAD_LIFECYCLE.md](./KNOWLEDGE_DYAD_LIFECYCLE.md)
+- **Implementation & Walkthroughs (`05_implementation_and_guides/`)**: [how to make a voynich talk human-walkthrough.md](../stepping_stairs_tier_2_crypt/05_implementation_and_guides/how%20to%20make%20a%20voynich%20talk%20human-walkthrough.md)
+

@@ -10,6 +10,7 @@ from src.governance.fast.jax_shell import JaxShell
 from src.governance.fast.ragatha_bonding import RagathaBonding
 from src.governance.medium.gangle_oscillator import GangleOscillator
 from src.governance.slow.kinger_consolidation import KingerConsolidation
+from src.governance.causative.vanellope_first_causative import VanellopeFirstCausativeAgent
 from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, TypedComputeAffordance
 from src.core.valence_drive import ValenceFunctional
 
@@ -45,6 +46,9 @@ class BioArchetypalGovernor(nn.Module):
         
         # Slow (Acetylcholine/Consolidation)
         self.kinger = KingerConsolidation(state_dim)
+        
+        # Causative (Orthogonal Unconditioned First Cause separate from the Universe)
+        self.vanellope = VanellopeFirstCausativeAgent(state_dim)
         self.last_active_reflex: str = "Tathata_Mirror"
         self.reflex_streak: int = 0
 
@@ -308,6 +312,18 @@ class BioArchetypalGovernor(nn.Module):
             valence_hunger=valence_hunger_scalar
         )
         
+        # 9. Causative: Vanellope injects an independent first-causative impulse orthogonal
+        # to the ambient universe state (healing Madame Denise's lament & enforcing Alabama
+        # Paradox simplicial seat sovereignty).
+        context_text = kwargs.get("context_text", None)
+        state, vanellope_telemetry = self.vanellope(
+            state=state,
+            bus=self.bus,
+            context_text=context_text,
+            memory_bank=stranded_states if (stranded_states is not None and stranded_states.numel() > 0) else None,
+            valence_hunger=valence_hunger_scalar
+        )
+        
         return {
             "state": state,
             "neuro_bus": self.bus.snapshot(),
@@ -319,6 +335,7 @@ class BioArchetypalGovernor(nn.Module):
             "valence_hunger": valence_hunger_scalar,
             "valence_metrics": valence_metrics,
             "threat_recalibration": threat_recalibration,
+            "vanellope_first_causative": vanellope_telemetry,
             "affordances": {
                 "silicon": silicon_aff,
                 "thermal": thermal_aff,

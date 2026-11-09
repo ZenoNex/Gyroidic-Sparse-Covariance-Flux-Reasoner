@@ -240,3 +240,29 @@ Because operator multiplication does not commute ($[O_i, O_j] \neq 0$), the homo
 $$\pi_1 \sim \text{Braid Group } B_n$$
 In this framework, algebraic residues directly measure the non-trivial topological **braid torsion** of the reasoning trajectory. Furthermore, when operator composition is also **non-associative** ($(O_i O_j) O_k \neq O_i (O_j O_k)$), an expression of $n+1$ operators has exactly $C_n = \frac{1}{n+1}\binom{2n}{n}$ distinct binary parenthesizations corresponding to the vertices of the **Stasheff Associahedron** $K_{n+1}$, weighted by the Segner-Catalan distribution $w_k = \frac{C_k C_{n-1-k}}{C_n}$ (`segner_catalan_weights` in `src/core/invariants.py`).
 
+---
+
+## 11. TEMPOLOCK Prime Divisor Gating & Modulo-3 Simplicial Apportionment Congruence
+
+### 11.1 TEMPOLOCK Multi-Rate Synchronization Gate
+In `DiegeticPhysicsEngine` (`src/ui/diegetic_backend.py`) and `UniversalOrchestrator` (`src/core/orchestrator.py`), System 1 (fast intuition) and System 2 (slow constraint solver) are synchronized across prime-indexed timescales using the **TEMPOLOCK Prime Divisor Gate**:
+$$\text{TEMPOLOCK}(\text{step}, p_{\text{active}}) \iff \gcd(\text{step}, p_{\text{active}}) > 1 \quad \text{or} \quad \text{PAS}_h < \frac{3}{11}$$
+where $p_{\text{active}}$ is the active prime modulus on the `PrimeResonanceLadder`. This prevents unnecessary $O(N^3)$ System 2 invocations on coprime steps while guaranteeing exact harmonic locking at prime multiples.
+
+### 11.2 Modulo-3 Congruence in Simplicial Apportionment (`docs/2610.40682v1.pdf`)
+The first odd prime $p = 3$ governs the simplicial geometry of the 3-State Alabama Paradox (David McCune, [`docs/2610.40682v1.pdf`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/2610.40682v1.pdf), implemented in [`compute_alabama_apportionment_paradox_prob`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py)). When the total house/representation budget $H$ expands ($H \to H + k$), the exact probability $p(H)$ that Hamilton's nearest-lattice rounding strips the smallest state ($a_3 = 1$) of its seat ($b_3 = 0$) splits along the residue class $H \bmod 3$:
+- For $H \equiv 0, 2 \pmod 3$: $p(H) = \frac{(H + 3)(H - 2)}{36 H (H + 1)}$
+- For $H \equiv 1 \pmod 3$: $p(H) = \frac{(H - 1)(H + 2)(H^2 + H - 4)}{36 H^2 (H + 1)^2}$
+
+When $H \equiv 1 \pmod 3$, the diagonal quota ray $H\mathbf{p}$ intersects the interior of the paradoxical quadrilateral region $R$ at a lattice sub-vertex, slightly lowering $p(H)$ relative to the $H \equiv 0, 2 \pmod 3$ branches while converging to $\lim_{H \to \infty} p(H) = 1/36$. This modulo-3 invariant directly powers [`VanellopeFirstCausativeAgent.enforce_alabama_apportionment_seat_sovereignty`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py).
+
+---
+
+## 12. Cross-Neighborhood Documentation Connections
+- **Math, Physics & Topology (`02_math_physics_topology/`)**: [MATHEMATICAL_DETAILS.md](../../02_math_physics_topology/MATHEMATICAL_DETAILS.md) (Section 67.9) & [INVARIANT_OPTIMIZATION.md](../../02_math_physics_topology/INVARIANT_OPTIMIZATION.md)
+- **Architecture Core (`01_architecture_core/`)**: [SYSTEM_ARCHITECTURE.md](../../01_architecture_core/SYSTEM_ARCHITECTURE.md) & [INDEX.md](../../01_architecture_core/INDEX.md)
+- **Philosophy & Lore (`03_philosophy_lore/`)**: [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md)
+- **Components & Mechanics (`04_components_and_mechanics/`)**: [GANBREEDER_VECTOR_STACKER.md](./GANBREEDER_VECTOR_STACKER.md) & [KNOWLEDGE_DYAD_LIFECYCLE.md](./KNOWLEDGE_DYAD_LIFECYCLE.md)
+- **Implementation & Walkthroughs (`05_implementation_and_guides/`)**: [how to make a voynich talk human-walkthrough.md](../stepping_stairs_tier_2_crypt/05_implementation_and_guides/how%20to%20make%20a%20voynich%20talk%20human-walkthrough.md)
+
+

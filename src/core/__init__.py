@@ -55,6 +55,32 @@ except ImportError:
     FiveGatePipeline = None
 
 try:
+    from .global_pas_api import PASLockToken, GLYPHLOCKHandshake, GlobalPASAPI
+except ImportError:
+    PASLockToken = None
+    GLYPHLOCKHandshake = None
+    GlobalPASAPI = None
+
+try:
+    from .chiral_graph_compiler import CompiledArtifact, ChiralGraphCompiler
+except ImportError:
+    CompiledArtifact = None
+    ChiralGraphCompiler = None
+
+try:
+    from .lychrel_soliton import (
+        AdelicDigitReversalOperator,
+        Lychrel196SolitonEngine,
+        LychrelTrajectoryReport,
+        compute_lychrel_chiral_gap
+    )
+except ImportError:
+    AdelicDigitReversalOperator = None
+    Lychrel196SolitonEngine = None
+    LychrelTrajectoryReport = None
+    compute_lychrel_chiral_gap = None
+
+try:
     from .conjugate_moment_transport import ConjugateMomentTransport
 except ImportError:
     ConjugateMomentTransport = None
@@ -219,5 +245,17 @@ __all__ = [
     'TopologicalRefusalError',
     'CayleyCubicProbe',
     'CayleyAdversarialDecomposer',
+    # Global PAS API & RIC Deployment
+    'PASLockToken',
+    'GLYPHLOCKHandshake',
+    'GlobalPASAPI',
+    # Chiral Graph Compiler (Action Layer)
+    'CompiledArtifact',
+    'ChiralGraphCompiler',
+    # Lychrel 196 Soliton Architecture
+    'AdelicDigitReversalOperator',
+    'Lychrel196SolitonEngine',
+    'LychrelTrajectoryReport',
+    'compute_lychrel_chiral_gap',
 ]
 

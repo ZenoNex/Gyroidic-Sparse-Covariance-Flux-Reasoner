@@ -1202,6 +1202,24 @@ class HybridAI:
             print(f"[WARN] ResonanceCavity init notice: {e}")
             self.resonance_cavity = None
 
+        # Global PAS API & Cross-System Coherence Tracking (CODES v40)
+        try:
+            from src.core.global_pas_api import GlobalPASAPI
+            self.pas_api = GlobalPASAPI(engine=self.engine)
+            print("[OK] Global PAS API initialized with GLYPHLOCK cryptographic handshake.")
+        except Exception as e:
+            print(f"[WARN] GlobalPASAPI init notice: {e}")
+            self.pas_api = None
+
+        # Chirality-Based Graph Compiler (Action Layer - Asymmetric Flow to Executable Form)
+        try:
+            from src.core.chiral_graph_compiler import ChiralGraphCompiler
+            self.graph_compiler = ChiralGraphCompiler(state_dim=getattr(self.engine, 'dim', 64))
+            print("[OK] ChiralGraphCompiler initialized for Action Layer.")
+        except Exception as e:
+            print(f"[WARN] ChiralGraphCompiler init notice: {e}")
+            self.graph_compiler = None
+
         # Apply start configuration options to engine components recursively
         
         # 1. McKenna deconstruction mode
@@ -2884,6 +2902,14 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 'platform': paths['platform'],
                 'target_file': paths['target_file']
             })
+        elif parsed_path.path == '/api/pas/coherence':
+            try:
+                if AI_SYSTEM and getattr(AI_SYSTEM, 'pas_api', None):
+                    self._send_json(AI_SYSTEM.pas_api.get_cross_system_coherence())
+                else:
+                    self._send_json({'total_nodes': 0, 'status': 'PAS_API_STANDBY'})
+            except Exception as e:
+                self._send_error_json(str(e))
         elif parsed_path.path == '/api/voxelboxter/proxy_status':
             try:
                 from src.ui.voxelboxter_backend import MAIN_BACKEND_URL
@@ -2979,6 +3005,69 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             self._handle_api_chat()
         elif parsed_path.path == '/api/test_token':
             self._handle_test_token()
+        elif parsed_path.path == '/api/pas/handshake':
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                req_data = json.loads(post_data.decode('utf-8'))
+                client_id = req_data.get('client_id', 'EXTERNAL_CLIENT')
+                field_id = req_data.get('field_id', 'RIC_COHERENCE')
+                chordlock_anchor = int(req_data.get('chordlock_anchor', 197))
+                if AI_SYSTEM and getattr(AI_SYSTEM, 'pas_api', None):
+                    resp = AI_SYSTEM.pas_api.initiate_handshake(client_id, field_id, chordlock_anchor)
+                    self._send_json(resp)
+                else:
+                    self._send_error_json("Global PAS API not initialized")
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path == '/api/pas/track':
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                req_data = json.loads(post_data.decode('utf-8'))
+                node_id = req_data.get('node_id', 'EDGE_01')
+                state_vec = req_data.get('state_tensor', [1.0] * 32)
+                field_id = req_data.get('field_id', 'EDGE_NODE')
+                env = req_data.get('environment', 'edge')
+                if AI_SYSTEM and getattr(AI_SYSTEM, 'pas_api', None):
+                    resp = AI_SYSTEM.pas_api.track_coherence(node_id, state_vec, field_id, env)
+                    self._send_json(resp)
+                else:
+                    self._send_error_json("Global PAS API not initialized")
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path == '/api/pas/query':
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                req_data = json.loads(post_data.decode('utf-8'))
+                token_data = req_data.get('token', {})
+                query_text = req_data.get('query', '')
+                if AI_SYSTEM and getattr(AI_SYSTEM, 'pas_api', None):
+                    resp = AI_SYSTEM.pas_api.query_engine_safe(token_data, query_text)
+                    self._send_json(resp)
+                else:
+                    self._send_error_json("Global PAS API not initialized")
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path == '/api/compile_graph':
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                req_data = json.loads(post_data.decode('utf-8'))
+                target = req_data.get('target', 'python')
+                graph = req_data.get('graph', {})
+                module_name = req_data.get('module_name', 'chiral_pipeline')
+                if AI_SYSTEM and getattr(AI_SYSTEM, 'graph_compiler', None):
+                    artifact = AI_SYSTEM.graph_compiler.compile(graph, target=target, module_name=module_name)
+                    self._send_json({
+                        'status': 'success',
+                        'artifact': artifact.to_dict()
+                    })
+                else:
+                    self._send_error_json("ChiralGraphCompiler not initialized")
+            except Exception as e:
+                self._send_error_json(str(e))
         elif parsed_path.path == '/api/start_training':
             self._handle_training()
         elif parsed_path.path == '/api/stop_training':

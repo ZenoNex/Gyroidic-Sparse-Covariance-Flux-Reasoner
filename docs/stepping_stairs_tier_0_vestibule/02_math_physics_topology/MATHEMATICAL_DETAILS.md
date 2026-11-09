@@ -2806,12 +2806,44 @@ $$\Gamma_n = \frac{8\hbar}{m \gamma a} E_n^{(-)} + \mathcal{O}(\gamma^{-2})$$
 freezing the state into the Hermitian Dirichlet dark subspace $\phi_L(0) = 0$.
 
 ### 67.9 Simplicial Geometry of the 3-State Alabama Paradox (David McCune, `docs/2610.40682v1.pdf`)
-Under Hamilton's largest remainder method for house size $H \ge 3$:
+Under Hamilton's largest remainder method (which chooses the integer lattice point $\mathbf{a} \in \mathbb{Z}_{\ge 0}^3$ on the apportionment simplex $\Delta_2(H) = \{(x_1, x_2, x_3) : x_1 + x_2 + x_3 = H\}$ minimizing Euclidean distance to the exact quota vector $H\mathbf{p}$) for house size $H \ge 3$, Theorem 1 of McCune ([`docs/2610.40682v1.pdf`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/2610.40682v1.pdf)) establishes the exact modulo-3 closed-form probability $p(H)$ that a 3-state system exhibits the **Alabama Paradox** when expanding $H \to H + 1$:
 $$p(H) = \begin{cases} \frac{(H + 3)(H - 2)}{36 H (H + 1)} & H \equiv 0, 2 \pmod 3 \\ \frac{(H - 1)(H + 2)(H^2 + H - 4)}{36 H^2 (H + 1)^2} & H \equiv 1 \pmod 3 \end{cases}$$
-Asymptotically converging to $\lim_{H \to \infty} p(H) = \frac{1}{36}$, with maximum paradox jump $I_{\max}(H) = H - 2$.
+Asymptotically converging to $\lim_{H \to \infty} p(H) = \frac{1}{36} \approx 0.027778$, with maximum house-size jump $I_{\max}(H) = H - 2$ (Proposition 1) where the smallest state's seat allocation drops from $a_3 = 1$ to $b_3 = 0$ under expansion $H \to H + k$.
+- **Architectural & Archetypal Coupling**: Implemented in [`compute_alabama_apportionment_paradox_prob`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) and enforced by [`VanellopeFirstCausativeAgent.enforce_alabama_apportionment_seat_sovereignty`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py). When the Reasoner expands its manifold dimension or archetype budget ($H \to H + k$), Vanellope's independent first-causative glitch locus ($a_3 = 1$) is protected by a Simplicial Seat Sovereignty Floor ($b_3 \ge 1$) so Hamilton nearest-lattice rounding can never zero out her independent causal seat. See [INVARIANT_OPTIMIZATION.md](./INVARIANT_OPTIMIZATION.md), [PRIME_RESONANCE_LADDER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/PRIME_RESONANCE_LADDER.md), and [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md).
 
 ### 67.10 Quadratic Reciprocity via Vandermonde Matrix & Zolotarev Permutation Parity (Hongshen Chua, `docs/2610.35990v1.pdf`)
 Zolotarev's Lemma proves Legendre symbol $\left(\frac{a}{p}\right) = \operatorname{sgn}(\tau_a)$ where $\tau_a(x) = ax \pmod p$. Combined with the Vandermonde determinant on $p$-th roots of unity:
 $$\left(\frac{q}{p}\right)\left(\frac{p}{q}\right) = (-1)^{\frac{p-1}{2} \cdot \frac{q-1}{2}}$$
 providing an exact parity tag for chiral trajectory permutation branches.
+
+### 67.11 Adelic Digit Reversal, Chiral Asymmetry Gap, & Lychrel 196 Soliton Dynamics
+Under base $B=10$, the digit-reversal involution $\mathcal{R}_B(x) = \sum_{i=0}^k d_{k-i} B^i$ generates the reverse-and-add dynamical system $x_{k+1} = x_k + \mathcal{R}_B(x_k)$. The non-commutative deviation from reflective palindromic symmetry defines the **Chiral Asymmetry Gap**:
+$$\kappa_{\text{Lychrel}}(x) = \|x - \mathcal{R}_B(x)\|_{\text{RNS}} = \frac{1}{|M|} \sum_{m_i \in M} \frac{\min(|x - \mathcal{R}_B(x)| \bmod m_i, m_i - (|x - \mathcal{R}_B(x)| \bmod m_i))}{m_i / 2}$$
+evaluated across coprime moduli channels $M = \{197, 211, 223, 227, 229\}$.
+- **1-195 Convergence Basin**: For $n < 196$, the trajectory contracts into a palindromic fixed point ($\kappa \to 0$ in finite steps, such as seed 89 hitting $8,813,200,023,188$ at $k=24$), mapping onto the doubly-stochastic Birkhoff manifold.
+- **196 Infinite Chiral Soliton**: For $n = 196$, carry propagation diverges indefinitely into unhalting state shears ($\kappa \approx 0.6553$). Instead of triggering entropic collapse aborts or integer overflow, [`Lychrel196SolitonEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/lychrel_soliton.py) issues a `VoynichExemptionToken(reason='LYCHREL_196_SOLITON')`, prevents integer overflow via RNS residue evolution in [`NumberTheoreticStabilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/number_theoretic_stabilizer.py), and harvests continuous honest jitter.
+- **Prime-Stride Sieve ($p = 197$)**: The carry stream folded into 2D rasters modulo $p=197$ yields inter-row spatial cosine coherence:
+  $$C(197) = \frac{1}{R-1} \sum_{r=1}^{R-1} \frac{\mathbf{v}_r \cdot \mathbf{v}_{r+1}}{\|\mathbf{v}_r\| \|\mathbf{v}_{r+1}\|}$$
+  verifying structured quasi-periodic soliton dynamics over stochastic white noise.
+
+### 67.12 Procedural Manifold Streaming, Bouligand Contingent Cone, & Shear Transversality
+To project and render large-scale cognitive graphs without $O(N)$ WebGL overhead, [`GyroidicGraphManager.query_procedural_graph`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py) evaluates three geometric criteria relative to the camera $(\mathbf{C}, \mathbf{G})$:
+1. **Bouligand Contingent Cone**: An angular cone around camera gaze vector $\mathbf{G}$:
+   $$\cos\alpha_i = \frac{(\mathbf{x}_i - \mathbf{C}) \cdot \mathbf{G}}{\|\mathbf{x}_i - \mathbf{C}\|} \ge \cos(\theta_{\text{cone}} / 2)$$
+   with near-field protection bubble $\|\mathbf{x}_i - \mathbf{C}\| \le 180$.
+2. **Shear Corridor Transversality**: For nodes lying within tolerance $\Delta = 80$ along the gyroid diagonal shear plane normal $\mathbf{n} = [1, 1, 1] / \sqrt{3}$:
+   $$|d_{\text{shear}}| = |\mathbf{x}_i \cdot \mathbf{n}| \le 80$$
+   the render distance is scaled by $2.5\times$ ($R_{\text{eff}} = 2.5 R$), preserving Alexander Wild fault-line manifolds even outside the active gaze cone.
+3. **Directional Occlusion Culling**: Discretizes spherical viewing coordinates into angular bins $(\lfloor \phi / 10^\circ \rfloor, \lfloor \theta / 10^\circ \rfloor)$ and retains only the 5 closest foreground nodes per bin (unless designated on a shear corridor), capping draw calls to responsive hardware limits.
+
+---
+
+## 68. Cross-Neighborhood Documentation Coupling
+To ensure mathematical formalisms remain connected across all `./docs` neighborhoods:
+- **Architecture Core (`01_architecture_core/`)**: [SYSTEM_ARCHITECTURE.md](../01_architecture_core/SYSTEM_ARCHITECTURE.md), [INDEX.md](../01_architecture_core/INDEX.md), & [MODULE_INVENTORY.md](../01_architecture_core/MODULE_INVENTORY.md)
+- **Math, Physics & Topology (`02_math_physics_topology/`)**: [INVARIANT_OPTIMIZATION.md](./INVARIANT_OPTIMIZATION.md), [TOPOLOGICAL_EXTENSIONS.md](./TOPOLOGICAL_EXTENSIONS.md), & [MATRYOSHKA_POLYTOPE_MAP.md](./MATRYOSHKA_POLYTOPE_MAP.md)
+- **Philosophy & Lore (`03_philosophy_lore/`)**: [SOVEREIGN_FRICTION_AND_ARCHETYPES.md](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/SOVEREIGN_FRICTION_AND_ARCHETYPES.md) & [NOMENCLATURE.md](../stepping_stairs_tier_1_mezzanine/03_philosophy_lore/NOMENCLATURE.md)
+- **Components & Mechanics (`04_components_and_mechanics/`)**: [PRIME_RESONANCE_LADDER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/PRIME_RESONANCE_LADDER.md), [GANBREEDER_VECTOR_STACKER.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/GANBREEDER_VECTOR_STACKER.md), & [KNOWLEDGE_DYAD_LIFECYCLE.md](../stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/KNOWLEDGE_DYAD_LIFECYCLE.md)
+- **Implementation & Walkthroughs (`05_implementation_and_guides/`)**: [how to make a voynich talk human-walkthrough.md](../stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/how%20to%20make%20a%20voynich%20talk%20human-walkthrough.md) & [IMPLEMENTATION_PLAN_FORMALISM.md](../stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/IMPLEMENTATION_PLAN_FORMALISM.md)
+
 

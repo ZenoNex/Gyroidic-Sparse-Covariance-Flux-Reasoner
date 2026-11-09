@@ -3,7 +3,7 @@ import torch
 import os
 import json
 import math
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 class KnowledgeFossilNode:
     """Represents a single point in the gyroidic manifold record."""
@@ -73,22 +73,24 @@ class GyroidicGraphManager:
         Load recently diverse encodings.
         Scans up to scan_limit files but only keeps limit unique nodes.
         Attempts to load from a unified snapshot first for maximum performance.
+        If snapshot has fewer nodes than limit, continues scanning disk to fulfill limit.
         """
-        loaded_from_snapshot = False
+        scan_limit = max(scan_limit, (limit * 2) if limit else 500)
+        loaded_full_from_snapshot = False
         snapshot_path = os.path.join(self.data_dir, "neglecton_snapshot.pt")
         if use_snapshot and os.path.exists(snapshot_path):
             try:
                 print(f"[GRAPH] Loading Neglecton from snapshot: {snapshot_path}")
                 data = torch.load(snapshot_path, map_location='cpu')
                 self.load_memory_snapshot(data)
-                if len(self.nodes) > 0:
-                    loaded_from_snapshot = True
+                if len(self.nodes) >= (limit or 150):
+                    loaded_full_from_snapshot = True
                     if limit and 0 < limit < len(self.nodes):
                         self.nodes = self.nodes[:limit]
             except Exception as e:
                 print(f"[GRAPH] Snapshot corrupt or incompatible: {e}. Falling back to scan.")
 
-        if not loaded_from_snapshot and os.path.exists(self.data_dir):
+        if not loaded_full_from_snapshot and os.path.exists(self.data_dir):
             files = sorted(os.listdir(self.data_dir), reverse=True)
             # Filter for .pt files and exclude the snapshot itself
             files = [f for f in files if f.endswith(".pt") and f != "neglecton_snapshot.pt"][:scan_limit]
@@ -268,6 +270,215 @@ class GyroidicGraphManager:
         except Exception as e:
             print(f"[GRAPH] Poincare projection error: {e}")
             return 0.0, 0.0
+
+    def compute_3d_projection(self, state: torch.Tensor, scale: float = 600.0) -> Tuple[float, float, float]:
+        """
+        Deterministic 3D harmonic projection of high-dimensional embedding onto 3D manifold.
+        Uses 3 orthogonal Fourier harmonic modes:
+            w_x = cos(2*pi*t/D)
+            w_y = sin(2*pi*t/D)
+            w_z = cos(4*pi*t/D) * sin(2*pi*t/D) (Gyroidic nodal surface cross-term)
+        """
+        try:
+            device = state.device
+            dim = state.shape[0] if state.dim() > 0 else 1
+            if dim < 3:
+                return 0.0, 0.0, 0.0
+            t = torch.arange(dim, dtype=torch.float32, device=device)
+            w_x = torch.cos(2.0 * math.pi * t / dim)
+            w_y = torch.sin(2.0 * math.pi * t / dim)
+            w_z = torch.cos(4.0 * math.pi * t / dim) * torch.sin(2.0 * math.pi * t / dim)
+            
+            w_x = w_x / (torch.norm(w_x) + 1e-8)
+            w_y = w_y / (torch.norm(w_y) + 1e-8)
+            w_z = w_z / (torch.norm(w_z) + 1e-8)
+            
+            s = state.float().flatten()[:dim]
+            x_raw = float(torch.dot(s, w_x).item())
+            y_raw = float(torch.dot(s, w_y).item())
+            z_raw = float(torch.dot(s, w_z).item())
+            
+            r = math.sqrt(x_raw*x_raw + y_raw*y_raw + z_raw*z_raw)
+            if r > 1e-6:
+                r_scaled = math.tanh(r / 2.0) * scale
+                return (x_raw / r) * r_scaled, (y_raw / r) * r_scaled, (z_raw / r) * r_scaled
+            return 0.0, 0.0, 0.0
+        except Exception:
+            return 0.0, 0.0, 0.0
+
+    def query_procedural_graph(
+        self,
+        camera_pos: Tuple[float, float, float] = (0.0, 0.0, 800.0),
+        gaze_dir: Tuple[float, float, float] = (0.0, 0.0, -1.0),
+        fov_deg: float = 65.0,
+        render_distance: float = 800.0,
+        enable_shear_corridor: bool = True,
+        enable_occlusion_culling: bool = True,
+        max_nodes: int = 2500
+    ) -> Dict[str, Any]:
+        """
+        Procedural Load Mode: Dynamically filters the global graph based on:
+        1. Geometry Cone (Bouligand Contingent Cone along gaze vector)
+        2. Render Distance metric horizon with distance-attenuated LOD
+        3. Shear Plane Transversality (LeyLineTracker & Alexander Wild Embedding corridors)
+        4. Directional Occlusion Culling (radial density filtering in dense clusters)
+        """
+        cx, cy, cz = camera_pos
+        gx, gy, gz = gaze_dir
+        gaze_len = math.sqrt(gx*gx + gy*gy + gz*gz) + 1e-8
+        gx, gy, gz = gx / gaze_len, gy / gaze_len, gz / gaze_len
+
+        half_fov_rad = math.radians(max(15.0, min(120.0, fov_deg)) / 2.0)
+        cos_cone = math.cos(half_fov_rad)
+
+        # Gyroid diagonal shear plane normal [1, 1, 1] / sqrt(3)
+        sn_x, sn_y, sn_z = 0.57735, 0.57735, 0.57735
+        shear_tolerance = 80.0
+
+        edges = self.get_adjacency_list()
+        candidates = []
+        culled_dist = 0
+        culled_cone = 0
+        saved_shear = 0
+
+        for n in self.nodes:
+            if "ghost" in n.node_id.lower() or "live_damage" in n.node_id.lower():
+                continue
+            mx = getattr(n, "x", None) or n.metrics.get("x")
+            my = getattr(n, "y", None) or n.metrics.get("y")
+            mz = getattr(n, "z", None) or n.metrics.get("z")
+            if mx is not None and my is not None and mz is not None:
+                x, y, z = float(mx), float(my), float(mz)
+            else:
+                x, y, z = self.compute_3d_projection(n.state)
+            
+            # Relative vector from camera
+            dx, dy, dz = x - cx, y - cy, z - cz
+            dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+
+            # Shear plane distance
+            d_shear = abs(x * sn_x + y * sn_y + z * sn_z)
+            in_shear = d_shear <= shear_tolerance
+
+            # Near-field camera bubble: always keep nodes within 180 units
+            in_near_field = dist <= 180.0
+
+            # Directional cosine
+            dir_dot = (dx * gx + dy * gy + dz * gz) / (dist + 1e-8)
+
+            # Shear Corridor Boost: expand distance 2.5x and relax cone
+            effective_max_dist = render_distance * (2.5 if in_shear and enable_shear_corridor else 1.0)
+            
+            if dist > effective_max_dist and not in_near_field:
+                culled_dist += 1
+                continue
+
+            in_cone = (dir_dot >= cos_cone)
+            if not in_cone and not in_near_field:
+                if in_shear and enable_shear_corridor and dir_dot >= -0.2:
+                    saved_shear += 1
+                else:
+                    culled_cone += 1
+                    continue
+
+            candidates.append({
+                "node": n,
+                "x": x,
+                "y": y,
+                "z": z,
+                "dist": dist,
+                "dir_dot": dir_dot,
+                "in_shear": in_shear,
+                "dx": dx,
+                "dy": dy,
+                "dz": dz
+            })
+
+        culled_occlusion = 0
+        # Occlusion Culling: angular binning from camera perspective
+        if enable_occlusion_culling and len(candidates) > 300:
+            bins: Dict[Tuple[int, int], List[Dict[str, Any]]] = {}
+            for item in candidates:
+                # Spherical coordinates relative to gaze
+                azimuth = int(math.degrees(math.atan2(item["dy"], item["dx"])) / 10.0)
+                elevation = int(math.degrees(math.asin(max(-1.0, min(1.0, item["dz"] / (item["dist"] + 1e-8))))) / 10.0)
+                key = (azimuth, elevation)
+                if key not in bins:
+                    bins[key] = []
+                bins[key].append(item)
+
+            filtered_candidates = []
+            for bin_items in bins.values():
+                # Sort by distance from camera
+                bin_items.sort(key=lambda it: it["dist"])
+                # Keep top 5 nodes along the visual ray, culling deeper occluded nodes unless on shear plane
+                kept = 0
+                for it in bin_items:
+                    if kept < 5 or it["in_shear"]:
+                        filtered_candidates.append(it)
+                        kept += 1
+                    else:
+                        culled_occlusion += 1
+            candidates = filtered_candidates
+
+        # Cap to max_nodes while prioritizing near field and shear corridors
+        if len(candidates) > max_nodes:
+            candidates.sort(key=lambda it: (not it["in_shear"], it["dist"]))
+            candidates = candidates[:max_nodes]
+
+        def clean_val(v):
+            if isinstance(v, torch.Tensor):
+                return v.detach().cpu().item() if v.numel() == 1 else v.tolist()
+            return v
+
+        visible_ids = set()
+        nodes_data = []
+        for it in candidates:
+            n = it["node"]
+            visible_ids.add(n.node_id)
+            px, py = self.compute_poincare_projection(n.state)
+            nodes_data.append({
+                "id": str(n.node_id),
+                "label": str(n.text[:100]),
+                "chiral": float(clean_val(n.chiral_score)),
+                "entropy": float(clean_val(n.spectral_entropy)),
+                "matrioshka_level": int(clean_val(n.matrioshka_level)),
+                "quantum": bool(n.quantum_superposition),
+                "repaired": bool(n.repair_active),
+                "locked": bool(n.coprime_lock),
+                "tags": n.tags,
+                "tag_weights": n.tag_weights,
+                "px": px,
+                "py": py,
+                "x": it["x"],
+                "y": it["y"],
+                "z": it["z"],
+                "in_shear_corridor": bool(it["in_shear"]),
+                "camera_dist": round(it["dist"], 2),
+                "type": n.metrics.get("type", "fossil")
+            })
+
+        visible_edges = [
+            e for e in edges
+            if e['source'] in visible_ids and e['target'] in visible_ids
+        ]
+
+        return {
+            "nodes": nodes_data,
+            "links": visible_edges,
+            "procedural": True,
+            "total_nodes": len(self.nodes),
+            "procedural_stats": {
+                "total_available": len(self.nodes),
+                "visible_count": len(nodes_data),
+                "culled_distance": culled_dist,
+                "culled_geometry_cone": culled_cone,
+                "culled_occlusion": culled_occlusion,
+                "saved_by_shear_corridor": saved_shear,
+                "render_distance": render_distance,
+                "cone_fov_deg": fov_deg
+            }
+        }
 
                 
     def get_adjacency_list(self, top_k_per_node: int = 6, max_edges: int = 3500) -> List[Dict[str, Any]]:
@@ -480,6 +691,7 @@ class GyroidicGraphManager:
                 continue
             valid_node_ids.add(n.node_id)
             px, py = self.compute_poincare_projection(n.state)
+            x3, y3, z3 = self.compute_3d_projection(n.state)
             nodes_data.append({
                 "id": str(n.node_id),
                 "label": str(n.text[:100]),
@@ -493,6 +705,9 @@ class GyroidicGraphManager:
                 "tag_weights": n.tag_weights,  # Dict[str, float] for client-side shading
                 "px": px,
                 "py": py,
+                "x": x3,
+                "y": y3,
+                "z": z3,
                 "type": n.metrics.get("type", "fossil")
             })
 

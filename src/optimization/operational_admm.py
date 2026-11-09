@@ -295,7 +295,10 @@ class OperationalAdmmPrimitive(autograd.Function):
                 with torch.enable_grad():
                     c_in = c_phys.detach().requires_grad_(True)
                     # KAGH(c) should be consistent with c
-                    pred = forward_op_fn(c_in, gcve_pressure=gcve_pressure, chirality=chirality_index)
+                    try:
+                        pred = forward_op_fn(c_in, gcve_pressure=gcve_pressure, chirality=chirality_index)
+                    except TypeError:
+                        pred = forward_op_fn(c_in)
                     
                     # Violation Pressure (Self-consistency)
                     violation_pressure = 0.5 * (pred - c_in).pow(2).sum()

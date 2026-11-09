@@ -10,6 +10,7 @@ from src.governance.bio_archetypal_governor import BioArchetypalGovernor
 from src.governance.fast.jax_shell import JaxShell
 from src.governance.slow.kinger_consolidation import KingerConsolidation
 from src.governance.ultrafast.zooble_autonomy import ZoobleAutonomy
+from src.governance.causative.vanellope_first_causative import VanellopeFirstCausativeAgent, VanellopeVoiceArchetype
 from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, TypedComputeAffordance
 from src.core.valence_drive import ValenceFunctional
 
@@ -816,6 +817,8 @@ class ArchetypalSynthesisEngine(nn.Module):
         
         # The new Multi-Scale Temporal Homeostasis biological layer
         self.bio_governor = BioArchetypalGovernor(state_dim)
+        # Vanellope: Independent First Causative Agent separate from the universe
+        self.vanellope = self.bio_governor.vanellope
         # Canonical Valence Drive
         self.valence_drive = ValenceFunctional(decay=0.99, hunger_scale=1.0)
 
@@ -1088,6 +1091,7 @@ class ArchetypalSynthesisEngine(nn.Module):
             "caine": self.caine_wrap.export_state(),
             "alien_handshake": self.alien_handshake.export_state(),
             "grom": self.grom.export_state(),
+            "vanellope": self.vanellope.export_state(),
             "thresholds": {
                 "mandy_pas_lock": self.mandy.pas_lock,
                 "mandy_harmonics": self.mandy.harmonics_requirement,
@@ -1106,6 +1110,8 @@ class ArchetypalSynthesisEngine(nn.Module):
             self.alien_handshake.import_state(state_blob["alien_handshake"])
         if "grom" in state_blob:
             self.grom.import_state(state_blob["grom"])
+        if "vanellope" in state_blob:
+            self.vanellope.import_state(state_blob["vanellope"])
         if "thresholds" in state_blob:
             t = state_blob["thresholds"]
             self.mandy.pas_lock = t.get("mandy_pas_lock", t.get("mandy_pas", self.mandy.pas_lock))
