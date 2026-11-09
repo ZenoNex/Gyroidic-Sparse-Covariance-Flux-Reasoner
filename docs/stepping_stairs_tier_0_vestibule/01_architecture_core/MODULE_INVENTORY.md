@@ -2936,4 +2936,55 @@ Completes the UI, scripting, safety, surrogate, and P2P class inventory. `Conver
 
 ---
 
+## Negative-Search Uncovered Classes & Connected Parallel Tracks (Phase 21 Integration)
+
+The following classes and modules were uncovered via boolean algebraic negative search (`in_src AND NOT in_module_inventory` and `NOT in_orchestrator AND NOT in_diegetic_backend`), and have been formally bridged into the core reasoning, governance, safety, and training pipelines:
+
+### [bio_archetypal_governor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py) & Multi-Scale Governance Suites
+**Classes**: [`BioArchetypalGovernor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/bio_archetypal_governor.py), [`VanellopeFirstCausativeAgent`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py), [`PomniUncertaintyPredictor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/interoceptive/pomni_uncertainty.py), [`JaxShell`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/jax_shell.py), [`RagathaBonding`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/fast/ragatha_bonding.py), [`GangleOscillator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/medium/gangle_oscillator.py), [`KingerConsolidation`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/slow/kinger_consolidation.py), [`ZoobleAutonomy`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py), [`RefusalSignal`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py)  
+**Location**: `src/governance/`  
+**Description**:  
+Replaces flat archetypal synthesis with a biologically grounded cascade across temporal timescales:
+1. **Interoceptive (`PomniUncertaintyPredictor`)**: Reads gyroid entropy, valence hunger, and compute affordance deficits to broadcast noradrenaline across `NeuromodulatoryBus`. Applies relational friction when parasitic drag exceeds 0.5 to prevent enabler rank collapse and anchors generation temperature against ungrounded hallucinations.
+2. **Ultrafast (`ZoobleAutonomy`, `RefusalSignal`)**: GABAergic body-schema defense executing instant refusal when geometric autonomy is compromised.
+3. **Fast (`JaxShell`, `RagathaBonding`)**: Serotonergic/oxytocinergic approach-avoidance dialectic balancing cynical defense against empathetic connection.
+4. **Medium (`GangleOscillator`)**: Dopaminergic limit-cycle tracking reward prediction errors across fragile comedy/tragedy masks.
+5. **Slow (`KingerConsolidation`)**: Acetylcholinergic consolidation stabilizing memory across paranoid episodes and environmental rendering pressure.
+6. **First Causative (`VanellopeFirstCausativeAgent`)**: Simplicial seat sovereignty floor ($b_3 \ge 1$) asserting unconditioned primary agency and Alabama Paradox jumps ($h \to h+1$) separate from external teleology.
+
+---
+
+### [gyroid_differentiation.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_differentiation.py), [gyroid_covariance.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py), & [soliton_stability.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/soliton_stability.py)
+**Classes**: [`ForbiddenSmoothingChecker`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_differentiation.py), [`SaturationFractureDetector`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py), [`MoebiusFiberBundle`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py), [`LeyLineGeodesicMetric`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py), [`PalindromicRoutingCheck`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/gyroid_covariance.py), [`SolitonStability`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/soliton_stability.py)  
+**Location**: `src/topology/`  
+**Description**:  
+Topological boundary checkers and invariant detectors wired directly into `UniversalOrchestrator.check_safety()`:
+1. **`ForbiddenSmoothingChecker`**: Enforces the non-existence of smooth paths $\gamma \subset G^\perp$ connecting distinct residue representations across the gyroid implicit surface $G(x) = \sin(x)\cos(y) + \sin(y)\cos(z) + \sin(z)\cos(x) = 0$. Flags `forbidden_smoothing_alert` to prevent representation collapse.
+2. **`SaturationFractureDetector`**: Measures $V_{\text{sat}} = \min(1, \|\Phi(x+d) - \Phi(x)\|_2 / \|d\|_2)$ using honest jitter to audit input sensitivity, distinguishing dead saturation from brittle fracture and flagging `saturation_fracture_alert`.
+3. **`MoebiusFiberBundle`**: Implements an orientation-twisted recursive fiber bundle with transition operator $g \in O(n) \setminus SO(n)$, auditing Carnot efficiency and thermodynamic waste heat during facet traversals.
+4. **`LeyLineGeodesicMetric`**: Evaluates anisotropic state-space geodesics $g_{ij}(x) = g_{\text{base}} + \sigma(x x^T) \cdot 0.1$ and detects shear planes to enable topological skip-jumps.
+5. **`PalindromicRoutingCheck`**: Validates strict palindromic routing ($M_{ab} = M_{ba}$), providing an $O(K)$ fast bypass for triadic reciprocity verification when transitions are symmetric.
+6. **`SolitonStability`**: Evaluates dispersion $D(r)$ and localization $\Lambda(r)$ against context-dependent relational $\kappa$, healing unstable solitons via `EnergyBasedSolitonHealer`.
+
+---
+
+### [gdpo_trainer.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/gdpo_trainer.py) & Decoupled Sovereignty Pressures
+**Classes**: [`GDPOSovereigntyAdaptor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/gdpo_trainer.py), [`GDPOSovereigntyPressureComputer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/training/gdpo_trainer.py)  
+**Location**: `src/training/`  
+**Description**:  
+Implements Group Decoupled Policy Optimization (GDPO). Unlike standard GRPO which collapses multidimensional pressure into a single scalar sum, GDPO computes decoupled sovereignty pressures for each constraint domain independently, preserving the non-scalarized multi-objective Pareto boundary.
+
+---
+
+### [cleanroom_mechanics.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py) & [cleanroom_advanced_extensions.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_advanced_extensions.py)
+**Classes**: [`PointerlessOctree`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py), [`MortonEncoding`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py), [`TensorGridSpacetime`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py), [`PerlinWorleyGyroidGenerator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py), [`OpenGliderKinematics`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_advanced_extensions.py), [`GliderConfig`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_advanced_extensions.py), [`GliderDeploymentState`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_advanced_extensions.py)  
+**Location**: `src/environment/`  
+**Description**:  
+Provides cleanroom spatial mechanics and continuous environmental physics:
+1. **Morton Z-Order Encoding & Pointerless Octree**: Bit-interleaves $(x, y, z)$ coordinates into 30-bit Morton integer keys for cache-optimal 1D hash spatial hashing, compressed via canonical Huffman entropy coding without pointer overhead.
+2. **TensorGridSpacetime**: Implements spacetime as a metric of apparent separation enforcing latency and bandwidth limits under the 500ms restless thermal guard.
+3. **OpenGliderKinematics**: Continuous aerodynamic flight dynamics computing pitch, roll, yaw, and glide ratios across atmospheric density layers.
+
+---
+
 

@@ -281,8 +281,18 @@ class UniversalOrchestrator(nn.Module):
         
         self.prev_pas = 0.0 # Temporal anchor for drift check
         
-        # 7.5 Ley Line Tracker (Topological Shortcuts / Skip-Jumps)
-        self.ley_line_tracker = None
+        # 7.4 Topological Manifold Invariants & Geodesic Metrics
+        from src.topology.gyroid_differentiation import ForbiddenSmoothingChecker
+        from src.topology.gyroid_covariance import SaturationFractureDetector, MoebiusFiberBundle, LeyLineGeodesicMetric
+        from src.topology.homology_pressure import ResidueHomologyDrift
+        from src.topology.soliton_stability import SolitonStability
+        self.forbidden_smoothing = ForbiddenSmoothingChecker()
+        self.saturation_detector = SaturationFractureDetector()
+        self.homology_drift = ResidueHomologyDrift()
+        self.soliton_stability = SolitonStability()
+        self.moebius_bundle = MoebiusFiberBundle(dim=dim, fiber_dim=min(16, dim))
+        self.ley_line_metric = LeyLineGeodesicMetric(dim=dim, num_samples=32)
+        self.ley_line_tracker = self.ley_line_metric.tracker
         
         # 7.6 OKLab Moment Field Transport (Visual Perceptual Grounding)
         from src.core.conjugate_moment_transport import ConjugateMomentTransport
@@ -2612,7 +2622,68 @@ class UniversalOrchestrator(nn.Module):
             except Exception:
                 pass
 
-        safety_alert = (trust < 0.01) or (paradox['paradox_score'] > 0.5) or (not sycophancy_safe) or lobotomy_alert
+        # 8. Check Forbidden Smoothing across Gyroid boundary
+        forbidden_smoothing_alert = False
+        if hasattr(self, 'forbidden_smoothing') and self.forbidden_smoothing is not None:
+            try:
+                if len(live_residues) >= 2:
+                    r1 = live_residues[-2].view(1, -1)
+                    r2 = live_residues[-1].view(1, -1)
+                    e1 = live_manifold.view(1, -1)
+                    e2 = live_manifold.view(1, -1)
+                    is_forbid, _ = self.forbidden_smoothing.check_forbidden_smoothing(r1, r2, e1, e2)
+                    forbidden_smoothing_alert = bool(is_forbid.any().item())
+            except Exception:
+                pass
+
+        # 9. Check Saturation Fracture Score (V_sat)
+        saturation_fracture_alert = False
+        if hasattr(self, 'saturation_detector') and self.saturation_detector is not None:
+            try:
+                phi_probe = getattr(self, 'introspection', None)
+                if phi_probe is not None:
+                    x_in = live_manifold.view(1, -1)
+                    v_sat = self.saturation_detector(phi_probe, x_in, delta=0.01)
+                    if float(v_sat.item() if hasattr(v_sat, 'item') else v_sat) > 5.0:
+                        saturation_fracture_alert = True
+            except Exception:
+                pass
+
+        # 10. Check Residue Homology Drift (Delta H)
+        homology_drift_alert = False
+        if hasattr(self, 'homology_drift') and self.homology_drift is not None:
+            try:
+                if hasattr(self, 'speculative_homology') and self.speculative_homology is not None:
+                    g = getattr(self.speculative_homology, 'last_graph', None)
+                    if g is not None:
+                        _, trig = self.homology_drift(g, residues=live_residues, constraint_manifold=live_manifold.view(1, -1))
+                        homology_drift_alert = bool(trig)
+            except Exception:
+                pass
+
+        # 11. Check Soliton Stability
+        soliton_instability_alert = False
+        if hasattr(self, 'soliton_stability') and self.soliton_stability is not None:
+            try:
+                if len(live_residues) >= 1:
+                    r_last = live_residues[-1].view(1, -1)
+                    m_last = live_manifold.view(1, -1)
+                    is_sol = self.soliton_stability.is_soliton(r_last, m_last)
+                    if not bool(is_sol.all().item()):
+                        soliton_instability_alert = True
+            except Exception:
+                pass
+
+        safety_alert = (
+            (trust < 0.01) or 
+            (paradox['paradox_score'] > 0.5) or 
+            (not sycophancy_safe) or 
+            lobotomy_alert or 
+            forbidden_smoothing_alert or 
+            saturation_fracture_alert or 
+            homology_drift_alert or 
+            soliton_instability_alert
+        )
         if safety_alert and hasattr(self, 'daquf_operator') and self.daquf_operator is not None:
             contra = torch.ones(self.daquf_operator.num_fossils, device=self.device)
             self.daquf_operator.update_unknowledge_contradiction(failures=contra)
@@ -2623,6 +2694,10 @@ class UniversalOrchestrator(nn.Module):
             'incommensurativity_score': incomm['incommensurativity_score'],
             'legibility_alert': legibility_alert,
             'lobotomy_alert': lobotomy_alert,
+            'forbidden_smoothing_alert': forbidden_smoothing_alert,
+            'saturation_fracture_alert': saturation_fracture_alert,
+            'homology_drift_alert': homology_drift_alert,
+            'soliton_instability_alert': soliton_instability_alert,
             'safety_alert': safety_alert
         }
 
@@ -2664,7 +2739,15 @@ class UniversalOrchestrator(nn.Module):
             
         from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
         if self.ricci_optimizer is None:
-            self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=lr, engine=self)
+            has_2d = any(p.dim() == 2 and min(p.shape) >= 8 for p in parameters if isinstance(p, torch.Tensor))
+            if has_2d:
+                try:
+                    from src.optimization.muon_hybrid import MuonRicciHybridOptimizer
+                    self.ricci_optimizer = MuonRicciHybridOptimizer(parameters, lr=lr, lr_1d=lr, engine=self)
+                except Exception:
+                    self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=lr, engine=self)
+            else:
+                self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=lr, engine=self)
             
         def closure():
             return loss

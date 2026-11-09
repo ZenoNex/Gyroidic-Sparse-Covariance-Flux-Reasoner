@@ -45,7 +45,7 @@ graph TD
   * [_DIRECTORY_GUIDE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/_DIRECTORY_GUIDE.md)
   * [INDEX.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/INDEX.md) (Central Portal, Psycho-Topological Archetypes including Vanellope, and Verification Matrix)
   * [SYSTEM_ARCHITECTURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/SYSTEM_ARCHITECTURE.md)
-  * [MODULE_INVENTORY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/MODULE_INVENTORY.md)
+  * [MODULE_INVENTORY.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/MODULE_INVENTORY.md) (Authoritative inventory updated with negative-search uncovered classes, multi-scale governance, topological safety probes, and cleanroom physics)
   * [DATA_PIPELINE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/DATA_PIPELINE.md)
   * [TOPOLOGICAL_AI_FRAMEWORK.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/TOPOLOGICAL_AI_FRAMEWORK.md)
   * [THE_VOYNICH_ARCHITECTURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/THE_VOYNICH_ARCHITECTURE.md)

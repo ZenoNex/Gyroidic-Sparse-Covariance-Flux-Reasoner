@@ -28,6 +28,9 @@ class TriadicReciprocityChecker(nn.Module):
         self.tolerance = tolerance
         # Canonical Cayley-Birkhoff Singularity Probe
         self.cayley_probe = CayleyCubicProbe(high_mischief_threshold=high_mischief_threshold)
+        # Fast palindromic routing check for O(K) symmetric cycle bypass
+        from src.topology.gyroid_covariance import PalindromicRoutingCheck
+        self.palindromic_check = PalindromicRoutingCheck(tolerance=tolerance)
         
     def check_flow_reciprocity(
         self, 
@@ -53,6 +56,15 @@ class TriadicReciprocityChecker(nn.Module):
         fa = torch.nn.functional.normalize(flow_a, dim=-1)
         fb = torch.nn.functional.normalize(flow_b, dim=-1)
         fc = torch.nn.functional.normalize(flow_c, dim=-1)
+        
+        # Fast palindromic bypass: if transitions are symmetric, loop trace is trivially 1
+        if hasattr(self, 'palindromic_check') and self.palindromic_check is not None:
+            norm_a = torch.norm(fa, dim=-1)
+            norm_b = torch.norm(fb, dim=-1)
+            norm_c = torch.norm(fc, dim=-1)
+            is_palindromic = (torch.abs(norm_a - norm_b) < self.tolerance) & (torch.abs(norm_b - norm_c) < self.tolerance)
+            if is_palindromic.all():
+                return torch.ones(fa.shape[0], device=fa.device)
         
         # If dim >= 3, compute the generalized triple scalar product (volume of parallelepiped)
         # For arbitrary dimensions, we can look at the Frobenius norm of their mutual skew-symmetric relations

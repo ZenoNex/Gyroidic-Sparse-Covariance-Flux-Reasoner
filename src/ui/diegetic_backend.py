@@ -2378,6 +2378,26 @@ class DiegeticPhysicsEngine(nn.Module):
         
         temperature = 1.0 + (0.5 if quantum_state else 0.0)
         if matrioshka_level >= 3: temperature *= 0.7 # Focus under deep quantization
+
+        # 1b. Interoceptive Modulation via Pomni Uncertainty & Reluctant Resilience
+        if hasattr(self, 'archetypal_governor') and self.archetypal_governor is not None:
+            bio_gov = getattr(self.archetypal_governor, 'bio_governor', None)
+            if bio_gov is not None and hasattr(bio_gov, 'pomni') and hasattr(bio_gov, 'bus'):
+                try:
+                    gyroid_entropy = float(self.entropy_estimator.estimate_entropy(seed_state).item()) if hasattr(self, 'entropy_estimator') else 0.5
+                    v_hunger = float(getattr(self, '_current_hunger', 0.0))
+                    seed_state = bio_gov.pomni(
+                        seed_state,
+                        gyroid_entropy=gyroid_entropy,
+                        bus=bio_gov.bus,
+                        parasitic_drag=0.1,
+                        valence_hunger=v_hunger
+                    )
+                    norad = float(bio_gov.bus.read('noradrenaline', default=0.0))
+                    if norad > 0.6:
+                        temperature *= max(0.6, 1.0 - 0.25 * (norad - 0.6))
+                except Exception:
+                    pass
         
         # 2. Echo Suppression Setup
         # Strip PROMPT: prefix so the command token letters (p, r, o, m, t, etc.)

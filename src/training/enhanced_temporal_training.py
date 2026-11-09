@@ -357,20 +357,29 @@ class NonLobotomyTemporalTrainer:
         model: NonLobotomyTemporalModel,
         dataset,
         evolution_rate: float = 0.02,
-        survivorship_threshold: float = 0.7
+        survivorship_threshold: float = 0.7,
+        optimizer_type: str = "ricci"
     ):
         self.model = model
         self.dataset = dataset
         self.evolution_rate = evolution_rate
         self.survivorship_threshold = survivorship_threshold
+        self.optimizer_type = optimizer_type
         
         neural_params = []
         for name, param in model.named_parameters():
             if 'polynomial_config' not in name:
                 neural_params.append(param)
         
-        # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with Ricci Flow
-        self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, seam_width=0.1)
+        # [ANTI-LOBOTOMY ENFORCEMENT] Replace Adam with Ricci Flow or Muon-Ricci Hybrid
+        if optimizer_type == "muon_ricci":
+            try:
+                from src.optimization.muon_hybrid import MuonRicciHybridOptimizer
+                self.optimizer = MuonRicciHybridOptimizer(neural_params, lr=1e-3, lr_1d=1e-3, seam_width=0.1)
+            except Exception:
+                self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, seam_width=0.1)
+        else:
+            self.optimizer = RicciFlowOptimizer(neural_params, lr=1e-3, seam_width=0.1)
         self.willmore_energy = BouligandWillmoreGasket()
         
         self.history = {
