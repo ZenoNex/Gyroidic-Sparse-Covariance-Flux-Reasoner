@@ -625,6 +625,27 @@ class DiegeticPhysicsEngine(nn.Module):
         self._last_temporal_diag: dict = {}
         self._last_matrioshka_diag: dict = {}
 
+        # Non-Lobotomy Temporal Association Trainer (Evolutionary trust + Ricci Flow)
+        try:
+            from src.training.enhanced_temporal_training import NonLobotomyTemporalModel, NonLobotomyTemporalTrainer
+            self._non_lobotomy_model = NonLobotomyTemporalModel(
+                input_dim=dim,
+                hidden_dim=dim,
+                num_functionals=min(k, 10),
+                poly_degree=4,
+                device=self.device
+            )
+            self._non_lobotomy_trainer = NonLobotomyTemporalTrainer(
+                model=self._non_lobotomy_model,
+                dataset=self._temporal_dataset,
+                evolution_rate=0.02,
+                survivorship_threshold=0.7
+            )
+        except Exception as nlt_init_e:
+            print(f"[TAT] NonLobotomyTemporalTrainer initialization deferred: {nlt_init_e}")
+            self._non_lobotomy_model = None
+            self._non_lobotomy_trainer = None
+
         # =============================================
         # PHASE 18: ZEITGEIST ROUTER (CRT Polytope Switching)
         # Implements: S_t = (x_t, alpha_t, l_t, u_t)
@@ -4999,6 +5020,32 @@ class DiegeticPhysicsEngine(nn.Module):
                         )
                     except Exception as tat_e:
                         print(f"[TAT] Live background TemporalAssociation training error: {tat_e}")
+
+                # 1b. Run Non-Lobotomy Temporal Association Trainer (Ricci Flow + Survivorship Pressure)
+                if hasattr(self, '_non_lobotomy_trainer') and self._non_lobotomy_trainer is not None:
+                    try:
+                        seq_in = inp.unsqueeze(0).unsqueeze(1) if inp.dim() == 1 else inp.unsqueeze(1)
+                        if seq_in.shape[-1] != self.dim:
+                            if seq_in.shape[-1] < self.dim:
+                                seq_in = F.pad(seq_in, (0, self.dim - seq_in.shape[-1]))
+                            else:
+                                seq_in = seq_in[..., :self.dim]
+                        
+                        target_vec = resp_tensor.unsqueeze(0).unsqueeze(1) if 'resp_tensor' in locals() and resp_tensor is not None else seq_in
+                        if target_vec.shape[-1] != self.dim:
+                            if target_vec.shape[-1] < self.dim:
+                                target_vec = F.pad(target_vec, (0, self.dim - target_vec.shape[-1]))
+                            else:
+                                target_vec = target_vec[..., :self.dim]
+
+                        batch_data = {
+                            'sequences': seq_in.to(self.device),
+                            'targets': target_vec.to(self.device)
+                        }
+                        nl_diag = self._non_lobotomy_trainer.train_step(batch_data)
+                        self._last_temporal_diag['non_lobotomy'] = nl_diag
+                    except Exception as nl_e:
+                        print(f"[TAT] NonLobotomy live training step error: {nl_e}")
                 
                 # Topological checkpoint: isolate meta_state gradient history between trainers
                 if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor):
