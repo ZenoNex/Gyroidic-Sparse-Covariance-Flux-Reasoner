@@ -3333,13 +3333,19 @@ class UniversalOrchestrator(nn.Module):
         categories: Optional[List[str]] = None,
         **kwargs
     ) -> torch.Tensor:
-        """Ingest scientific preprint metadata as a standardized KnowledgeDyad."""
-        text_raw = f"arXiv:{arxiv_id} [{', '.join(categories or [])}]: {title}. {abstract}"
+        """Ingest scientific preprint metadata as a standardized KnowledgeDyad with Structural Honesty tags."""
+        cat_list = categories or []
+        text_raw = f"arXiv:{arxiv_id} [{', '.join(cat_list)}]: {title}. {abstract}"
+        public_tags = [c.replace(' ', '_').lower() for c in cat_list] + ["arxiv", "scientific_preprint", "public_domain"]
+        tags = [f"arxiv_{arxiv_id}"] + public_tags
         meta = {
             "arxiv_id": arxiv_id,
             "title": title,
             "source": "arxiv",
-            "categories": categories or []
+            "categories": cat_list,
+            "tags": tags,
+            "public_domain_tags": public_tags,
+            "structural_honesty": True
         }
         return self.ingest_knowledge_dyad(text_raw=text_raw, modality="ScientificPreprint", metadata=meta, **kwargs)
 

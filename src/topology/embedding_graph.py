@@ -44,6 +44,14 @@ class KnowledgeFossilNode:
             }
         self.tag_weights: Dict[str, float] = normalized_tag_weights  # {normalized_tag: weight}
         self.tags: list = raw_tags
+        raw_public_domain_tags = metrics.get('public_domain_tags', [])
+        if not raw_public_domain_tags and raw_tags:
+            raw_public_domain_tags = [
+                t for t in raw_tags
+                if isinstance(t, str) and not t.startswith(('crt_', 'b0_', 'b1_', 'b2_', 'b3_', 'b4_', 'b5_', 'b6_', 'b7_', 'b8_'))
+                and t not in ('atrophy_rehydrated', 'non_semisimple_refreshed')
+            ]
+        self.public_domain_tags: list = raw_public_domain_tags
 
 class GyroidicGraphManager:
     """
@@ -378,7 +386,9 @@ class GyroidicGraphManager:
             if mx is not None and my is not None and mz is not None:
                 x, y, z = float(mx), float(my), float(mz)
             else:
-                n_state = getattr(n, "state", None) or (n.get("state") if isinstance(n, dict) else None)
+                n_state = getattr(n, "state", None)
+                if n_state is None and isinstance(n, dict):
+                    n_state = n.get("state")
                 if n_state is not None:
                     x, y, z = self.compute_3d_projection(n_state)
                 else:
@@ -470,7 +480,9 @@ class GyroidicGraphManager:
             nid = getattr(n, "node_id", None) or (n.get("node_id") if isinstance(n, dict) else None) or (n.get("id") if isinstance(n, dict) else "unknown")
             visible_ids.add(str(nid))
 
-            n_state = getattr(n, "state", None) or (n.get("state") if isinstance(n, dict) else None)
+            n_state = getattr(n, "state", None)
+            if n_state is None and isinstance(n, dict):
+                n_state = n.get("state")
             if n_state is not None:
                 px, py = self.compute_poincare_projection(n_state)
             else:
@@ -485,6 +497,9 @@ class GyroidicGraphManager:
             cop_lock = getattr(n, "coprime_lock", None) or (n.get("locked") if isinstance(n, dict) else False)
             tags_val = getattr(n, "tags", None) or (n.get("tags") if isinstance(n, dict) else [])
             tag_w = getattr(n, "tag_weights", None) or (n.get("tag_weights") if isinstance(n, dict) else {})
+            pdt_val = getattr(n, "public_domain_tags", None) or (n.get("public_domain_tags") if isinstance(n, dict) else [])
+            if not pdt_val and tags_val:
+                pdt_val = [t for t in tags_val if isinstance(t, str) and not t.startswith(('crt_', 'b0_', 'b1_', 'b2_')) and t not in ('atrophy_rehydrated', 'non_semisimple_refreshed')]
             metrics = getattr(n, "metrics", n if isinstance(n, dict) else {})
             node_type = metrics.get("type", "fossil") if isinstance(metrics, dict) else "fossil"
 
@@ -498,6 +513,7 @@ class GyroidicGraphManager:
                 "repaired": bool(rep_active),
                 "locked": bool(cop_lock),
                 "tags": tags_val,
+                "public_domain_tags": pdt_val,
                 "tag_weights": tag_w,
                 "px": px,
                 "py": py,
@@ -755,6 +771,7 @@ class GyroidicGraphManager:
                 "repaired": bool(n.repair_active),
                 "locked": bool(n.coprime_lock),
                 "tags": n.tags,
+                "public_domain_tags": getattr(n, "public_domain_tags", []),
                 "tag_weights": n.tag_weights,  # Dict[str, float] for client-side shading
                 "px": px,
                 "py": py,

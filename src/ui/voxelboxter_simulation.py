@@ -91,6 +91,8 @@ class Block:
     parent_id: Optional[str] = None # The Entity ID of the construct it belongs to
     is_fossilized_bone: bool = False # 80/20 Fossilization Split (The Efficiency Singularity - Wager #2)
     topological_stress: float = 0.0 # Local non-scalar discord / structural tension
+    tags: List[str] = field(default_factory=list)
+    public_domain_tags: List[str] = field(default_factory=list)
 
 @dataclass
 class RigidBody:
@@ -541,6 +543,33 @@ class StructuralGraph:
                 neighbors.append(self.blocks[nb])
         return neighbors
 
+    def get_tags(self) -> List[str]:
+        """Collect all unique tags from blocks in this construct."""
+        tags = set()
+        for b in self.blocks.values():
+            for t in getattr(b, 'tags', []):
+                tags.add(t)
+        return sorted(tags)
+
+    def get_public_domain_tags(self) -> List[str]:
+        """Collect non-copyrightable public domain tags under 17 U.S.C. § 102(b)."""
+        pd_tags = set()
+        for b in self.blocks.values():
+            for pdt in getattr(b, 'public_domain_tags', []):
+                pd_tags.add(pdt)
+        return sorted(pd_tags)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serializes structural graph metrics, bone/flesh split, Betti numbers, and public domain tags."""
+        return {
+            "total_blocks": len(self.blocks),
+            "bone_blocks": len(self.bone_blocks),
+            "flesh_blocks": len(self.flesh_blocks),
+            "betti_numbers": self.compute_betti_numbers(),
+            "tags": self.get_tags(),
+            "public_domain_tags": self.get_public_domain_tags()
+        }
+
     def find_disconnected_components(self) -> List[List[Block]]:
         """Find islands of blocks. Returns list of disjoint block lists."""
         visited = set()
@@ -856,6 +885,14 @@ class FloraComponent:
         "ADVENTITIOUS_GROUND_ROOTING",
         "SECONDARY_TRUNK_METAMORPHOSIS",
         "CONTINUOUS_GRAPH_EXPANSION"
+    ])
+    public_domain_botanical_tags: List[str] = field(default_factory=lambda: [
+        "anacardium_occidentale",
+        "chlorophyll",
+        "pirangi_cashew",
+        "apical_dominance_defect",
+        "adventitious_rooting",
+        "public_domain_flora"
     ])
     age_ticks: int = 0
     hydration: float = 1.0
@@ -2943,11 +2980,14 @@ class VoxelboxterEngine:
         bone_count = compiled.get("bone_blocks", len(getattr(graph, "bone_blocks", [])))
         flesh_count = compiled.get("flesh_blocks", len(getattr(graph, "flesh_blocks", [])))
 
-        # Place voxels into terrain octree
+        # Place voxels into terrain octree and attach structural honesty tags
         blocks_placed = len(graph.blocks)
+        public_tags = [f"construct_{cid}", "b_spline_spine", "bouligand_cone", "public_domain_geometry"]
         for cell, block in graph.blocks.items():
             vx, vy, vz = cell
             block.material_id = default_material
+            block.tags = list(public_tags)
+            block.public_domain_tags = list(public_tags)
             if self.terrain_octree:
                 self.terrain_octree.set_voxel(vx, vy, vz, default_material)
 
@@ -3253,6 +3293,46 @@ class VoxelboxterEngine:
                     print("[VOXELBOXTER] Simulating Drucker-Prager Yield structural fracturing.", flush=True)
         except ImportError:
             pass
+
+    def get_public_domain_tags(self) -> List[str]:
+        """
+        Aggregates non-copyrightable public domain tags across constructs, flora, fauna, and terrain.
+        Shatters the sphere of counterfactuality by anchoring voxel geometry to real-world taxonomy.
+        """
+        tags = set([
+            "voxelboxter", "public_domain", "structural_honesty",
+            "anti_counterfactual", "betti_geometry", "menger_sponge"
+        ])
+        for cid, graph in self.constructs.items():
+            if hasattr(graph, 'get_public_domain_tags'):
+                for t in graph.get_public_domain_tags():
+                    tags.add(t)
+        for tid, tree in self.active_flora.items():
+            flora = getattr(tree, 'flora_comp', None) or getattr(tree, 'flora', None)
+            if flora is not None:
+                for t in getattr(flora, 'public_domain_botanical_tags', []):
+                    tags.add(t)
+                for t in getattr(flora, 'mutation_tags', []):
+                    tags.add(t.lower())
+        return sorted(tags)
+
+    def export_world_state(self) -> Dict[str, Any]:
+        """Exports world state summary with structural honesty and public domain tags."""
+        constructs_summary = {}
+        for cid, graph in self.constructs.items():
+            if hasattr(graph, 'to_dict'):
+                constructs_summary[cid] = graph.to_dict()
+            else:
+                constructs_summary[cid] = {"total_blocks": len(getattr(graph, 'blocks', {}))}
+        return {
+            "constructs_count": len(self.constructs),
+            "constructs": constructs_summary,
+            "flora_count": len(self.active_flora),
+            "fauna_count": len(self.fauna_populations),
+            "terrain_betti": self.compute_terrain_betti(),
+            "public_domain_tags": self.get_public_domain_tags(),
+            "structural_honesty": True
+        }
 
 # Canonical Alias
 VoxelboxterSimulation = VoxelboxterEngine

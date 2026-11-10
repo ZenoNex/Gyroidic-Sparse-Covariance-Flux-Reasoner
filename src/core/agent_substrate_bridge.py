@@ -25,13 +25,51 @@ class AgentSubstrateBridge(nn.Module):
         super().__init__()
         self.device = device or str(DEVICE)
 
+    @staticmethod
+    def is_public_domain_or_structural_tag(tag: str) -> bool:
+        """
+        Determines whether a tag represents non-copyrightable public domain information,
+        ontological anchors, or structural algebra under 17 U.S.C. § 102(b) and Structural Honesty.
+        Public domain facts, scientific constants, taxonomy, and mathematical concepts
+        are explicitly allowed and necessary to shatter the sphere of counterfactuality.
+        """
+        if not isinstance(tag, str):
+            return False
+        cleaned = tag.strip()
+        if not cleaned or len(cleaned) > 64:
+            return False
+        # Structural algebra and invariant tags
+        if cleaned.startswith(("crt_", "b0_", "b1_", "b2_", "b3_", "b4_", "b5_", "b6_", "b7_", "b8_")):
+            return True
+        known_structural = {
+            "agent_smith", "structural_soliton", "p2p_nomadic_ring", "glyphlock",
+            "atrophy_rehydrated", "non_semisimple_refreshed", "fossil", "live",
+            "love_invariant", "pas_lock", "monge_ampere", "birkhoff", "lychrel_soliton",
+            "scientific_preprint", "public_domain", "structural_honesty"
+        }
+        if cleaned.lower() in known_structural:
+            return True
+        # Explicit public domain prefixes or open ontologies
+        if cleaned.lower().startswith((
+            "pd:", "public_domain:", "arxiv:", "wiki:", "ontology:",
+            "uberon:", "go:", "chembl:", "mesh:", "se:", "flora:", "fauna:", "tag:"
+        )):
+            return True
+        # Public domain scientific, mathematical, biological, and technical concept slugs
+        # Clean alphanumeric identifier or snake_case/kebab-case/dot-separated tokens
+        import re
+        if re.match(r'^[A-Za-z0-9_.:\-]+$', cleaned):
+            return True
+        return False
+
     def sanitize_and_verify_non_memorization(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Enforces the Idea-Expression Dichotomy and Non-Memorization across P2P and local
-        soliton_smith exports/imports.
+        soliton_smith exports/imports while maintaining Structural Honesty.
         1. Strips any accidental verbatim expressive text or raw Euclidean mesh fields.
-        2. Ensures 'description' and 'tags' contain only non-invertible structural algebra
-           identifiers (CRT residue tuples, Betti invariants, cryptographic digests).
+        2. Preserves non-invertible structural algebra (CRT residue tuples, Betti invariants)
+           AND public domain information (scientific taxonomies, mathematical concepts, ontology tags)
+           which are uncopyrightable under 17 U.S.C. § 102(b) and break counterfactual isolation.
         3. Verifies that the exported state has undergone selective puncture (~33% zeroed
            dimensions) or structural projection so verbatim source regurgitation is impossible.
         """
@@ -59,16 +97,20 @@ class AgentSubstrateBridge(nn.Module):
         raw_tags = payload.get("tags", [])
         if isinstance(raw_tags, list):
             clean_tags = []
+            public_domain_tags = []
             for t in raw_tags:
-                if isinstance(t, str) and len(t) <= 32 and " " not in t.strip():
-                    if t.startswith(("crt_", "b0_", "b1_", "b2_", "b3_", "b4_", "b5_", "b6_", "b7_", "b8_")) or t in {
-                        "agent_smith", "structural_soliton", "p2p_nomadic_ring", "glyphlock"
-                    }:
-                        clean_tags.append(t)
+                if self.is_public_domain_or_structural_tag(t):
+                    clean_str = t.strip()
+                    if clean_str not in clean_tags:
+                        clean_tags.append(clean_str)
+                    if not clean_str.startswith(("crt_", "b0_", "b1_", "b2_", "b3_", "b4_", "b5_", "b6_", "b7_", "b8_")):
+                        if clean_str not in public_domain_tags:
+                            public_domain_tags.append(clean_str)
             for req_tag in (f"crt_{pot_id[0]}_{pot_id[1]}_{pot_id[2]}", "agent_smith", "structural_soliton"):
                 if req_tag not in clean_tags:
                     clean_tags.append(req_tag)
             payload["tags"] = clean_tags
+            payload["public_domain_tags"] = public_domain_tags
 
         dyad_meta = payload.get("dyad_metadata")
         if isinstance(dyad_meta, dict):

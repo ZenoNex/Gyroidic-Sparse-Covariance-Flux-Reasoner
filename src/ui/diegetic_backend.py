@@ -8135,8 +8135,28 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     default_tags = ["quantum_gravity", "birkhoff_cone", "hyperbolic_curvature", "science_gw190521", "voynich_f67r", "leylines_flux"]
                     for d_tag in default_tags:
                         if d_tag not in summary:
-                            summary[d_tag] = {"admissibility": True, "norm": 1.0}
-                    self._send_json({"status": "ok", "tags": summary})
+                            summary[d_tag] = {"admissibility": True, "norm": 1.0, "is_public_domain": True}
+
+                    # Gather public domain tags from Graph Manager and Voxelboxter under Structural Honesty
+                    pd_tags = set(["public_domain", "structural_honesty", "anti_counterfactual"])
+                    if ENGINE and hasattr(ENGINE, 'graph_manager') and ENGINE.graph_manager:
+                        for n in getattr(ENGINE.graph_manager, 'nodes', []):
+                            for p in getattr(n, 'public_domain_tags', []):
+                                pd_tags.add(p)
+                                if p not in summary:
+                                    summary[p] = {"admissibility": True, "norm": 1.0, "is_public_domain": True}
+                    if ENGINE and hasattr(ENGINE, '_voxelboxter_vocal_bridge') and ENGINE._voxelboxter_vocal_bridge:
+                        for p in ENGINE._voxelboxter_vocal_bridge.get_public_domain_tags():
+                            pd_tags.add(p)
+                            if p not in summary:
+                                summary[p] = {"admissibility": True, "norm": 1.0, "is_public_domain": True}
+
+                    self._send_json({
+                        "status": "ok",
+                        "tags": summary,
+                        "public_domain_tags": sorted(pd_tags),
+                        "structural_honesty": True
+                    })
                 except Exception as e:
                     self._send_error_json(str(e), 500)
                 return
@@ -10132,6 +10152,19 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         self._send_json({"status": "error", "message": "Voxelboxter is already running!"})
                 except Exception as e:
                     self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
+
+            elif self.path == '/api/voxelboxter/state' or base_path == '/api/voxelboxter/state':
+                try:
+                    state_payload = {}
+                    if hasattr(ENGINE, '_voxelboxter_vocal_bridge') and ENGINE._voxelboxter_vocal_bridge:
+                        state_payload = ENGINE._voxelboxter_vocal_bridge.export_world_state()
+                    else:
+                        from src.ui.voxelboxter_simulation import VoxelboxterEngine
+                        temp_vb = VoxelboxterEngine(device="cpu")
+                        state_payload = temp_vb.export_world_state()
+                    self._send_json({"status": "ok", "voxelboxter": state_payload})
+                except Exception as e:
+                    self._send_error_json(f"Failed to fetch Voxelboxter state: {str(e)}")
             
             elif self.path in (
                 '/api/benchmark/topobench',

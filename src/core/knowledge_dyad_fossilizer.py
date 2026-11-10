@@ -815,20 +815,30 @@ class DyadFossilizer:
         ref_tensor = seed_state if seed_state is not None else text_embedding
         r1, r2, r3 = self.generate_residue_tuple(ref_tensor)
         
-        # Dynamic tag creation: prefer tags already present in the dyad's metadata,
-        # then fall back to tokenising the linguistic description itself.
-        # No hardcoded character roster -- associations live in the fossil files.
-        existing_tags = (dyad.metadata or {}).get('tags', [])
+        # Dynamic tag creation: prioritize public domain ontological tags and categories from metadata,
+        # then fall back to concept extraction from linguistic description.
+        # Adheres to Structural Honesty & 17 U.S.C. § 102(b) public domain doctrine.
+        meta = dyad.metadata or {}
+        existing_tags = meta.get('tags', []) or meta.get('public_domain_tags', [])
+        if not existing_tags:
+            for k in ('categories', 'topics', 'keywords', 'domain_tags'):
+                if meta.get(k) and isinstance(meta[k], list):
+                    existing_tags = list(meta[k])
+                    break
         if existing_tags:
-            char_tags = list(existing_tags)
+            char_tags = [str(t).strip().replace(' ', '_').lower() for t in existing_tags if str(t).strip()]
         else:
-            # Use every non-empty word in the description as a candidate tag
-            char_tags = [w for w in dyad.linguistic_description.split() if len(w) >= 1]
- 
+            _STOPWORDS = {"the", "a", "an", "is", "are", "was", "were", "and", "or", "in", "on", "at", "to", "for", "with", "of", "this", "that", "it"}
+            raw_words = [w.strip(".,;:!?()[]{}'\"").lower() for w in dyad.linguistic_description.split()]
+            char_tags = [w for w in raw_words if len(w) >= 3 and w not in _STOPWORDS][:10]
+
         tags = char_tags + [f"crt_{r1}_{r2}_{r3}"]
         if atrophy_detected:
             tags.append("atrophy_rehydrated")
         payload['tags'] = tags
+        payload['public_domain_tags'] = [
+            t for t in char_tags if not t.startswith(('crt_', 'b0_', 'b1_', 'b2_')) and t not in ('atrophy_rehydrated',)
+        ]
         
         # Target cleanup of existing duplicates/flat files for this prompt_hash
         self.clean_prompt_hash(prompt_hash)
@@ -1165,13 +1175,16 @@ class DyadFossilizer:
                 hyperbolic_influence=dyad.hyperbolic_residue
             )
             
-        # Dynamic tag creation: retain only structural/categorical tags; never split verbatim
-        # expressive sentences into exported tags (Idea-Expression Dichotomy & Non-Memorization).
-        existing_tags = (dyad.metadata or {}).get('tags', [])
+        # Dynamic tag creation: retain structural invariants and public domain concept tags under 17 U.S.C. § 102(b).
+        # Strips verbatim expressive narrative while protecting factual and ontological taxonomy.
+        existing_tags = (dyad.metadata or {}).get('tags', []) or (dyad.metadata or {}).get('public_domain_tags', [])
         structural_tags = []
         for t in existing_tags:
-            if isinstance(t, str) and len(t) <= 32 and " " not in t.strip():
-                structural_tags.append(t.strip())
+            if isinstance(t, str):
+                t_clean = t.strip().replace(' ', '_')
+                if len(t_clean) <= 64 and len(t_clean) >= 2:
+                    if t_clean not in structural_tags:
+                        structural_tags.append(t_clean)
         betti_tags = [f"b{int(bk)}_{int(round(float(bv) * 100))}" for bk, bv in sorted(betti_numbers.items())]
         tags = structural_tags + betti_tags + [f"crt_{pot_id[0]}_{pot_id[1]}_{pot_id[2]}", "agent_smith", "structural_soliton"]
 

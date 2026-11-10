@@ -662,7 +662,11 @@ class ArXivSovereignIngestor:
                     if len(img_bytes_list) > 0:
                         print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {clean_id}. Fingerprint embedded.")
                         
-                    # 5. Fossilization with full metadata
+                    # 5. Fossilization with full metadata including public domain ontology tags
+                    subjects = [s.text.strip() for s in dc.findall('dc:subject', self.ns) if s.text and s.text.strip()]
+                    public_tags = [s.replace(' ', '_').lower() for s in subjects] + ["arxiv", "scientific_preprint", "public_domain"]
+                    tags = [f"arxiv_{clean_id}"] + public_tags
+
                     dyad = KnowledgeDyad(
                         image_fingerprint=multimodal_fingerprint,
                         linguistic_description=title,
@@ -676,7 +680,10 @@ class ArXivSovereignIngestor:
                             'affordance_gradients': gradients,
                             'gyroid_entropy': entropy,
                             'commutativity': commutativity,
-                            'media_count': len(img_bytes_list)
+                            'media_count': len(img_bytes_list),
+                            'tags': tags,
+                            'public_domain_tags': public_tags,
+                            'categories': subjects
                         }
                     )
                     
@@ -792,7 +799,11 @@ class ArXivSovereignIngestor:
                 if len(img_bytes_list) > 0:
                     print(f" [MULTIMODAL] Extracted {len(img_bytes_list)} images for {clean_id}. Fingerprint embedded.")
                     
-                # 5. Fossilization with full metadata
+                # 5. Fossilization with full metadata including public domain ontology tags
+                categories = [c.get('term').strip() for c in entry.findall('atom:category', ns) if c.get('term') and c.get('term').strip()]
+                public_tags = [c.replace(' ', '_').lower() for c in categories] + ["arxiv", "scientific_preprint", "public_domain"]
+                tags = [f"arxiv_{clean_id}"] + public_tags
+
                 dyad = KnowledgeDyad(
                     image_fingerprint=multimodal_fingerprint,
                     linguistic_description=title,
@@ -807,7 +818,10 @@ class ArXivSovereignIngestor:
                         'affordance_gradients': gradients,
                         'gyroid_entropy': entropy,
                         'commutativity': commutativity,
-                        'media_count': len(img_bytes_list)
+                        'media_count': len(img_bytes_list),
+                        'tags': tags,
+                        'public_domain_tags': public_tags,
+                        'categories': categories
                     }
                 )
                 
@@ -1351,6 +1365,11 @@ class ArXivSovereignIngestor:
                 
                 gradients = self.processor.compute_affordance_gradients(full_content)
                 
+                topic_tags = [w.lower().strip(".,;:!?()") for w in query_str.split() if len(w) >= 3]
+                public_tags = topic_tags + ["scholar_lore", "open_access", "public_domain"]
+                clean_query = "_".join(topic_tags[:3])
+                tags = [f"lore_{clean_query}"] + public_tags
+
                 dyad = KnowledgeDyad(
                     image_fingerprint=None,
                     linguistic_description=title,
@@ -1363,6 +1382,8 @@ class ArXivSovereignIngestor:
                         'quality': report.to_dict(),
                         'affordance_gradients': gradients,
                         'gyroid_entropy': entropy,
+                        'tags': tags,
+                        'public_domain_tags': public_tags
                     }
                 )
                 

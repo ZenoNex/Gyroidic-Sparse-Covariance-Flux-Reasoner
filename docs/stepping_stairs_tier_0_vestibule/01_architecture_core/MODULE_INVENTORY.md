@@ -2145,6 +2145,17 @@ Evaluates narrative dynamics and anti-collapse mechanisms across 5 suites: (1) N
 
 ---
 
+### `StructuralHonestyTagSubsystem`
+**Location:** [`src/core/agent_substrate_bridge.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/agent_substrate_bridge.py), [`src/core/knowledge_dyad_fossilizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py), [`src/topology/embedding_graph.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py), [`src/ui/voxelboxter_simulation.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py)  
+**Tests:** [`tests/test_structural_honesty_tags.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_structural_honesty_tags.py)  
+**Description:**  
+Enforces **Structural Honesty** across all ingestion, fossilization, graph rendering, and 3D simulation pathways by explicitly allowing and retaining **public domain information** in node tags:
+1. **Shattering the Sphere of Counterfactuality**: Standard autoregressive models remain trapped within an inward-facing "sphere of counterfactuality," hallucinating ungrounded narratives detached from physical reality. Through hard evolutionary methods—empirical hardware entropy, thermodynamic dissipation limits, real-world scientific telemetry (arXiv, StackExchange, Wikipedia), and non-ergodic Kelly criterion survival reflexes—this reasoner physically shatters the counterfactual bubble, tethering latent trajectories to external, immutable facts.
+2. **The Idea-Expression Dichotomy & Public Domain Invariance (17 U.S.C. § 102(b))**: Under federal statutory law and transformative fair use precedent (*Bartz v. Anthropic*, *Kadrey v. Meta*), copyright protection does not extend to any idea, fact, mathematical formula, physical constant, or open ontology term. The system actively strips verbatim expressive prose and raw proprietary polygon meshes while explicitly admitting and preserving factual, public domain descriptors (e.g. arXiv categories, biological taxonomy like *Anacardium occidentale*, differential geometry constants, physical units).
+3. **End-to-End Pipeline Coherence**: Public domain tags are harvested in `ArXivSovereignIngestor`, `ScholarLoreIngestor`, and `UniversalOrchestrator`, preserved in `DyadFossilizer` payloads, passed without sterile sanitization through `AgentSubstrateBridge.is_public_domain_or_structural_tag()`, surfaced as `#tag` nodes in the WebGL diegetic graph via `GyroidicGraphManager.export_graph_json()` and `query_procedural_graph()`, and bound to voxel blocks, botanical components, and constructs in `VoxelboxterSimulation`.
+
+---
+
 ### `NBTReader`
 **Location:** `src/data/minecraft_ingestor.py`  
 **Description:**  
