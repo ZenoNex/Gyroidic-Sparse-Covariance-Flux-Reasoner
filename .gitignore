@@ -16,6 +16,11 @@ tmp/
 .pytest_cache/
 .coverage
 .zk_proofs/
+gyroidic reasoner related media/
+scratch/
+test_repo/
+.qodo/
+coder prompts/
 
 # Large model checkpoints and weights
 *.pt
@@ -36,6 +41,10 @@ __pycache__/
 *.vscdb
 *.log
 state*.vscdb
+.gyroid_config.json
+.requirements.hash
+.version
+ml_audit.json
 
 # OS and Editor files
 .DS_Store
@@ -61,8 +70,6 @@ Thumbs.db
 *.pem
 google secret/
 
-
-
 # Agent configurations and rules (Excluded)
 .agents/
 
@@ -70,3 +77,43 @@ google secret/
 gyroid_state.pt
 gyroid_state.pt.meta
 *.pt.meta
+
+# Generated Root Artifacts and Transient PDFs
+/fig_ch3_*.pdf
+/all_research_docs.txt
+/docs_reading_summary.txt
+/hardware_docs.txt
+/isolated_logic_results.txt
+/manifold_docs.txt
+/reading_summary_proof.txt
+/startup.txt
+/Files_to_Update*.md
+/repo_diff.md
+
+# Transient Root Scripts and Patches
+/clean_imports.py
+/cli_template_injector.py
+/debug_spec_gate.py
+/dump_vscdb.py
+/find_reasoner.py
+/fix_*.py
+/inspect_*.py
+/legal_train.py
+/locate_model.py
+/patch_*.py
+/process_documents_and_code.py
+/read_*.py
+/recovered_trainer_kppW.py
+/reproduce_*.py
+/robust_accessor.py
+/run_dataset.py
+/run_dataset_interface.py
+/scratch_filter.py
+/simple_*.py
+/working_dataset_interface.py
+/build_igwn.bat
+/migrate_conversations.ps1
+/move_brain.ps1
+/rebuild_env.ps1
+/package.json
+/package-lock.json
