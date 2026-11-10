@@ -11,12 +11,13 @@ from .bonfire_consensus import (
     BonfireNomadicRing,
     FractalDiscontinuityEmbedding
 )
-from .freenet_ws_client import FreenetClient
+from .freenet_ws_client import FreenetClient, RoguePredictorDefense
 from .zk_aggregator import ZKAggregator
 
 __all__ = [
     'BonfireNomadicRing',
     'FractalDiscontinuityEmbedding',
     'FreenetClient',
+    'RoguePredictorDefense',
     'ZKAggregator',
 ]

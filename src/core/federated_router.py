@@ -70,6 +70,13 @@ class FederatedNetworkMonitor:
         
         if self.freenet_ws:
             telemetry["freenet_p2p_status"] = "CONNECTED" if getattr(self.freenet_ws, "ws", None) else "DISCONNECTED"
+            if hasattr(self.freenet_ws, "get_security_telemetry"):
+                sec = self.freenet_ws.get_security_telemetry()
+                telemetry["rogue_predictor_defense"] = sec.get("active_defense", True)
+                telemetry["rogue_probes_detected"] = sec.get("rogue_probes_detected", 0)
+                telemetry["slashed_peers_count"] = sec.get("slashed_peers_count", 0)
+                telemetry["open_requests_shielded"] = sec.get("total_open_requests_shielded", 0)
+                telemetry["open_request_jitter_ms"] = sec.get("mean_jitter_ms", 0.0)
             
         if self.open_router:
             telemetry["openrouter_status"] = self.open_router.last_status
