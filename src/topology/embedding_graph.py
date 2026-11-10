@@ -331,6 +331,29 @@ class GyroidicGraphManager:
         half_fov_rad = math.radians(max(15.0, min(120.0, fov_deg)) / 2.0)
         cos_cone = math.cos(half_fov_rad)
 
+        # Probe local compute affordance feelers to dynamically throttle render horizon and node density
+        effective_render_dist = render_distance
+        effective_max_nodes = max_nodes
+        feeler_throttle_active = False
+        feeler_telemetry = {}
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            feelers = HardwareMonitor.get_instance().probe_compute_feelers()
+            feeler_telemetry = {
+                "t_rfc_feeler_ns": feelers.get("t_rfc_feeler_ns", 0),
+                "t_rfc_stall_detected": feelers.get("t_rfc_stall_detected", False),
+                "thermal_spike_detected": feelers.get("thermal_spike_detected", False),
+                "memory_pressure_detected": feelers.get("memory_pressure_detected", False),
+                "local_thermal_gauge": feelers.get("local_thermal_gauge", 1.0),
+                "diegetic_gauge": feelers.get("diegetic_gauge", 1.0),
+            }
+            if feelers.get("t_rfc_stall_detected") or feelers.get("thermal_spike_detected") or feelers.get("memory_pressure_detected") or feelers.get("diegetic_gauge", 1.0) < 0.35:
+                feeler_throttle_active = True
+                effective_render_dist = min(render_distance, float(feelers.get("recommended_procedural_render_dist", 450.0)))
+                effective_max_nodes = min(max_nodes, int(feelers.get("recommended_procedural_max_nodes", 350)))
+        except Exception:
+            pass
+
         # Gyroid diagonal shear plane normal [1, 1, 1] / sqrt(3)
         sn_x, sn_y, sn_z = 0.57735, 0.57735, 0.57735
         shear_tolerance = 80.0
@@ -376,7 +399,7 @@ class GyroidicGraphManager:
             dir_dot = (dx * gx + dy * gy + dz * gz) / (dist + 1e-8)
 
             # Shear Corridor Boost: expand distance 2.5x and relax cone
-            effective_max_dist = render_distance * (2.5 if in_shear and enable_shear_corridor else 1.0)
+            effective_max_dist = effective_render_dist * (2.5 if in_shear and enable_shear_corridor else 1.0)
             
             if dist > effective_max_dist and not in_near_field:
                 culled_dist += 1
@@ -430,10 +453,10 @@ class GyroidicGraphManager:
                         culled_occlusion += 1
             candidates = filtered_candidates
 
-        # Cap to max_nodes while prioritizing near field and shear corridors
-        if len(candidates) > max_nodes:
+        # Cap to effective_max_nodes while prioritizing near field and shear corridors
+        if len(candidates) > effective_max_nodes:
             candidates.sort(key=lambda it: (not it["in_shear"], it["dist"]))
-            candidates = candidates[:max_nodes]
+            candidates = candidates[:effective_max_nodes]
 
         def clean_val(v):
             if isinstance(v, torch.Tensor):
@@ -503,8 +526,10 @@ class GyroidicGraphManager:
                 "culled_geometry_cone": culled_cone,
                 "culled_occlusion": culled_occlusion,
                 "saved_by_shear_corridor": saved_shear,
-                "render_distance": render_distance,
-                "cone_fov_deg": fov_deg
+                "render_distance": effective_render_dist,
+                "cone_fov_deg": fov_deg,
+                "feeler_throttle_active": feeler_throttle_active,
+                "compute_feelers": feeler_telemetry,
             }
         }
 

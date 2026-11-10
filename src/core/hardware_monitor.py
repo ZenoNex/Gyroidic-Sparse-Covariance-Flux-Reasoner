@@ -792,11 +792,16 @@ class HardwareMonitor:
         """
         Extends local and community compute affordance feelers across:
           1. Local Silicon & DRAM t_RFC stall latency feeler (nanosecond jitter probe)
-          2. Local GPU Sovereign Queue A / Queue B TailSlayer first-to-finish headroom
-          3. Community P2P Mesh (BonfireNomadicRing / FreenetGhostCaller) federation headroom
-          4. Directional gauge coupling between Local Silicon and Community P2P Mesh
+          2. All 8 ComputeAffordanceType dimensions (Silicon, Thermal, GPU Sovereign,
+             Topological, P2P Mesh, Diegetic, Algorithmic, Compute Batch)
+          3. Physical RAM and VRAM memory headroom feelers (available GB, swap pressure)
+          4. Thermodynamic velocity feeler (dP_waste/dt thermal gradient)
+          5. Community P2P Mesh (BonfireNomadicRing / FreenetGhostCaller) federation headroom
+          6. Dynamic execution recommendations for covariance dimension, 3D render distance,
+             and procedural node budgets.
         """
         import time
+        now = time.time()
         t0_ns = time.perf_counter_ns()
         # Non-allocating L1/DRAM cache-line stride touch to sense t_RFC refresh stall
         _accum = 0
@@ -806,11 +811,48 @@ class HardwareMonitor:
         # Typical unstalled loop is < 50,000 ns; DRAM t_RFC / OS scheduling stall spikes higher
         t_rfc_stall_detected = bool(t_rfc_feeler_ns > 150_000)
 
+        # 8-Regime Typed Compute Affordance Gauges
         silicon_aff = self.get_typed_affordance(ComputeAffordanceType.SILICON)
         thermal_aff = self.get_typed_affordance(ComputeAffordanceType.THERMAL)
         gpu_aff = self.get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
         topo_aff = self.get_typed_affordance(ComputeAffordanceType.TOPOLOGICAL)
         mesh_aff = self.get_typed_affordance(ComputeAffordanceType.P2P_MESH)
+        diegetic_aff = self.get_typed_affordance(ComputeAffordanceType.DIEGETIC)
+        algorithmic_aff = self.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+        batch_aff = self.get_typed_affordance(ComputeAffordanceType.COMPUTE_BATCH)
+
+        # Physical RAM & Memory Pressure Feelers
+        try:
+            mem = psutil.virtual_memory()
+            ram_available_gb = float(mem.available / (1024 ** 3))
+            ram_percent = float(mem.percent)
+            swap = psutil.swap_memory()
+            swap_percent = float(swap.percent)
+        except Exception:
+            ram_available_gb = 4.0
+            ram_percent = 50.0
+            swap_percent = 10.0
+
+        memory_pressure = bool(ram_percent > 88.0 or swap_percent > 75.0 or ram_available_gb < 1.0)
+
+        # PyTorch / GPU Memory Headroom Feelers
+        vram_allocated_mb = 0.0
+        vram_free_mb = 0.0
+        try:
+            if torch.cuda.is_available():
+                vram_allocated_mb = float(torch.cuda.memory_allocated() / (1024 ** 2))
+                vram_free_mb = float(torch.cuda.mem_get_info()[0] / (1024 ** 2))
+        except Exception:
+            pass
+
+        # Thermodynamic Gradient Feeler (dP_waste/dt)
+        last_t = getattr(self, "_last_feeler_time", 0.0)
+        last_p = getattr(self, "_last_p_waste", self.p_waste)
+        dt = max(1e-3, now - last_t) if last_t > 0 else 1.0
+        thermal_velocity = max(0.0, (self.p_waste - last_p) / dt) if last_t > 0 else 0.0
+        self._last_feeler_time = now
+        self._last_p_waste = self.p_waste
+        thermal_spike_detected = bool(thermal_velocity > 40.0 or self.thermal_runaway or thermal_aff.gauge < 0.25)
 
         local_to_community_gauge = self.gauge_between(
             ComputeAffordanceType.SILICON, ComputeAffordanceType.P2P_MESH
@@ -823,8 +865,29 @@ class HardwareMonitor:
         community_offload_recommended = bool(
             bool(mesh_aff)
             and getattr(self, "active_mesh_peers", 0) > 0
-            and (mesh_aff.gauge > silicon_aff.gauge * 1.15 or thermal_aff.gauge < 0.35)
+            and (mesh_aff.gauge > silicon_aff.gauge * 1.15 or thermal_aff.gauge < 0.35 or memory_pressure)
         )
+
+        # Contextual Adaptive Recommendations for Downstream / Upstream Subsystems
+        if algorithmic_aff.gauge < 0.40 or memory_pressure:
+            rec_cov_dim = 64
+        elif algorithmic_aff.gauge < 0.70:
+            rec_cov_dim = 128
+        else:
+            rec_cov_dim = 256
+
+        if t_rfc_stall_detected or thermal_spike_detected or memory_pressure:
+            rec_render_dist = 450.0
+            rec_max_nodes = 350
+            rec_mandelbulb_power = 4
+        elif gpu_aff.gauge > 0.75 and thermal_aff.gauge > 0.65:
+            rec_render_dist = 1200.0
+            rec_max_nodes = 2500
+            rec_mandelbulb_power = 8
+        else:
+            rec_render_dist = 800.0
+            rec_max_nodes = 1200
+            rec_mandelbulb_power = 6
 
         return {
             "t_rfc_feeler_ns": int(t_rfc_feeler_ns),
@@ -834,6 +897,17 @@ class HardwareMonitor:
             "local_gpu_sovereign_gauge": float(gpu_aff.gauge),
             "topological_gauge": float(topo_aff.gauge),
             "community_p2p_mesh_gauge": float(mesh_aff.gauge),
+            "diegetic_gauge": float(diegetic_aff.gauge),
+            "algorithmic_gauge": float(algorithmic_aff.gauge),
+            "compute_batch_gauge": float(batch_aff.gauge),
+            "ram_available_gb": round(ram_available_gb, 2),
+            "ram_percent": round(ram_percent, 1),
+            "swap_percent": round(swap_percent, 1),
+            "memory_pressure_detected": memory_pressure,
+            "vram_allocated_mb": round(vram_allocated_mb, 1),
+            "vram_free_mb": round(vram_free_mb, 1),
+            "thermal_velocity_w_per_s": round(thermal_velocity, 2),
+            "thermal_spike_detected": thermal_spike_detected,
             "freenet_online": bool(getattr(self, "freenet_online", False)),
             "active_mesh_peers": int(getattr(self, "active_mesh_peers", 0)),
             "ghost_latency_ms": float(getattr(self, "ghost_latency_ms", 0.0)),
@@ -841,6 +915,10 @@ class HardwareMonitor:
             "local_to_community_gauge": float(local_to_community_gauge),
             "community_to_local_gauge": float(community_to_local_gauge),
             "community_offload_recommended": community_offload_recommended,
+            "recommended_covariance_dim": rec_cov_dim,
+            "recommended_procedural_render_dist": rec_render_dist,
+            "recommended_procedural_max_nodes": rec_max_nodes,
+            "recommended_mandelbulb_power": rec_mandelbulb_power,
         }
 
     def evaluate_speculative_routing_timings(

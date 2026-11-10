@@ -1150,6 +1150,17 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             return True
 
+    def probe_compute_feelers(self) -> Dict[str, Any]:
+        """
+        Queries extensive local and community compute affordance feelers across
+        DRAM t_RFC refresh stalls, memory pressure, thermal velocity, and all 8 regimes.
+        """
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            return HardwareMonitor.get_instance().probe_compute_feelers()
+        except Exception as e:
+            return {"error": str(e), "t_rfc_stall_detected": False}
+
     def get_compute_affordance_telemetry(self) -> Dict[str, Any]:
         """
         Expose live typed compute affordance gauges across silicon, thermal, topological,
@@ -1159,6 +1170,7 @@ class UniversalOrchestrator(nn.Module):
             from src.core.hardware_monitor import get_affordance_gauges, has_compute_affordance, ComputeAffordanceType
             return {
                 "gauges": get_affordance_gauges(),
+                "feelers": self.probe_compute_feelers(),
                 "silicon_ok": bool(has_compute_affordance(ComputeAffordanceType.SILICON)),
                 "thermal_ok": bool(has_compute_affordance(ComputeAffordanceType.THERMAL)),
                 "gpu_sovereign_ok": bool(has_compute_affordance(ComputeAffordanceType.GPU_SOVEREIGN)),
@@ -2757,6 +2769,12 @@ class UniversalOrchestrator(nn.Module):
         
         if not parameters:
             return None
+
+        # Check local compute affordance feelers to guard against thermal runaway and DRAM stalls
+        feelers = self.probe_compute_feelers()
+        effective_lr = lr
+        if feelers.get("thermal_spike_detected", False) or feelers.get("t_rfc_stall_detected", False):
+            effective_lr = lr * 0.5
             
         from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
         if self.ricci_optimizer is None:
@@ -2764,11 +2782,11 @@ class UniversalOrchestrator(nn.Module):
             if has_2d:
                 try:
                     from src.optimization.muon_hybrid import MuonRicciHybridOptimizer
-                    self.ricci_optimizer = MuonRicciHybridOptimizer(parameters, lr=lr, lr_1d=lr, engine=self)
+                    self.ricci_optimizer = MuonRicciHybridOptimizer(parameters, lr=effective_lr, lr_1d=effective_lr, engine=self)
                 except Exception:
-                    self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=lr, engine=self)
+                    self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=effective_lr, engine=self)
             else:
-                self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=lr, engine=self)
+                self.ricci_optimizer = RicciFlowOptimizer(parameters, lr=effective_lr, engine=self)
             
         def closure():
             return loss

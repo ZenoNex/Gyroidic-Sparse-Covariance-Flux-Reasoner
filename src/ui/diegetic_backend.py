@@ -8116,6 +8116,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self._send_error_json(str(e), 500)
                 return
+            elif base_path in ('/api/compute/feelers', '/api/affordance/feelers'):
+                try:
+                    from src.core.hardware_monitor import HardwareMonitor
+                    feelers = HardwareMonitor.get_instance().probe_compute_feelers()
+                    self._send_json({"status": "ok", "feelers": feelers})
+                except Exception as e:
+                    self._send_error_json(str(e), 500)
+                return
             elif base_path == '/health':
                 self._send_json({"status": "hyper-ring coherent", "version": "1.9.1"})
                 return
