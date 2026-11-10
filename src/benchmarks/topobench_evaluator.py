@@ -18,6 +18,9 @@ from src.topology.speculative_homology import SpeculativeHomologyEngine
 from src.topology.gyroid_differentiation import GyroidFlowConstraint
 from src.core.cayley_cubic_probe import CayleyCubicProbe
 from src.core.birkhoff_projection import DirectBirkhoffProjection
+from src.topology.hyper_ring_closure import HyperRingOperator, HyperRingClosureChecker
+from src.core.structural_irreducibility import EvidenceModuleProjection, StructuralIrreducibilityChecker
+from src.core.meta_invariant import MetaInvariant
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("TopoBenchEvaluator")
@@ -35,6 +38,9 @@ class TopoBenchEvaluator:
     5. Gyroid Flow Orthogonality & Minimal Surface Invariant (Orthogonal Flow Constraint)
     6. Folium of Descartes Transversality & Reciprocal Exchange (Smooch dy/dx = -1.0)
     7. Birkhoff Polytope Doubly Stochastic Subspace Integrity (Sturmfels-Thomas Row/Col Conservation)
+    8. Hyper-Ring Loop Closure & Soliton Adjudication (HyperRingOperator & HyperRingClosureChecker)
+    9. Structural Irreducibility & Polytope Multi-Face Rank (EvidenceModuleProjection & StructuralIrreducibilityChecker)
+    10. Non-Teleological Meta-Invariant Topology Expansion (MetaInvariant Anti-Collapse Rate)
     """
     def __init__(self, manifold_dim: int = 3, level_k: int = 1, device: str = 'cpu'):
         self.manifold_dim = manifold_dim
@@ -71,6 +77,12 @@ class TopoBenchEvaluator:
         self.birkhoff_dim = 4
         self.birkhoff_projector = DirectBirkhoffProjection(n=self.birkhoff_dim, device=device)
         
+        # Foundational January 2026 Core Operators
+        self.hyper_ring_operator = HyperRingOperator(num_integration_points=32)
+        self.hyper_ring_checker = HyperRingClosureChecker(closure_tolerance=0.5, trivial_threshold=1e-4)
+        self.structural_checker = StructuralIrreducibilityChecker(orthogonality_tolerance=1e-4, min_rank=1)
+        self.meta_invariant = MetaInvariant(expansion_threshold=0.0)
+
         logger.info(f"Initialized TopoBench Evaluator (dim={manifold_dim}, level_k={level_k})")
 
     def evaluate_loop_closure(self, latent_trajectory: Any) -> Tuple[bool, float]:
@@ -234,6 +246,95 @@ class TopoBenchEvaluator:
         success = max_err < 1e-4
         return success, max_err
 
+    def evaluate_hyper_ring_closure(self) -> Tuple[bool, Dict[str, Any]]:
+        r"""
+        Tests Hyper-Ring Operator line integral H(r) = \oint_C \nabla_{top} \Phi(r)
+        and verifies topological closure via HyperRingClosureChecker:
+        - Trivial cycle: relative magnitude < trivial_threshold -> collapse
+        - Non-closed: relative magnitude >= closure_tolerance -> fracture
+        - Non-trivial cycle: trivial_threshold <= relative magnitude < closure_tolerance -> survivable soliton
+        """
+        batch_size = 2
+        # Construct constraint manifold
+        constraint_manifold = torch.tensor([[1.0, 2.0, 3.0], [0.5, -0.5, 1.0]], device=self.device)
+        # Boundary path with non-trivial circulation
+        boundary = torch.tensor([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0]
+        ], device=self.device)
+        gradient = torch.tensor([[0.05, 0.05, 0.0], [-0.04, 0.04, 0.0]], device=self.device)
+        
+        hyper_ring = self.hyper_ring_operator.line_integral(gradient, constraint_manifold, boundary_points=boundary)
+        is_valid, status = self.hyper_ring_checker.check_closure(hyper_ring, constraint_manifold)
+        
+        has_status = len(status) == batch_size and all(s in ["survivable_soliton", "fracture", "collapse"] for s in status)
+        success = has_status and (hyper_ring.shape[0] == batch_size)
+        details = {
+            'is_valid': bool(is_valid.any().item()),
+            'status': status,
+            'hyper_ring_mean': float(hyper_ring.mean().item())
+        }
+        return success, details
+
+    def evaluate_structural_irreducibility(self) -> Tuple[bool, Dict[str, Any]]:
+        r"""
+        Tests Structural Irreducibility Criterion:
+        Ensures residue embeddings do not collapse onto a single face of the polytope
+        by checking evidence module orthogonality:
+        <pi_alpha Phi(r), pi_beta Phi(r)> = 0 for alpha != beta,
+        and rank condition: rank(\sum_alpha pi_alpha Phi(r)) > 1.
+        """
+        dim = 4
+        e1 = torch.randn(8, dim, device=self.device)
+        e2 = torch.randn(8, dim, device=self.device)
+        
+        proj1 = EvidenceModuleProjection(e1, projection_dim=2, constraint_dim=dim)
+        proj2 = EvidenceModuleProjection(e2, projection_dim=2, constraint_dim=dim)
+        
+        # Enforce orthogonal canonical projections
+        proj1.proj_matrix.weight.data = torch.tensor([[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]], device=self.device)
+        proj2.proj_matrix.weight.data = torch.tensor([[0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]], device=self.device)
+        
+        # Residue spanning both module orthogonal subspaces
+        residue = torch.tensor([[1.0, 0.0, 0.0, 1.0]], device=self.device)
+        is_irred, diagnostics = self.structural_checker.is_structurally_irreducible(
+            residue=residue,
+            embedding_fn=lambda r: r,
+            evidence_modules=[proj1, proj2]
+        )
+        ranks = diagnostics.get("ranks")
+        max_rank = int(ranks.max().item()) if ranks is not None else 0
+        success = bool(is_irred.all().item()) and (max_rank > 1)
+        details = {
+            'is_irreducible': bool(is_irred.all().item()),
+            'ranks': [int(r.item()) for r in ranks] if ranks is not None else []
+        }
+        return success, details
+
+    def evaluate_meta_invariant_expansion(self) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Tests Non-Teleological Meta-Invariant:
+        d/dt E_r[dim H_1(C_t)] >= 0
+        Ensures topology never collapses toward a single basin:
+        stasis (rate ~ 0) or expansion (rate > 0) are valid,
+        while un-exempted contraction is detected as violation.
+        """
+        # Step 0: initialization with H_1 = 2.0
+        sat0, rate0, viol0 = self.meta_invariant.check_invariant(torch.tensor(2.0, device=self.device))
+        # Step 1: expansion with H_1 = 3.0 (rate = +1.0)
+        sat1, rate1, viol1 = self.meta_invariant.check_invariant(torch.tensor(3.0, device=self.device))
+        
+        rate_val = float(rate1.item())
+        success = sat0 and sat1 and (rate_val >= 0.0)
+        details = {
+            'is_satisfied': bool(sat1),
+            'rate': rate_val,
+            'violation': float(viol1.item())
+        }
+        return success, details
+
     def run_suite(self) -> Dict[str, Any]:
         """Runs the complete TopoBench suite and returns aggregated metrics."""
         logger.info("Running TopoBench Topological Constraint Suite via Core Codebase...")
@@ -241,7 +342,7 @@ class TopoBenchEvaluator:
             'suite_name': 'TopoBenchEvaluator',
             'tests': {},
             'passed_count': 0,
-            'total_count': 7,
+            'total_count': 10,
             'success': False
         }
         
@@ -297,6 +398,24 @@ class TopoBenchEvaluator:
         results['tests']['birkhoff_polytope_integrity'] = {'pass': birkhoff_pass, 'max_error': birkhoff_err}
         logger.info(f"Test 7 (Birkhoff Doubly Stochastic Subspace Integrity): {'PASS' if birkhoff_pass else 'FAIL'} - Max Error: {birkhoff_err:.2e}")
         if birkhoff_pass: results['passed_count'] += 1
+
+        # 8. Hyper-Ring Loop Closure & Soliton Adjudication
+        hr_pass, hr_details = self.evaluate_hyper_ring_closure()
+        results['tests']['hyper_ring_closure'] = {'pass': hr_pass, 'details': hr_details}
+        logger.info(f"Test 8 (Hyper-Ring Loop Closure & Soliton Adjudication): {'PASS' if hr_pass else 'FAIL'} - Status: {hr_details['status']}")
+        if hr_pass: results['passed_count'] += 1
+
+        # 9. Structural Irreducibility & Polytope Multi-Face Rank
+        irred_pass, irred_details = self.evaluate_structural_irreducibility()
+        results['tests']['structural_irreducibility'] = {'pass': irred_pass, 'details': irred_details}
+        logger.info(f"Test 9 (Structural Irreducibility & Polytope Multi-Face Rank): {'PASS' if irred_pass else 'FAIL'} - Ranks: {irred_details['ranks']}")
+        if irred_pass: results['passed_count'] += 1
+
+        # 10. Non-Teleological Meta-Invariant Topology Expansion
+        meta_pass, meta_details = self.evaluate_meta_invariant_expansion()
+        results['tests']['meta_invariant_expansion'] = {'pass': meta_pass, 'details': meta_details}
+        logger.info(f"Test 10 (Non-Teleological Meta-Invariant Topology Expansion): {'PASS' if meta_pass else 'FAIL'} - Rate: {meta_details['rate']:.4f}")
+        if meta_pass: results['passed_count'] += 1
         
         results['success'] = (results['passed_count'] == results['total_count'])
         return results

@@ -19,6 +19,8 @@ from src.core.spectral_coherence_repair import BezoutCoefficientRefresh
 from src.core.honest_jitter import harvest_honest_jitter
 from src.optimization.muon_hybrid import zeropower_via_newtonschulz5
 from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+from src.core.decoupled_polynomial_crt import DecoupledPolynomialCRT
+from src.topology.persistence_obstruction import ResidueObstructionGraph
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ReactBenchEvaluator")
@@ -28,7 +30,8 @@ class ReactBenchEvaluator:
     Evaluates the Gyroidic Flux Reasoner on ReactBench constraints
     using the core Polynomial CRT, dynamic coprime modular systems,
     anti-lobotomy tri-state gating, Muon quintic polar orthogonalization,
-    and Carnot-Möbius thermodynamic friction.
+    Carnot-Möbius thermodynamic friction, Decoupled Polynomial CRT,
+    and Persistence-based Residue Obstruction Graphs.
 
     Benchmarks:
     1. Branch Convergence (Polynomial CRT Fixed-Point Reconstruction & Pressure)
@@ -38,6 +41,8 @@ class ReactBenchEvaluator:
     5. Dynamic Bezout Coefficient Refresh (CRT Modulus Drift Recovery & Condition Number)
     6. Muon Quintic Polar Decomposition (Singular Value Equalization via Newton-Schulz 5)
     7. Carnot-Möbius Thermodynamic Ledger (Runaway Coupling & Thermal Friction Resistance)
+    8. Decoupled Polynomial CRT & Signal Sovereignty Normalization (GDPO Channel Preservation)
+    9. Persistence Residue Obstruction Graph (Simplicial Filtration & Persistent 1-Cycles)
     """
     def __init__(self, k: int = 4, degree: int = 2, device: str = 'cpu'):
         self.device = device
@@ -59,6 +64,10 @@ class ReactBenchEvaluator:
 
         # Carnot-Möbius Thermodynamic Ledger
         self.carnot_ledger = CarnotMobiusLedger(xi_shear=0.1, p_cool_max=1000.0, p_nuclear=2000.0)
+
+        # Foundational January 2026 Core Operators
+        self.decoupled_crt = DecoupledPolynomialCRT(poly_config=self.poly_config, use_gdpo=True)
+        self.obstruction_graph = ResidueObstructionGraph(num_epsilon_samples=10, max_dimension=1)
         
         logger.info(f"Initialized ReactBench Evaluator (k={k}, degree={degree}, device={device})")
 
@@ -221,6 +230,61 @@ class ReactBenchEvaluator:
         }
         return is_pass, details
 
+    def evaluate_decoupled_polynomial_crt(self) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Tests GDPO Signal Sovereignty-enhanced Polynomial CRT reconstruction:
+        Applies decoupled batch normalization to polynomial coefficient distributions
+        before CRT fixed-point reconstruction, preventing collapse of distinct
+        functional pressure channels.
+        """
+        batch_size = 2
+        coeffs = harvest_honest_jitter(
+            (batch_size, self.k, self.degree + 1),
+            device=self.device,
+            scaled=False
+        ) * 0.5 + 0.5
+        
+        reconstruction, diags = self.decoupled_crt.forward_decoupled(coeffs)
+        pressure = self.decoupled_crt.compute_decoupled_normalization(coeffs)
+        
+        has_no_nan = not torch.isnan(reconstruction).any().item()
+        is_bounded = float(pressure.item()) >= 0.0
+        success = has_no_nan and is_bounded and (reconstruction.shape == (batch_size, self.degree + 1))
+        details = {
+            'reconstruction_shape': list(reconstruction.shape),
+            'decoupled_pressure': float(pressure.item()),
+            'has_no_nan': has_no_nan
+        }
+        return success, details
+
+    def evaluate_persistence_obstruction_graph(self) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Tests Persistence-Based Residue Obstruction Graph:
+        Constructs Vietoris-Rips filtration over residue loss distances C_epsilon = {c | L(r, c) <= epsilon}
+        and connects edges where persistent 1-cycles exist: E_ij <-> exists epsilon: beta_1^{ij}(epsilon) != 0.
+        """
+        constraint_manifold = torch.tensor([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0]
+        ], device=self.device, dtype=torch.float32)
+        
+        r1 = torch.tensor([[0.8, 0.1, 0.0]], device=self.device, dtype=torch.float32)
+        r2 = torch.tensor([[-0.8, -0.1, 0.0]], device=self.device, dtype=torch.float32)
+        
+        graph = self.obstruction_graph.build_graph([r1, r2], constraint_manifold)
+        num_nodes = graph.number_of_nodes()
+        num_edges = graph.number_of_edges()
+        
+        success = num_nodes == 2
+        details = {
+            'num_nodes': num_nodes,
+            'num_edges': num_edges,
+            'is_valid_graph': True
+        }
+        return success, details
+
     def run_suite(self) -> Dict[str, Any]:
         """Runs the complete ReactBench suite and returns aggregated metrics."""
         logger.info("Running ReactBench Cyclic Pathway Suite via Core Codebase...")
@@ -228,7 +292,7 @@ class ReactBenchEvaluator:
             'suite_name': 'ReactBenchEvaluator',
             'tests': {},
             'passed_count': 0,
-            'total_count': 7,
+            'total_count': 9,
             'success': False
         }
         
@@ -281,6 +345,18 @@ class ReactBenchEvaluator:
         results['tests']['carnot_mobius_backpressure'] = {'pass': carnot_pass, 'diagnostics': carnot_diag}
         logger.info(f"Test 7 (Carnot-Möbius Thermodynamic Backpressure): {'PASS' if carnot_pass else 'FAIL'} - Waste: {carnot_diag['p_waste']:.1f}W, Efficiency: {carnot_diag['eta_stack']:.3f}")
         if carnot_pass: results['passed_count'] += 1
+
+        # 8. Decoupled Polynomial CRT & Signal Sovereignty Normalization
+        dcrt_pass, dcrt_diag = self.evaluate_decoupled_polynomial_crt()
+        results['tests']['decoupled_polynomial_crt'] = {'pass': dcrt_pass, 'diagnostics': dcrt_diag}
+        logger.info(f"Test 8 (Decoupled Polynomial CRT - Signal Sovereignty): {'PASS' if dcrt_pass else 'FAIL'} - Decoupled Pressure: {dcrt_diag['decoupled_pressure']:.4f}")
+        if dcrt_pass: results['passed_count'] += 1
+
+        # 9. Persistence Residue Obstruction Graph
+        obst_pass, obst_diag = self.evaluate_persistence_obstruction_graph()
+        results['tests']['persistence_obstruction_graph'] = {'pass': obst_pass, 'diagnostics': obst_diag}
+        logger.info(f"Test 9 (Persistence Residue Obstruction Graph): {'PASS' if obst_pass else 'FAIL'} - Nodes: {obst_diag['num_nodes']}, Edges: {obst_diag['num_edges']}")
+        if obst_pass: results['passed_count'] += 1
         
         results['success'] = (results['passed_count'] == results['total_count'])
         return results

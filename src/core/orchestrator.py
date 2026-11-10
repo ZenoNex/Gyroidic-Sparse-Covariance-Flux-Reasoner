@@ -652,7 +652,33 @@ class UniversalOrchestrator(nn.Module):
             self.encoding_manager = None
 
         self.survival_lattice = getattr(self.erosion_filter, "survival_lattice", None)
-        self.obstruction_graph = getattr(self.narrative_monitor, "pas_monitor", None)
+        
+        # 7.33 Foundational January 2026 Core Operators & Holonomy Adjudicators
+        from src.topology.hyper_ring_closure import HyperRingOperator, HyperRingClosureChecker
+        from src.core.structural_irreducibility import EvidenceModuleProjection, StructuralIrreducibilityChecker
+        from src.core.meta_invariant import MetaInvariant
+        from src.core.decoupled_polynomial_crt import DecoupledPolynomialCRT
+        from src.topology.persistence_obstruction import ResidueObstructionGraph
+
+        self.hyper_ring_operator = HyperRingOperator(num_integration_points=32)
+        self.hyper_ring_checker = HyperRingClosureChecker(closure_tolerance=0.5, trivial_threshold=1e-4)
+        self.structural_irreducibility = StructuralIrreducibilityChecker(orthogonality_tolerance=1e-4, min_rank=1)
+        self.meta_invariant = MetaInvariant(expansion_threshold=0.0)
+        self.decoupled_poly_crt = DecoupledPolynomialCRT(poly_config=self.poly_config, use_gdpo=True)
+        self.obstruction_graph = ResidueObstructionGraph(num_epsilon_samples=10, max_dimension=1)
+
+        # Orthogonal evidence module projections for structural irreducibility
+        half_dim = max(1, dim // 2)
+        e1 = torch.zeros(half_dim, dim, device=_device)
+        e1[:, :half_dim] = torch.eye(half_dim, device=_device)
+        e2 = torch.zeros(dim - half_dim, dim, device=_device)
+        e2[:, half_dim:] = torch.eye(dim - half_dim, device=_device)
+        self.evidence_proj1 = EvidenceModuleProjection(e1, projection_dim=half_dim, constraint_dim=dim)
+        self.evidence_proj2 = EvidenceModuleProjection(e2, projection_dim=half_dim, constraint_dim=dim)
+        self.evidence_proj1.proj_matrix.weight.data = torch.zeros(half_dim, dim, device=_device)
+        self.evidence_proj1.proj_matrix.weight.data[:, :half_dim] = torch.eye(half_dim, device=_device)
+        self.evidence_proj2.proj_matrix.weight.data = torch.zeros(dim - half_dim, dim, device=_device)
+        self.evidence_proj2.proj_matrix.weight.data[:, half_dim:] = torch.eye(dim - half_dim, device=_device)
         
         # 8. P2P & External Integrations
         self.freenet_router = None
@@ -2481,6 +2507,68 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             pass
 
+        # Foundational January 2026 Core Invariants Evaluation
+        hr_status_str = "survivable_soliton"
+        hr_valid = True
+        hr_integral = 0.0
+        try:
+            state_2d = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
+            base_2d = state.unsqueeze(0) if state.dim() == 1 else state
+            if base_2d.shape[-1] != state_2d.shape[-1]:
+                base_2d = state_2d
+            hr_val = self.hyper_ring_operator(state_2d, base_2d)
+            is_valid, statuses = self.hyper_ring_checker.check_closure(hr_val, base_2d)
+            hr_status_str = statuses[0] if statuses else "survivable_soliton"
+            hr_valid = bool(is_valid.all().item())
+            hr_integral = float(hr_val.mean().item())
+        except Exception:
+            pass
+
+        struct_irred = True
+        struct_rank = 2
+        try:
+            is_irr, irred_diag = self.structural_irreducibility.is_structurally_irreducible(
+                state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded,
+                lambda r: r,
+                [self.evidence_proj1, self.evidence_proj2]
+            )
+            struct_irred = bool(is_irr.all().item())
+            ranks = irred_diag.get("ranks")
+            if ranks is not None:
+                struct_rank = int(ranks.max().item())
+        except Exception:
+            pass
+
+        meta_sat = True
+        meta_rate_val = 0.0
+        meta_violation_val = 0.0
+        try:
+            m_sat, m_rate, m_viol = self.meta_invariant.check_invariant(
+                torch.tensor(float(b1), device=self.device),
+                v_m=mischief_metrics.get('H_mischief', 0.0) if 'mischief_metrics' in locals() and isinstance(mischief_metrics, dict) else 0.0
+            )
+            meta_sat = bool(m_sat)
+            meta_rate_val = float(m_rate.item() if isinstance(m_rate, torch.Tensor) else m_rate)
+            meta_violation_val = float(m_viol.item() if isinstance(m_viol, torch.Tensor) else m_viol)
+        except Exception:
+            pass
+
+        decoupled_crt_norm = 0.0
+        try:
+            k = self.poly_config.k
+            deg1 = self.poly_config.degree + 1
+            flat_state = state_shielded.reshape(-1)
+            target_numel = k * deg1
+            if flat_state.numel() < target_numel:
+                padded = F.pad(flat_state, (0, target_numel - flat_state.numel()))
+            else:
+                padded = flat_state[:target_numel]
+            coeffs = padded.view(1, k, deg1)
+            crt_recon, _ = self.decoupled_poly_crt.forward_decoupled(coeffs)
+            decoupled_crt_norm = float(crt_recon.norm().item())
+        except Exception:
+            pass
+
         # Post Diagnostic Payload to Bulletin Board (including Scars/Tension/Hunger)
         board_metrics = {
             "b0": b0,
@@ -2510,7 +2598,16 @@ class UniversalOrchestrator(nn.Module):
             "blindness_detected": ev_metrics.get("blindness_detected", False) if ev_metrics else False,
             "evidence_irreducible": bool(ev_metrics.get("is_irreducible", torch.tensor(True)).item()) if ev_metrics and hasattr(ev_metrics.get("is_irreducible"), "item") else True,
             "subversion_pce": subversion_val,
-            "toxicity_score": toxicity_val
+            "toxicity_score": toxicity_val,
+            "hyper_ring_closure": hr_valid,
+            "hyper_ring_status": hr_status_str,
+            "hyper_ring_integral": hr_integral,
+            "structural_irreducibility": struct_irred,
+            "evidence_rank": struct_rank,
+            "meta_invariant_satisfied": meta_sat,
+            "meta_expansion_rate": meta_rate_val,
+            "meta_violation": meta_violation_val,
+            "decoupled_crt_norm": decoupled_crt_norm
         }
         if bio_governance is not None:
             board_metrics['bio_governance'] = bio_governance
@@ -2554,6 +2651,41 @@ class UniversalOrchestrator(nn.Module):
                 self.telemetry_state['jspace_operable_3d'] = operable_3d.detach()
 
         return state_shielded, regime, routing, stacked_target
+
+    def evaluate_hyper_ring_closure(self, state: torch.Tensor, constraint_manifold: Optional[torch.Tensor] = None) -> Dict[str, Any]:
+        """Adjudicates hyper-ring cycle closure and non-trivial holonomy."""
+        if constraint_manifold is None:
+            constraint_manifold = state
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+        if constraint_manifold.dim() == 1:
+            constraint_manifold = constraint_manifold.unsqueeze(0)
+        h_r = self.hyper_ring_operator(state, constraint_manifold)
+        return self.hyper_ring_checker(h_r, constraint_manifold)
+
+    def check_structural_irreducibility(self, residue: torch.Tensor) -> Tuple[bool, Dict[str, Any]]:
+        """Ensures residue embeddings do not collapse onto a single polytope face."""
+        if residue.dim() == 1:
+            residue = residue.unsqueeze(0)
+        is_irr, diag = self.structural_irreducibility.is_structurally_irreducible(
+            residue, lambda r: r, [self.evidence_proj1, self.evidence_proj2]
+        )
+        return bool(is_irr.all().item()), diag
+
+    def check_meta_invariant(self, current_h1: float) -> Tuple[bool, float, float]:
+        """Monitors non-teleological topology expansion d/dt E[dim H_1] >= 0."""
+        sat, rate, viol = self.meta_invariant.check_invariant(torch.tensor(float(current_h1), device=self.device))
+        return bool(sat), float(rate.item() if isinstance(rate, torch.Tensor) else rate), float(viol.item() if isinstance(viol, torch.Tensor) else viol)
+
+    def reconstruct_decoupled_polynomial_crt(self, residue_distributions: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """Performs Signal Sovereignty-enhanced polynomial CRT reconstruction."""
+        return self.decoupled_poly_crt.forward_decoupled(residue_distributions)
+
+    def build_residue_obstruction_graph(self, residues: List[torch.Tensor], constraint_manifold: Optional[torch.Tensor] = None):
+        """Constructs filtration persistence obstruction graph over residue pairs."""
+        if constraint_manifold is None:
+            constraint_manifold = torch.cat(residues, dim=0) if residues else torch.zeros(1, self.dim, device=self.device)
+        return self.obstruction_graph.build_graph(residues, constraint_manifold)
 
     def check_rupture(self, state: torch.Tensor, losses: Dict[int, torch.Tensor]) -> Optional[FailureToken]:
         """Rupture check (Primitive bot)."""

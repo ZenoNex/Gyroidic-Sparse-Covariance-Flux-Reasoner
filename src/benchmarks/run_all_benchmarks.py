@@ -27,14 +27,15 @@ logger = logging.getLogger("BenchmarkSuiteRunner")
 class BenchmarkSuiteRunner:
     """
     Unified Orchestrator for all Gyroidic Flux Reasoner benchmarks:
-    - TopoBench: Holonomy, Contiguity, Geometric Shield, Homology, Gyroid Flow
-    - ReactBench: Convergence, Cyclic Catalysis, Tri-State, Coprimality, Bezout Refresh
-    - NarrativeYield: Collapse Detection, Legibility Audit, DAQUF Amortization, Relational Friction, Homological Protection
-    - AIReasoner: Forward Inference Coherence, 8x8 Hessian Ledger, Bouligand Kinks, Cyclotomics, Trajectory Decombining
-    - Chordlock: Harmonic Closure, Coherent Prime Resonance, Lattice Scaling, Hedged Read Path, Chiral Unfolding
-    - MemoryPalace: High-D Spatial Isolation, SLERP Soliton Breeding, Outlier Resilience, Puncture Invariance, CRT Compression
-    - TopologicalSingularity: Octree Multiplexing, Coprime Bypass, Mechanical Shear, Necrotic Stagnation, Push-Forward Luminance
-    - IHCAndComputeAffordance: 33-Shell Golden Ratio Ladder, BAO Cosmology, RP4 Projective Attention, Typed Affordances, CALM Thermal Governance, Folium Transversal Smooch
+    - TopoBench: Holonomy, Contiguity, Geometric Shield, Homology, Gyroid Flow, Folium Transversality, Birkhoff Polytope, Hyper-Ring Closure, Structural Irreducibility, Meta-Invariant Expansion (10 tests)
+    - ReactBench: Convergence, Cyclic Catalysis, Tri-State, Coprimality, Bezout Refresh, Muon Polar Decomposition, Carnot-Mobius Ledger, Decoupled Polynomial CRT, Persistence Obstruction Graph (9 tests)
+    - NarrativeYield: Collapse Detection, Legibility Audit, DAQUF Amortization, Relational Friction, Homological Protection (5 tests)
+    - AIReasoner: Forward Inference Coherence, 8x8 Hessian Ledger, Bouligand Kinks, Cyclotomics, Trajectory Decombining (5 tests)
+    - Chordlock: Harmonic Closure, Coherent Prime Resonance, Lattice Scaling, Hedged Read Path, Chiral Unfolding (5 tests)
+    - MemoryPalace: High-D Spatial Isolation, SLERP Soliton Breeding, Outlier Resilience, Puncture Invariance, CRT Compression (5 tests)
+    - TopologicalSingularity: Octree Multiplexing, Coprime Bypass, Mechanical Shear, Necrotic Stagnation, Push-Forward Luminance (5 tests)
+    - IHCAndComputeAffordance: 33-Shell Golden Ratio Ladder, BAO Cosmology, RP4 Projective Attention, Typed Affordances, CALM Thermal Governance, Folium Transversal Smooch (6 tests)
+    Total tests across all 8 suites: 50 tests.
     """
     def __init__(self, device: str = 'cpu'):
         self.device = device
