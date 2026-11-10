@@ -159,7 +159,7 @@ class GyroidicGraphManager:
                 except Exception as e:
                     print(f"Failed to load fossil {f}: {e}")
                     
-        self.loaded_from_snapshot = loaded_from_snapshot
+        self.loaded_from_snapshot = loaded_full_from_snapshot
         # Always inject live states at the end of load_fossils
         self._inject_live_gyroid_states()
 
@@ -335,22 +335,31 @@ class GyroidicGraphManager:
         sn_x, sn_y, sn_z = 0.57735, 0.57735, 0.57735
         shear_tolerance = 80.0
 
-        edges = self.get_adjacency_list()
+        try:
+            edges = self.get_adjacency_list()
+        except Exception:
+            edges = []
         candidates = []
         culled_dist = 0
         culled_cone = 0
         saved_shear = 0
 
         for n in self.nodes:
-            if "ghost" in n.node_id.lower() or "live_damage" in n.node_id.lower():
+            nid = n.node_id if hasattr(n, "node_id") else (n.get("node_id") or n.get("id") or "")
+            if "ghost" in str(nid).lower() or "live_damage" in str(nid).lower():
                 continue
-            mx = getattr(n, "x", None) or n.metrics.get("x")
-            my = getattr(n, "y", None) or n.metrics.get("y")
-            mz = getattr(n, "z", None) or n.metrics.get("z")
+            metrics = getattr(n, "metrics", n if isinstance(n, dict) else {})
+            mx = getattr(n, "x", None) or (metrics.get("x") if isinstance(metrics, dict) else None)
+            my = getattr(n, "y", None) or (metrics.get("y") if isinstance(metrics, dict) else None)
+            mz = getattr(n, "z", None) or (metrics.get("z") if isinstance(metrics, dict) else None)
             if mx is not None and my is not None and mz is not None:
                 x, y, z = float(mx), float(my), float(mz)
             else:
-                x, y, z = self.compute_3d_projection(n.state)
+                n_state = getattr(n, "state", None) or (n.get("state") if isinstance(n, dict) else None)
+                if n_state is not None:
+                    x, y, z = self.compute_3d_projection(n_state)
+                else:
+                    x, y, z = 0.0, 0.0, 0.0
             
             # Relative vector from camera
             dx, dy, dz = x - cx, y - cy, z - cz
@@ -435,19 +444,38 @@ class GyroidicGraphManager:
         nodes_data = []
         for it in candidates:
             n = it["node"]
-            visible_ids.add(n.node_id)
-            px, py = self.compute_poincare_projection(n.state)
+            nid = getattr(n, "node_id", None) or (n.get("node_id") if isinstance(n, dict) else None) or (n.get("id") if isinstance(n, dict) else "unknown")
+            visible_ids.add(str(nid))
+
+            n_state = getattr(n, "state", None) or (n.get("state") if isinstance(n, dict) else None)
+            if n_state is not None:
+                px, py = self.compute_poincare_projection(n_state)
+            else:
+                px, py = 0.0, 0.0
+
+            text_val = getattr(n, "text", None) or (n.get("text") if isinstance(n, dict) else "") or (n.get("label") if isinstance(n, dict) else "")
+            chiral_val = getattr(n, "chiral_score", None) or (n.get("chiral") if isinstance(n, dict) else 0.0)
+            entropy_val = getattr(n, "spectral_entropy", None) or (n.get("entropy") if isinstance(n, dict) else 0.0)
+            mat_level = getattr(n, "matrioshka_level", None) or (n.get("matrioshka_level") if isinstance(n, dict) else 0)
+            q_super = getattr(n, "quantum_superposition", None) or (n.get("quantum") if isinstance(n, dict) else False)
+            rep_active = getattr(n, "repair_active", None) or (n.get("repaired") if isinstance(n, dict) else False)
+            cop_lock = getattr(n, "coprime_lock", None) or (n.get("locked") if isinstance(n, dict) else False)
+            tags_val = getattr(n, "tags", None) or (n.get("tags") if isinstance(n, dict) else [])
+            tag_w = getattr(n, "tag_weights", None) or (n.get("tag_weights") if isinstance(n, dict) else {})
+            metrics = getattr(n, "metrics", n if isinstance(n, dict) else {})
+            node_type = metrics.get("type", "fossil") if isinstance(metrics, dict) else "fossil"
+
             nodes_data.append({
-                "id": str(n.node_id),
-                "label": str(n.text[:100]),
-                "chiral": float(clean_val(n.chiral_score)),
-                "entropy": float(clean_val(n.spectral_entropy)),
-                "matrioshka_level": int(clean_val(n.matrioshka_level)),
-                "quantum": bool(n.quantum_superposition),
-                "repaired": bool(n.repair_active),
-                "locked": bool(n.coprime_lock),
-                "tags": n.tags,
-                "tag_weights": n.tag_weights,
+                "id": str(nid),
+                "label": str(text_val)[:100],
+                "chiral": float(clean_val(chiral_val or 0.0)),
+                "entropy": float(clean_val(entropy_val or 0.0)),
+                "matrioshka_level": int(clean_val(mat_level or 0)),
+                "quantum": bool(q_super),
+                "repaired": bool(rep_active),
+                "locked": bool(cop_lock),
+                "tags": tags_val,
+                "tag_weights": tag_w,
                 "px": px,
                 "py": py,
                 "x": it["x"],
@@ -455,7 +483,7 @@ class GyroidicGraphManager:
                 "z": it["z"],
                 "in_shear_corridor": bool(it["in_shear"]),
                 "camera_dist": round(it["dist"], 2),
-                "type": n.metrics.get("type", "fossil")
+                "type": node_type
             })
 
         visible_edges = [

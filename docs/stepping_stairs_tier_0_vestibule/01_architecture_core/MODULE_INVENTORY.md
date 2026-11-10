@@ -2987,4 +2987,29 @@ Provides cleanroom spatial mechanics and continuous environmental physics:
 
 ---
 
+## Upstream, Downstream, and Parallel Track Bridges (Phase 22 Operational Integration)
+
+The following bridge layers resolve the previously disconnected parallel tracks across the core orchestrator, backend API layer, non-commutative arithmetic, and 3D procedural rendering:
+
+### 1. Action Layer: Asymmetric Flow to Executable Form ([`ChiralGraphCompiler`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/chiral_graph_compiler.py))
+- **Connected Method**: [`UniversalOrchestrator.compile_action(target="python"|"shell"|"ui")`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L2810)
+- **API Endpoint**: `POST /api/action/compile` in [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
+- **Functionality**: Compiles non-commutative reasoning trajectories into validated Python scripts, PowerShell/POSIX action scripts, or standalone HTML5/SVG interactive flow widgets without phantom dependencies.
+
+### 2. Global PAS API: The Bridge Out of the Sandbox ([`GlobalPASAPI`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/global_pas_api.py))
+- **Connected Methods**: [`UniversalOrchestrator.create_pas_handshake()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L2848), [`UniversalOrchestrator.query_external_safe()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L2875)
+- **API Endpoints**: `POST /api/pas/handshake` and `POST /api/pas/query` in [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
+- **Functionality**: Bridges external systems into the engine via HMAC-SHA256 signed `PASLockToken` anchored to prime interval $p=197$. Verifies $\text{PAS}_h \ge 0.85$, $\text{PAS}_\zeta \le 0.05$, and `GLYPHLOCK=1`. Allows read-only invariant queries with zero state mutation or gradient leakage.
+
+### 3. Non-Commutative Arithmetic Solitons: 1-195 Palindrome vs. 196 Divergence ([`Lychrel196SolitonEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/lychrel_soliton.py))
+- **Connected Method**: [`UniversalOrchestrator.audit_arithmetic_soliton_trajectory()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L2900)
+- **API Endpoint**: `POST /api/soliton/lychrel` in [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
+- **Functionality**: Evaluates whether an integer seed collapses into the finite base-10 palindromic basin ($n < 196$) or diverges into the unhalting 196 carry cascade. Cross-audits bit-smearing via [`ModularVirtualizationLayer.audit_collatz_carry_and_diophantine_near_miss()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/modular_virtualization.py#L154) and bounds transcendental growth using [`quadratic_surd_polytope_sandwich()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py#L920).
+
+### 4. Procedural 3D Graph Spatial Filtering ([`GyroidicGraphManager`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py))
+- **Connected Method**: [`GyroidicGraphManager.query_procedural_graph()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py#L328)
+- **Frontend Controller**: Procedural HUD & URL stream parameters in [`diegetic_terminal.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.html#L3284)
+- **Functionality**: Dynamically filters node clouds based on camera position, gaze vector, viewing cone FOV, Alexander Wild fault-plane corridor boost ($2.5\times$ render distance along $\vec{n} = [1,1,1]/\sqrt{3}$), and radial depth ray occlusion culling with dual-mode support for both typed `KnowledgeFossilNode` and dictionary nodes.
+
+
 

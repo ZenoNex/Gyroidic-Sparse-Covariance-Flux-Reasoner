@@ -528,6 +528,30 @@ class DiegeticPhysicsEngine(nn.Module):
         )
         
         print(" Garbled Output Repair System initialized")
+
+        # Global PAS API (Bridge out of Sandbox & Cross-System Coherence Tracking)
+        try:
+            from src.core.global_pas_api import GlobalPASAPI
+            self.global_pas_api = GlobalPASAPI(engine=self)
+        except Exception as pas_init_err:
+            print(f"[ENGINE] GlobalPASAPI initialization notice: {pas_init_err}")
+            self.global_pas_api = None
+
+        # Chiral Graph Compiler (Action Layer - Asymmetric Flow to Executable Form)
+        try:
+            from src.core.chiral_graph_compiler import ChiralGraphCompiler
+            self.chiral_compiler = ChiralGraphCompiler(state_dim=dim)
+        except Exception as chiral_init_err:
+            print(f"[ENGINE] ChiralGraphCompiler initialization notice: {chiral_init_err}")
+            self.chiral_compiler = None
+
+        # Lychrel 196 Soliton Engine (Non-Commutative Arithmetic Layer)
+        try:
+            from src.core.lychrel_soliton import Lychrel196SolitonEngine
+            self.lychrel_engine = Lychrel196SolitonEngine()
+        except Exception as lychrel_init_err:
+            print(f"[ENGINE] Lychrel196SolitonEngine initialization notice: {lychrel_init_err}")
+            self.lychrel_engine = None
         
         # Budget CPU threads to prevent pegging 100% of cores during interactive generation
         from src.core.hardware_monitor import budget_cpu_threads
@@ -10389,6 +10413,110 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     })
                 except Exception as e:
                     self._send_error_json(f"Inspection error: {str(e)}")
+
+            elif self.path == '/api/pas/handshake':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    req = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    client_id = req.get("client_id", "external_agent")
+                    field_id = req.get("field_id", "GLOBAL_RESONANCE")
+
+                    pas_api = getattr(ENGINE, 'global_pas_api', None)
+                    if pas_api is None:
+                        from src.core.global_pas_api import GlobalPASAPI
+                        pas_api = GlobalPASAPI(engine=ENGINE)
+                        if ENGINE is not None:
+                            ENGINE.global_pas_api = pas_api
+
+                    token = pas_api.initiate_handshake(client_id=client_id, field_id=field_id)
+                    self._send_json({"status": "ok", "token": token.to_dict()})
+                except Exception as e:
+                    self._send_error_json(f"PAS handshake error: {str(e)}")
+
+            elif self.path == '/api/pas/query':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    req = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    token_dict = req.get("token")
+                    query_payload = req.get("query", {})
+
+                    if not token_dict:
+                        self._send_error_json("Missing 'token' dictionary in request payload", 400)
+                        return
+
+                    from src.core.global_pas_api import PASLockToken, GlobalPASAPI
+                    token = PASLockToken.from_dict(token_dict)
+
+                    pas_api = getattr(ENGINE, 'global_pas_api', None)
+                    if pas_api is None:
+                        pas_api = GlobalPASAPI(engine=ENGINE)
+                        if ENGINE is not None:
+                            ENGINE.global_pas_api = pas_api
+
+                    resp = pas_api.query_engine_safe(token=token, query_payload=query_payload)
+                    self._send_json({"status": "ok", "response": resp})
+                except Exception as e:
+                    self._send_error_json(f"PAS query error: {str(e)}")
+
+            elif self.path == '/api/action/compile':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    req = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    target = req.get("target", "python")
+                    nodes = req.get("nodes", [])
+                    edges = req.get("edges", [])
+                    module_name = req.get("module_name", "chiral_pipeline")
+                    metadata = req.get("metadata", {})
+
+                    compiler = getattr(ENGINE, 'chiral_compiler', None)
+                    if compiler is None:
+                        from src.core.chiral_graph_compiler import ChiralGraphCompiler
+                        compiler = ChiralGraphCompiler(state_dim=getattr(ENGINE, 'dim', 64))
+                        if ENGINE is not None:
+                            ENGINE.chiral_compiler = compiler
+
+                    artifact = compiler.compile(
+                        nodes=nodes,
+                        edges=edges,
+                        target=target,
+                        module_name=module_name,
+                        metadata=metadata
+                    )
+                    self._send_json({"status": "ok", "artifact": artifact.to_dict()})
+                except Exception as e:
+                    self._send_error_json(f"Action compile error: {str(e)}")
+
+            elif self.path == '/api/soliton/lychrel':
+                try:
+                    content_len = int(self.headers.get('Content-Length', 0))
+                    post_body = self.rfile.read(content_len) if content_len > 0 else b'{}'
+                    req = json.loads(post_body.decode('utf-8')) if post_body else {}
+                    seed = int(req.get("seed", 196))
+                    max_steps = int(req.get("max_steps", 50))
+
+                    lychrel_engine = getattr(ENGINE, 'lychrel_engine', None)
+                    if lychrel_engine is None:
+                        from src.core.lychrel_soliton import Lychrel196SolitonEngine
+                        lychrel_engine = Lychrel196SolitonEngine()
+                        if ENGINE is not None:
+                            ENGINE.lychrel_engine = lychrel_engine
+
+                    report = lychrel_engine.evaluate_trajectory(seed=seed, max_steps=max_steps)
+                    self._send_json({
+                        "status": "ok",
+                        "seed": seed,
+                        "is_palindrome": report.is_palindrome,
+                        "is_196_soliton": report.is_196_soliton,
+                        "trajectory_length": report.trajectory_length,
+                        "final_value_digits": report.final_value_digits,
+                        "chiral_asymmetry_gap": float(report.chiral_asymmetry_gap),
+                        "exemption_token_issued": report.exemption_token is not None
+                    })
+                except Exception as e:
+                    self._send_error_json(f"Lychrel evaluation error: {str(e)}")
 
             else:
                 self.send_error(404)

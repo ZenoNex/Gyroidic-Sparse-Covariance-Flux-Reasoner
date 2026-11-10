@@ -548,6 +548,27 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             self.chiral_compiler = None
 
+        # Global PAS API (Bridge out of sandbox & cross-system coherence tracking)
+        try:
+            from src.core.global_pas_api import GlobalPASAPI
+            self.global_pas_api = GlobalPASAPI(engine=self)
+        except Exception:
+            self.global_pas_api = None
+
+        # Modular Virtualization Layer (Residue Number System & Collatz / Diophantine Near-Misses)
+        try:
+            from src.core.modular_virtualization import ModularVirtualizationLayer
+            self.modular_virtualization = ModularVirtualizationLayer(dim=dim)
+        except Exception:
+            self.modular_virtualization = None
+
+        # Lychrel 196 Soliton Engine (Non-Commutative Arithmetic Layer)
+        try:
+            from src.core.lychrel_soliton import Lychrel196SolitonEngine
+            self.lychrel_engine = Lychrel196SolitonEngine()
+        except Exception:
+            self.lychrel_engine = None
+
         # 7.28 Attention Subsystem Suite (Multi-Field Modular Attention, Gyroid Probes, CALM Veto & Diegetic Heads)
         self.gyroid_probe = SparseGyroidCovarianceProbe(
             hidden_dim=dim,
@@ -2785,6 +2806,148 @@ class UniversalOrchestrator(nn.Module):
             chirality=chirality,
             bulletin_board=getattr(self, 'bulletin_board', None)
         )
+
+    def compile_action(
+        self,
+        target: str = "python",
+        nodes: Optional[List[Dict[str, Any]]] = None,
+        edges: Optional[List[Dict[str, Any]]] = None,
+        module_name: str = "chiral_pipeline",
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """
+        Action Layer: Compiles reasoning trajectory into validated executable form
+        (Python script, shell pipeline, or interactive UI widget) preserving non-commutative order.
+        """
+        if self.chiral_compiler is None:
+            try:
+                from src.core.chiral_graph_compiler import ChiralGraphCompiler
+                self.chiral_compiler = ChiralGraphCompiler(state_dim=self.dim)
+            except Exception as e:
+                raise RuntimeError(f"ChiralGraphCompiler unavailable: {e}")
+
+        if nodes is None or len(nodes) == 0:
+            nodes = [
+                {"id": "input_residue", "type": "residue_source", "inputs": []},
+                {"id": "topological_filter", "type": "birkhoff_projection", "inputs": ["input_residue"]},
+                {"id": "action_execution", "type": "executable_sink", "inputs": ["topological_filter"]}
+            ]
+            edges = [
+                {"source": "input_residue", "target": "topological_filter"},
+                {"source": "topological_filter", "target": "action_execution"}
+            ]
+
+        state = getattr(self, 'current_state', None)
+        graph_dict = {
+            "nodes": nodes,
+            "edges": edges,
+            "latent_state": state,
+            "metadata": metadata or {}
+        }
+        return self.chiral_compiler.compile(
+            graph_or_state=graph_dict,
+            target=target,
+            module_name=module_name
+        )
+
+    def create_pas_handshake(
+        self,
+        client_id: str,
+        field_id: str = "GLOBAL_RESONANCE",
+        chordlock_anchor: int = 197
+    ) -> Any:
+        """
+        Global PAS API: Generates cryptographically signed GLYPHLOCK handshake token
+        for cross-system coherence tracking without leaking internal state.
+        """
+        if self.global_pas_api is None:
+            try:
+                from src.core.global_pas_api import GlobalPASAPI
+                self.global_pas_api = GlobalPASAPI(engine=self)
+            except Exception as e:
+                raise RuntimeError(f"GlobalPASAPI unavailable: {e}")
+
+        handshake_res = self.global_pas_api.initiate_handshake(
+            client_id=client_id,
+            field_id=field_id,
+            chordlock_anchor=chordlock_anchor
+        )
+        from src.core.global_pas_api import PASLockToken
+        return PASLockToken.from_dict(handshake_res["token"])
+
+    def query_external_safe(
+        self,
+        token: Any,
+        payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Global PAS API: Validates external client handshake token and safely queries
+        engine coherence invariants without permitting internal state corruption.
+        """
+        if self.global_pas_api is None:
+            try:
+                from src.core.global_pas_api import GlobalPASAPI
+                self.global_pas_api = GlobalPASAPI(engine=self)
+            except Exception as e:
+                raise RuntimeError(f"GlobalPASAPI unavailable: {e}")
+
+        token_data = token.to_dict() if hasattr(token, 'to_dict') else token
+        query_text = payload.get("query_text") or payload.get("text") or payload.get("operation") or "ping"
+        query_vector = payload.get("query_vector")
+        return self.global_pas_api.query_engine_safe(
+            token_data=token_data,
+            query_text=str(query_text),
+            query_vector=query_vector
+        )
+
+    def audit_arithmetic_soliton_trajectory(
+        self,
+        seed: Union[int, torch.Tensor],
+        max_steps: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Evaluates Lychrel arithmetic soliton trajectory (1-195 palindromic contraction
+        vs. 196 carry-cascade divergence) coupled with Collatz carry-ripples,
+        Diophantine near-misses, and quadratic surd polytope sandwich bounding.
+        """
+        if self.lychrel_engine is None:
+            try:
+                from src.core.lychrel_soliton import Lychrel196SolitonEngine
+                self.lychrel_engine = Lychrel196SolitonEngine()
+            except Exception as e:
+                raise RuntimeError(f"Lychrel196SolitonEngine unavailable: {e}")
+
+        seed_int = int(seed.sum().abs().item()) if isinstance(seed, torch.Tensor) else int(seed)
+        lychrel_report = self.lychrel_engine.evaluate_trajectory(seed=seed_int, max_steps=max_steps)
+
+        # Collatz and Diophantine near-miss audit via ModularVirtualizationLayer
+        tensor_seed = seed if isinstance(seed, torch.Tensor) else torch.tensor([float(seed_int)], dtype=torch.float32)
+        if self.modular_virtualization is None:
+            try:
+                from src.core.modular_virtualization import ModularVirtualizationLayer
+                self.modular_virtualization = ModularVirtualizationLayer(dim=max(self.dim, tensor_seed.numel()))
+            except Exception:
+                self.modular_virtualization = None
+
+        collatz_audit = {}
+        if self.modular_virtualization is not None:
+            collatz_audit = self.modular_virtualization.audit_collatz_carry_and_diophantine_near_miss(tensor_seed)
+
+        # Quadratic surd polytope sandwich check (sqrt(2) + sqrt(3) approx pi)
+        from src.core.invariants import quadratic_surd_polytope_sandwich
+        surd_bound = quadratic_surd_polytope_sandwich(tensor_seed)
+
+        return {
+            "seed": seed_int,
+            "is_palindrome": lychrel_report.is_palindrome,
+            "is_196_soliton": lychrel_report.is_196_soliton,
+            "trajectory_length": lychrel_report.trajectory_length,
+            "final_value_digits": lychrel_report.final_value_digits,
+            "chiral_asymmetry_gap": round(float(lychrel_report.chiral_asymmetry_gap), 4),
+            "exemption_token_issued": lychrel_report.exemption_token is not None,
+            "collatz_audit": collatz_audit,
+            "quadratic_surd_bound": surd_bound
+        }
 
     def resolve_containment_pressure(self, x: torch.Tensor, chat_history: Any = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """

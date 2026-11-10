@@ -222,7 +222,7 @@ class GlobalPASAPI:
         Execute read-only query against engine without allowing external state corruption.
         Zero-leakage: gradients and in-place tensor mutations are forbidden.
         """
-        token = PASLockToken.from_dict(token_data)
+        token = token_data if isinstance(token_data, PASLockToken) else PASLockToken.from_dict(token_data)
         if not self.handshake.verify(token):
             return {
                 "error": "SECURITY REFUSAL: Invalid or expired GLYPHLOCK handshake token.",
@@ -230,7 +230,7 @@ class GlobalPASAPI:
             }
 
         # Safe read-only evaluation
-        if self.engine is not None:
+        if self.engine is not None and hasattr(self.engine, 'process_input'):
             with torch.no_grad():
                 res = self.engine.process_input(
                     text_input=query_text,

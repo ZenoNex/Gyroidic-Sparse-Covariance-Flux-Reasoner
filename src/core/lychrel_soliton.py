@@ -113,7 +113,22 @@ class LychrelTrajectoryReport:
         return self.terminated
 
     @property
+    def is_palindrome(self) -> bool:
+        """Alias for terminated / palindromic closure."""
+        return self.terminated
+
+    @property
+    def is_196_soliton(self) -> bool:
+        """True when trajectory enters non-halting 196 carry-ripple excursion."""
+        return self.voynich_token_issued
+
+    @property
     def steps_taken(self) -> int:
+        """Alias for iterations."""
+        return self.iterations
+
+    @property
+    def trajectory_length(self) -> int:
         """Alias for iterations."""
         return self.iterations
 
@@ -121,6 +136,16 @@ class LychrelTrajectoryReport:
     def chiral_gap(self) -> float:
         """Alias for chiral_curvature."""
         return self.chiral_curvature
+
+    @property
+    def chiral_asymmetry_gap(self) -> float:
+        """Alias for chiral_curvature."""
+        return self.chiral_curvature
+
+    @property
+    def final_value_digits(self) -> int:
+        """Length in digits of the terminal or furthest reached value."""
+        return self.digit_lengths[-1] if self.digit_lengths else 0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
