@@ -662,7 +662,7 @@ class AdaptiveSkeletonHarness(nn.Module):
                 try:
                     if os.path.getsize(fpath) > 5 * 1024 * 1024:
                         continue
-                    payload = torch.load(fpath, map_location=self.device)
+                    payload = torch.load(fpath, map_location=self.device, weights_only=False)
                     if isinstance(payload, dict) and payload.get("type") == "soliton_smith":
                         tags = payload.get("tags", [])
                         if any(archetype_tag in t for t in tags) or not target_payload:

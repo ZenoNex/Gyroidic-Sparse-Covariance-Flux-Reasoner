@@ -39,7 +39,7 @@ def run_background_topology_analysis():
             
         try:
             print(f"Running non-semisimple topology audit on {df}...")
-            data = torch.load(df, map_location='cpu')
+            data = torch.load(df, map_location='cpu', weights_only=False)
             if is_semisimple_or_sterile(data):
                 print(f"[RECOVERY] Sterile/semisimple data detected in {df}. Initiating topological rehydration...")
                 if isinstance(data, dict):

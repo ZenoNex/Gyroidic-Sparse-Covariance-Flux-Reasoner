@@ -721,7 +721,7 @@ async def auto_temporal_training_loop(
                         if True:
                             filepath = os.path.join(storage_dir, filename)
                             try:
-                                data = torch.load(filepath, map_location='cpu')
+                                data = torch.load(filepath, map_location='cpu', weights_only=False)
                                 if is_semisimple_or_sterile(data):
                                     print(f"[RECOVERY] Sterile/semisimple historical file detected: {filename}. PC not taxed (CPU: {cpu_load}%, RAM: {ram_percent}%). Running non-semisimple topological rerun...")
                                     

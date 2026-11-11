@@ -96,7 +96,7 @@ class GyroidicGraphManager:
         if use_snapshot and os.path.exists(snapshot_path):
             try:
                 print(f"[GRAPH] Loading Neglecton from snapshot: {snapshot_path}")
-                data = torch.load(snapshot_path, map_location='cpu')
+                data = torch.load(snapshot_path, map_location='cpu', weights_only=False)
                 self.load_memory_snapshot(data)
                 if len(self.nodes) > 0:
                     loaded_full_from_snapshot = True
@@ -128,7 +128,7 @@ class GyroidicGraphManager:
                 
                 try:
                     path = os.path.join(self.data_dir, f)
-                    data = torch.load(path, map_location='cpu')
+                    data = torch.load(path, map_location='cpu', weights_only=False)
                     
                     # Extract embeddings. Fallback sequence: meta_state -> memory_state -> input_tensor
                     # We check explicitly for None to avoid key-exists-but-value-is-None traps.
@@ -204,7 +204,7 @@ class GyroidicGraphManager:
                 from src.core.meta_polytope_matrioshka import BoundaryState
                 torch.serialization.add_safe_globals([BoundaryState])
                 torch.serialization.add_safe_globals([ZeitgeistState])
-                g_state = torch.load(gyroid_path, map_location='cpu')
+                g_state = torch.load(gyroid_path, map_location='cpu', weights_only=False)
                 iteration = g_state.get('iteration', 0)
                 
                 # Helper to pad/truncate embedding to self.dim

@@ -796,7 +796,7 @@ class UniversalOrchestrator(nn.Module):
             gauge_field=gauge_field,
             memory_palace=getattr(self, "memory_palace", None),
         )
-        exported_payload = torch.load(filepath, map_location="cpu")
+        exported_payload = torch.load(filepath, map_location="cpu", weights_only=False)
         pot_id = exported_payload.get("pot_identity_crt", (0, 0, 0))
         attestation = exported_payload.get("structural_algebra_attestation", {})
 

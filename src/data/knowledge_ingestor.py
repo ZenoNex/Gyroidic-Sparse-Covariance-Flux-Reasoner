@@ -1114,15 +1114,15 @@ class ArXivSovereignIngestor:
             params = {"q": cleaned_query, "format": "json"}
             try:
                 print(f"[INGEST] Performing SearXNG web search for: '{cleaned_query}' at {configured_url}...")
-                # Transient retry guard with 1.0s backoff in case SearXNG is mid-boot or socket handoff
+                # Transient retry guard with backoff in case SearXNG is mid-boot in WSL
                 response = None
-                for attempt in range(2):
+                for attempt in range(4):
                     try:
                         response = requests.get(configured_url, params=params, timeout=8)
                         break
                     except (requests.ConnectionError, requests.Timeout):
-                        if attempt == 0:
-                            time.sleep(1.0)
+                        if attempt < 3:
+                            time.sleep(2.0)
                             continue
                         raise
 
@@ -1580,6 +1580,9 @@ class ArXivSovereignIngestor:
     def start_sovereign_loop(self):
         """Starts the background ingestion thread with dynamic Meta-State Topic Steering."""
         def _loop():
+            # Allow main engine warmstart and WSL SearXNG daemon boot to complete first
+            if self._stop_event.wait(timeout=8.0):
+                return
             # Complete category corpus covering heavy science + humanities/social overlaps
             sets = self.categories
             

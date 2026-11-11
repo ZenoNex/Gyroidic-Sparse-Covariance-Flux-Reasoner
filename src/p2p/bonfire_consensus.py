@@ -305,7 +305,7 @@ class BonfireNomadicRing:
             from src.core.agent_substrate_bridge import AgentSubstrateBridge
             try:
                 raw_bytes = base64.b64decode(payload_b64)
-                loaded_payload = torch.load(io.BytesIO(raw_bytes), map_location="cpu")
+                loaded_payload = torch.load(io.BytesIO(raw_bytes), map_location="cpu", weights_only=False)
                 if isinstance(loaded_payload, dict):
                     bridge = AgentSubstrateBridge(device="cpu")
                     loaded_payload = bridge.sanitize_and_verify_non_memorization(loaded_payload)
@@ -334,7 +334,7 @@ class BonfireNomadicRing:
         import io
         from src.core.agent_substrate_bridge import AgentSubstrateBridge
         try:
-            loaded_payload = torch.load(filepath, map_location="cpu")
+            loaded_payload = torch.load(filepath, map_location="cpu", weights_only=False)
             attestation = {}
             pot_id = (0, 0, 0)
             betti_sig = {}

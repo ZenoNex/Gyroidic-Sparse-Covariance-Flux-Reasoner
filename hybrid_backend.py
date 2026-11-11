@@ -72,12 +72,13 @@ if os.path.join(root_dir, 'examples') not in sys.path:
 
 # Import working components
 
-from src.core import DEVICE
+from src.core import DEVICE, get_preferred_device
+_PREF_HW = get_preferred_device()
 print('=============================================')
 print(f'[INFO] EXECUTING FROM: {__file__}')
-print(f'[INFO] DEVICE DETECTED: {DEVICE}')
-if str(DEVICE) != 'cpu':
-    print(f'[INFO] Silicon Sovereignty: [OK] (Hardware-bridge active)')
+print(f'[INFO] PYTORCH STAGING DEVICE: {DEVICE} | HARDWARE ACCELERATORS: {_PREF_HW.upper()} + CUDA ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A"})')
+if _PREF_HW == 'opencl' or torch.cuda.is_available() or str(DEVICE) != 'cpu':
+    print(f'[INFO] Silicon Sovereignty: [OK] (PyOpenCL Queue A/B + CUDA 12.1 Hardware-bridge active)')
 else:
     print('[INFO] DEVICE DETECTED: CPU (Substrate-independent fallback)')
 print('=============================================')
@@ -1553,7 +1554,7 @@ class HybridAI:
             torch.serialization.add_safe_globals([ZeitgeistState])
             
             # Load with map_location='cpu' for cross-hardware soul-transfer
-            checkpoint = torch.load(state_path, map_location='cpu')
+            checkpoint = torch.load(state_path, map_location='cpu', weights_only=False)
             
             self.iteration_count = checkpoint.get('iteration', 0)
             if 'hidden_state' in checkpoint:
@@ -4266,7 +4267,13 @@ def main():
     print("\n[START] Gyroidic Hybrid Backend (Sovereign Mode)")
     print("=" * 45)
     
-    # 2. Initialize AI system
+    # 2. Boot SearXNG daemon in WSL before initializing AI background threads so port 8888 is ready
+    try:
+        GovernanceManager.start_searxng(async_boot=True)
+    except Exception as e:
+        print(f"[SEARXNG] Startup auto-boot check note: {e}")
+
+    # 3. Initialize AI system
     print("[BRAIN] Initializing AI components...")
     try:
         AI_SYSTEM = HybridAI(
@@ -4284,7 +4291,7 @@ def main():
     print(f"   • Spectral Corrector: {'[OK]' if SPECTRAL_CORRECTOR_AVAILABLE else '[FAIL]'}")
     print("[STOP]  Press Ctrl+C to trigger Fossilization and Exit")
     
-    # 3. Dynamic Port Selection Infrastructure
+    # 4. Dynamic Port Selection Infrastructure
     threads = []
     pid_file = os.path.join(root_dir, '.backend.pid')
     try:
@@ -4292,12 +4299,6 @@ def main():
             f.write(str(os.getpid()))
     except Exception:
         pass
-
-    # Boot SearXNG daemon in the background if installed in WSL and available
-    try:
-        GovernanceManager.start_searxng(async_boot=True)
-    except Exception as e:
-        print(f"[SEARXNG] Startup auto-boot check note: {e}")
 
     def _graceful_interrupt_handler(signum, frame):
         print(f"\n[INTERRUPT] Received system signal {signum}. Triggering graceful shutdown...", flush=True)
@@ -4342,6 +4343,10 @@ def main():
         
         # Stop servers immediately so incoming client requests don't hit interpreter shutdown
         stop_servers()
+        if AI_SYSTEM and getattr(AI_SYSTEM, 'engine', None) is not None:
+            if hasattr(AI_SYSTEM.engine, '_shutdown_event'):
+                AI_SYSTEM.engine._shutdown_event.set()
+            AI_SYSTEM.engine._shutting_down = True
         
         if AI_SYSTEM and not FOSSIL_SAVED:
             FOSSIL_SAVED = True

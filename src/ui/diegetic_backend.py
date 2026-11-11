@@ -2330,9 +2330,12 @@ class DiegeticPhysicsEngine(nn.Module):
         # Non-Teleological Re-entrancy Guard:
         # We allow processing if it's a training-driven call (to allow gradients),
         # but block external user calls if the engine is already occupied by a main process.
+        if getattr(self, '_shutting_down', False) or (hasattr(self, '_shutdown_event') and self._shutdown_event.is_set()):
+            return {"response": "System shutting down.", "status": "SHUTDOWN"}
         acquired = self._processing_lock.acquire(timeout=180.0)
         if not acquired:
-            print("[ENGINE] Warning: Re-entrant call detected or lock timeout. Returning placeholder.")
+            if not getattr(self, '_shutting_down', False):
+                print("[ENGINE] Warning: Re-entrant call detected or lock timeout. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
             
         try:
@@ -2372,9 +2375,12 @@ class DiegeticPhysicsEngine(nn.Module):
         Canonical entry point for text interaction.
         Bridges with Hybrid interface requirements and applies detached state management.
         """
+        if getattr(self, '_shutting_down', False) or (hasattr(self, '_shutdown_event') and self._shutdown_event.is_set()):
+            return {"response": "System shutting down.", "status": "SHUTDOWN"}
         acquired = self._processing_lock.acquire(timeout=180.0)
         if not acquired:
-            print("[ENGINE] Warning: Re-entrant call detected or lock timeout in process_text. Returning placeholder.")
+            if not getattr(self, '_shutting_down', False):
+                print("[ENGINE] Warning: Re-entrant call detected or lock timeout in process_text. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
             
         try:
@@ -7751,7 +7757,7 @@ class DiegeticPhysicsEngine(nn.Module):
             # 1. Load Neural Weights (Non-Strict for flexibility)
             from src.core.zeitgeist_router import ZeitgeistState
             torch.serialization.add_safe_globals([ZeitgeistState])
-            checkpoint = torch.load(STATE_PATH, map_location=self.device)
+            checkpoint = torch.load(STATE_PATH, map_location=self.device, weights_only=False)
             load_result = self.load_state_dict(checkpoint, strict=False)
             
             # Log counts of missing/unexpected keys
@@ -9713,7 +9719,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         filepath = os.path.join(ENCODING_DIR, source)
                         if os.path.exists(filepath):
                             try:
-                                source_fossil = torch.load(filepath, map_location='cpu')
+                                source_fossil = torch.load(filepath, map_location='cpu', weights_only=False)
                                 source_text = source_fossil.get('text_input', source_fossil.get('description', ''))
                                 source_vector = source_fossil.get('meta_state', source_fossil.get('residue_vector'))
                             except Exception:
@@ -9724,7 +9730,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         filepath = os.path.join(ENCODING_DIR, target)
                         if os.path.exists(filepath):
                             try:
-                                target_fossil = torch.load(filepath, map_location='cpu')
+                                target_fossil = torch.load(filepath, map_location='cpu', weights_only=False)
                                 target_text = target_fossil.get('text_input', target_fossil.get('description', ''))
                                 target_vector = target_fossil.get('meta_state', target_fossil.get('residue_vector'))
                             except Exception:

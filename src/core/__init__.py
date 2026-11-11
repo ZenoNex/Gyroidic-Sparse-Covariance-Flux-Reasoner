@@ -4,7 +4,7 @@ Includes Phase 1-3 implementations: Failure tokens, structural irreducibility,
 continuous co-primality, and meta-invariant.
 """
 
-from .device_utils import DEVICE
+from .device_utils import DEVICE, safe_torch_load, get_preferred_device, get_torch_device
 from .polynomial_coprime import (
     PolynomialBasis,
     BirkhoffPolytopeSampler,

@@ -444,7 +444,7 @@ class DyadFossilizer:
                             filepath = os.path.join(self.storage_dir, f)
                             try:
                                 mtime = os.path.getmtime(filepath)
-                                data = torch.load(filepath, map_location='cpu')
+                                data = torch.load(filepath, map_location='cpu', weights_only=False)
                                 if isinstance(data, dict):
                                     p_hash = data.get('prompt_hash')
                                     if not p_hash:
@@ -490,7 +490,7 @@ class DyadFossilizer:
                     f = entry.name
                     mtime = entry.stat().st_mtime
                     # Use a lightweight load if possible, or standard load
-                    data = torch.load(filepath, map_location='cpu')
+                    data = torch.load(filepath, map_location='cpu', weights_only=False)
                     if isinstance(data, dict):
                         p_hash = data.get('prompt_hash')
                         if not p_hash:
@@ -1068,7 +1068,7 @@ class DyadFossilizer:
 
             filepath = os.path.join(self.storage_dir, f)
             try:
-                data = torch.load(filepath, map_location='cpu')
+                data = torch.load(filepath, map_location='cpu', weights_only=False)
                 # Check both 'text_input' (new) and 'description' (legacy)
                 if isinstance(data, dict) and ('residue_vector' in data or 'meta_state' in data):
                     data['_fossil_filename'] = f
@@ -1362,7 +1362,7 @@ class DyadFossilizer:
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Agent Smith file not found: {filepath}")
             
-        payload = torch.load(filepath, map_location='cpu')
+        payload = torch.load(filepath, map_location='cpu', weights_only=False)
              
         # Minimal validation
         if payload.get("type") != "soliton_smith":
@@ -1401,7 +1401,7 @@ class DyadFossilizer:
                 filepath = os.path.join(self.storage_dir, filename)
                 try:
                     mtime = os.path.getmtime(filepath)
-                    data = torch.load(filepath, map_location='cpu')
+                    data = torch.load(filepath, map_location='cpu', weights_only=False)
                     if not isinstance(data, dict):
                         continue
                     
@@ -1515,7 +1515,7 @@ class DyadFossilizer:
                 continue
             try:
                 mtime = os.path.getmtime(filepath)
-                data = torch.load(filepath, map_location='cpu')
+                data = torch.load(filepath, map_location='cpu', weights_only=False)
                 if isinstance(data, dict):
                     fgrt = data.get('meta_state')
                     if fgrt is None:

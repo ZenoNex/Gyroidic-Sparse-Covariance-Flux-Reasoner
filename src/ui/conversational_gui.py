@@ -693,7 +693,7 @@ Affordance Gradient Statistics:
                 import torch
                 device = DEVICE
                 
-                checkpoint = torch.load(filename, map_location=device)
+                checkpoint = torch.load(filename, map_location=device, weights_only=False)
                 self.model = ConversationalTemporalModel(device=device)
                 self.model.load_state_dict(checkpoint['model_state_dict'])
                 

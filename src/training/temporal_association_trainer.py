@@ -1089,7 +1089,7 @@ class TemporalAssociationTrainer:
     
     def load_training_state(self, filepath: str):
         """Load training state and history."""
-        state = torch.load(filepath, map_location=self.device)
+        state = torch.load(filepath, map_location=self.device, weights_only=False)
         
         self.model.load_state_dict(state['model_state_dict'])
         self.optimizer.load_state_dict(state['optimizer_state_dict'])
