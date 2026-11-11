@@ -3247,7 +3247,7 @@
 
             // Concurrency guard: avoid overlapping redundant dense graph fetches
             if (window._isFetchingGraph) {
-                if (graphProceduralLoad) {
+                if (graphProceduralLoad || forceReload) {
                     if (window._graphAbortController) {
                         try { window._graphAbortController.abort(); } catch(e) {}
                     }
@@ -3256,6 +3256,16 @@
                 }
             }
             window._isFetchingGraph = true;
+
+            // Clear any prior leaked ticker or timeout before starting a new cycle
+            if (window._graphLoadTicker) {
+                clearInterval(window._graphLoadTicker);
+                window._graphLoadTicker = null;
+            }
+            if (window._graphFetchTimeout) {
+                clearTimeout(window._graphFetchTimeout);
+                window._graphFetchTimeout = null;
+            }
 
             // Suppress native contextmenu on graph canvas to enable smooth right-click panning
             container.oncontextmenu = (e) => {
@@ -3278,37 +3288,53 @@
                 }
             }
 
-            // Show non-destructive loading overlay with live progress timer
+            // Show non-destructive loading overlay with live stage progress bar and timer
             const outerContainer = document.getElementById('graph-container') || container;
             let loadingOverlay = document.getElementById('graph-loading-overlay');
             if (!loadingOverlay) {
                 loadingOverlay = document.createElement('div');
                 loadingOverlay.id = 'graph-loading-overlay';
-                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:300; pointer-events: auto; background: rgba(0,0,0,0.92); padding: 12px 18px; border-radius: 6px; border: 1px solid rgba(0,242,255,0.4); text-align: center; box-shadow: 0 0 20px rgba(0,242,255,0.25);';
+                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:300; pointer-events: auto; background: rgba(0,0,0,0.92); padding: 12px 18px; border-radius: 6px; border: 1px solid rgba(0,242,255,0.4); text-align: center; box-shadow: 0 0 20px rgba(0,242,255,0.25); min-width: 280px;';
                 outerContainer.appendChild(loadingOverlay);
             }
             let scanSec = 0;
+            let currentStageLabel = 'STAGE 1/3: QUERYING HORIZON';
+            let currentStagePct = 25;
             const statusBase = graphProceduralLoad ? 'STREAMING PROCEDURAL HORIZON' : (forceReload ? 'RESCANNING COGNITIVE DISK' : 'POLLING COGNITIVE FIELD');
-            loadingOverlay.innerHTML = `<div>[${statusBase}] ... (0.0s)</div>`;
-            loadingOverlay.style.display = 'block';
-            let loadTicker = setInterval(() => {
-                scanSec += 0.5;
-                if (loadingOverlay) {
-                    let cancelBtn = '';
-                    if (scanSec >= 1.5) {
-                        cancelBtn = `<div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
-                            ${!graphProceduralLoad ? '<button onclick="activateProceduralFromPrompt()" style="background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-weight: bold; font-size: 0.68rem; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer;">FAST PROCEDURAL</button>' : ''}
-                            <button onclick="abortGraphLoad()" style="background: rgba(255,50,50,0.2); color: #ff6666; font-family: var(--font-mono); font-size: 0.68rem; border: 1px solid #ff4444; padding: 4px 8px; border-radius: 3px; cursor: pointer;">CANCEL</button>
-                        </div>`;
-                    }
-                    loadingOverlay.innerHTML = `<div>[${statusBase}] ... (${scanSec.toFixed(1)}s)</div>${cancelBtn}`;
+            const renderLoadingProgress = () => {
+                if (!loadingOverlay) return;
+                let cancelBtn = '';
+                if (scanSec >= 1.5) {
+                    cancelBtn = `<div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
+                        ${!graphProceduralLoad ? '<button onclick="activateProceduralFromPrompt()" style="background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-weight: bold; font-size: 0.68rem; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer;">FAST PROCEDURAL</button>' : ''}
+                        <button onclick="abortGraphLoad()" style="background: rgba(255,50,50,0.2); color: #ff6666; font-family: var(--font-mono); font-size: 0.68rem; border: 1px solid #ff4444; padding: 4px 8px; border-radius: 3px; cursor: pointer;">CANCEL</button>
+                    </div>`;
                 }
+                loadingOverlay.innerHTML = `
+                    <div>[${statusBase}] ... (${scanSec.toFixed(1)}s)</div>
+                    <div style="font-size: 0.65rem; color: var(--terminal-green); margin-top: 4px;">${currentStageLabel} (${currentStagePct}%)</div>
+                    <div style="width: 100%; height: 4px; background: rgba(0,242,255,0.15); border-radius: 2px; margin-top: 6px; overflow: hidden;">
+                        <div style="width: ${currentStagePct}%; height: 100%; background: var(--terminal-blue); transition: width 0.2s ease;"></div>
+                    </div>
+                    ${cancelBtn}`;
+            };
+            renderLoadingProgress();
+            loadingOverlay.style.display = 'block';
+            window._graphLoadTicker = setInterval(() => {
+                scanSec += 0.5;
+                renderLoadingProgress();
             }, 500);
 
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
 
             let procPromptTimer = null;
+            const myController = new AbortController();
+            window._graphAbortController = myController;
+            window._graphFetchTimeout = setTimeout(() => {
+                try { myController.abort('TIMEOUT'); } catch(e) {}
+            }, 8000);
+
             try {
                 const limit = limitEl ? parseInt(limitEl.value) || 250 : 250;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
@@ -3341,6 +3367,7 @@
                             console.warn("[GRAPH] Camera vector inspection degraded:", camErr);
                         }
                     }
+                    window._lastProceduralCam = { x: cam_x, y: cam_y, z: cam_z, gx: gaze_x, gy: gaze_y, gz: gaze_z };
 
                     const renderDistEl = document.getElementById('graph-render-dist');
                     const coneFovEl = document.getElementById('graph-cone-fov');
@@ -3355,12 +3382,6 @@
                     url += `&procedural=true&cam_x=${cam_x.toFixed(2)}&cam_y=${cam_y.toFixed(2)}&cam_z=${cam_z.toFixed(2)}&gaze_x=${gaze_x.toFixed(3)}&gaze_y=${gaze_y.toFixed(3)}&gaze_z=${gaze_z.toFixed(3)}&dist=${dist}&fov=${fov}&shear=${shear}&occlusion=${occl}`;
                 }
 
-                // Abort previous hanging graph fetch if still active
-                if (window._graphAbortController) {
-                    try { window._graphAbortController.abort(); } catch(e) {}
-                }
-                window._graphAbortController = new AbortController();
-
                 // 1.8s watchdog timer: prompt for procedural mode if default dense graph takes time
                 if (!graphProceduralLoad) {
                     procPromptTimer = setTimeout(() => {
@@ -3368,16 +3389,29 @@
                     }, 1800);
                 }
 
-                const response = await fetch(url, { signal: window._graphAbortController.signal });
+                const response = await fetch(url, { signal: myController.signal });
+                if (window._graphFetchTimeout) {
+                    clearTimeout(window._graphFetchTimeout);
+                    window._graphFetchTimeout = null;
+                }
                 if (procPromptTimer) clearTimeout(procPromptTimer);
                 hideProceduralViewPrompt();
-                if (loadTicker) clearInterval(loadTicker);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                currentStageLabel = 'STAGE 2/3: PROJECTING GYROID TOPOLOGY';
+                currentStagePct = 65;
+                renderLoadingProgress();
                 const data = await response.json();
                 graphDataGlobal = data;
 
+                currentStageLabel = 'STAGE 3/3: MOUNTING 3D FORCEGRAPH';
+                currentStagePct = 95;
+                renderLoadingProgress();
+                if (window._graphLoadTicker) {
+                    clearInterval(window._graphLoadTicker);
+                    window._graphLoadTicker = null;
+                }
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
 
                 if (data.procedural || graphProceduralLoad) {
@@ -3585,11 +3619,31 @@
                         }
                         if (controls.addEventListener) {
                             controls.addEventListener('change', () => {
-                                if (graphProceduralLoad) {
+                                if (graphProceduralLoad && window.Graph && window.Graph.camera) {
+                                    const cam = window.Graph.camera();
+                                    if (cam && cam.position) {
+                                        const last = window._lastProceduralCam || { x: 0, y: 0, z: 500, gx: 0, gy: 0, gz: -1 };
+                                        const dx = (cam.position.x || 0) - last.x;
+                                        const dy = (cam.position.y || 0) - last.y;
+                                        const dz = (cam.position.z || 0) - last.z;
+                                        const posDelta = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                                        let gazeDelta = 0;
+                                        if (typeof THREE !== 'undefined' && THREE.Vector3) {
+                                            const dir = new THREE.Vector3();
+                                            cam.getWorldDirection(dir);
+                                            const dgx = dir.x - last.gx;
+                                            const dgy = dir.y - last.gy;
+                                            const dgz = dir.z - last.gz;
+                                            gazeDelta = Math.sqrt(dgx*dgx + dgy*dgy + dgz*dgz);
+                                        }
+                                        if (posDelta < 18.0 && gazeDelta < 0.06) {
+                                            return;
+                                        }
+                                    }
                                     if (proceduralUpdateTimer) clearTimeout(proceduralUpdateTimer);
                                     proceduralUpdateTimer = setTimeout(() => {
                                         refreshGraph(false);
-                                    }, 220);
+                                    }, 250);
                                 }
                             });
                         }
@@ -3649,24 +3703,48 @@
             } catch (e) {
                 if (procPromptTimer) clearTimeout(procPromptTimer);
                 hideProceduralViewPrompt();
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                if (window._graphAbortController === myController) {
+                    if (window._graphLoadTicker) {
+                        clearInterval(window._graphLoadTicker);
+                        window._graphLoadTicker = null;
+                    }
+                    if (loadingOverlay) loadingOverlay.style.display = 'none';
+                }
 
-                if (e.name === 'AbortError') {
-                    // Intentionally aborted due to user activating procedural mode or refreshing
+                if (e.name === 'AbortError' && myController.signal.reason !== 'TIMEOUT') {
+                    // Intentionally aborted due to a newer refreshGraph call
                     return;
                 }
                 console.error(e);
                 showProceduralFallbackError(e.message || e);
             } finally {
-                window._isFetchingGraph = false;
                 if (procPromptTimer) clearTimeout(procPromptTimer);
-                if (loadTicker) clearInterval(loadTicker);
+                if (window._graphFetchTimeout) {
+                    clearTimeout(window._graphFetchTimeout);
+                    window._graphFetchTimeout = null;
+                }
+                if (window._graphAbortController === myController) {
+                    window._isFetchingGraph = false;
+                    if (window._graphLoadTicker) {
+                        clearInterval(window._graphLoadTicker);
+                        window._graphLoadTicker = null;
+                    }
+                }
             }
         }
 
         function abortGraphLoad() {
             if (window._graphAbortController) {
                 try { window._graphAbortController.abort(); } catch(e) {}
+                window._graphAbortController = null;
+            }
+            if (window._graphLoadTicker) {
+                clearInterval(window._graphLoadTicker);
+                window._graphLoadTicker = null;
+            }
+            if (window._graphFetchTimeout) {
+                clearTimeout(window._graphFetchTimeout);
+                window._graphFetchTimeout = null;
             }
             window._isFetchingGraph = false;
             const overlay = document.getElementById('graph-loading-overlay');

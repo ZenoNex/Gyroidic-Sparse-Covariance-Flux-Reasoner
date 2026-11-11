@@ -85,8 +85,12 @@ class QuantumBettiApproximator(nn.Module):
         def apply_meliponini_quantization(adj_mat, threshold):
             # [ARCHITECTURAL REMEDIATION] Replace arbitrary thresholding with Meliponini discrete lasso
             from src.core.non_ergodic_entropy import HybridLassoQuantizer
-            quantizer = HybridLassoQuantizer(dim=adj_mat.shape[-1], lasso_lambda=threshold).to(adj_mat.device)
-            return quantizer(adj_mat)
+            q_dim = adj_mat.shape[-1]
+            if not hasattr(self, '_cached_quantizer') or self._cached_quantizer.dim != q_dim:
+                self._cached_quantizer = HybridLassoQuantizer(dim=q_dim, lasso_lambda=0.1).to(adj_mat.device)
+            elif self._cached_quantizer.codebook.device != adj_mat.device:
+                self._cached_quantizer = self._cached_quantizer.to(adj_mat.device)
+            return self._cached_quantizer(adj_mat, hardening_factor=float(threshold) / 0.1)
 
         if num_thresholds <= 1:
             quantized_adj = apply_meliponini_quantization(adjacency_matrix, 0.1)
@@ -124,13 +128,14 @@ class QuantumBettiApproximator(nn.Module):
         # Vectorized across num_probes simultaneously to eliminate redundant single-vector kernel launches
         Z = harvest_honest_jitter((dim_size, num_probes), device=L.device, scaled=True) * 1.0
         x0 = Z
-        if engine is not None and dim_size >= 16:
+        use_opencl = (engine is not None and dim_size >= 1024)
+        if use_opencl:
             x1 = engine.hardware_sovereign_matmul(L_norm, Z)
         else:
             x1 = torch.matmul(L_norm, Z)
         y = 0.5 * x0 - 0.5 * x1
         for k in range(2, poly_degree):
-            if engine is not None and dim_size >= 16:
+            if use_opencl:
                 x2 = 2.0 * engine.hardware_sovereign_matmul(L_norm, x1) - x0
             else:
                 x2 = 2.0 * torch.matmul(L_norm, x1) - x0

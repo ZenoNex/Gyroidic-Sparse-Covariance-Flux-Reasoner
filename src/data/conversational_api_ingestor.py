@@ -1269,6 +1269,9 @@ class SovereignConversationalIngestor:
         # Exponential backoff for fetch failures
         backoff_interval = 60
         
+        # Allow main server and initial UI / 3D graph requests to complete before heavy background ingestion
+        time.sleep(35)
+        
         while True:
             try:
                 # 1. Check Valence (Hunger for new nutrients)
@@ -1291,14 +1294,14 @@ class SovereignConversationalIngestor:
                 
                 # 2. logical Drip (Hacker News / Stack Exchange)
                 print(" Extracting Sovereign Logic drip...")
-                logic_convs = self.ingest_sovereign_logic(limit=5)
+                logic_convs = self.ingest_sovereign_logic(limit=2)
                 if logic_convs:
-                    self._fossilize_batch(logic_convs)
+                    self._fossilize_batch(logic_convs[:4])
                     backoff_interval = 60 # Reset backoff on success
                 
                 # 3. Visual Drip (CIFAR-10)
                 print(" Projecting Local Image drip...")
-                for _ in range(5):
+                for _ in range(2):
                     try:
                         image_convo = next(cifar_drip)
                         self._fossilize_batch([image_convo])
@@ -1408,6 +1411,7 @@ class SovereignConversationalIngestor:
                                     f.write(f"{convo.conversation_id}\n")
                         except:
                             pass # Silently log non-critical logging failures
+                    time.sleep(0.25) # Yield GIL and CPU time slice between background items
                     
             except Exception as e:
                 print(f"[INGESTOR] Engine or Fossilizer failed to process nutrient dyad: {e}")

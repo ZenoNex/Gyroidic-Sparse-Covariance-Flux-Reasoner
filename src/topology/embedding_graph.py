@@ -3,6 +3,7 @@ import torch
 import os
 import json
 import math
+import time
 from typing import List, Dict, Any, Optional, Tuple
 
 class KnowledgeFossilNode:
@@ -390,37 +391,42 @@ class GyroidicGraphManager:
             
         edges = []
         num_nodes = len(target_nodes)
-        for i in range(num_nodes):
-            for j in range(i + 1, num_nodes):
-                sim = sim_matrix[i, j].item()
-                if sim > self.edge_threshold:
-                    c_i = getattr(target_nodes[i], "chiral_score", 0.0)
-                    c_j = getattr(target_nodes[j], "chiral_score", 0.0)
-                    if isinstance(c_i, torch.Tensor): c_i = c_i.item()
-                    if isinstance(c_j, torch.Tensor): c_j = c_j.item()
-                    chiral_factor = math.exp(-abs(c_i - c_j))
-                    
-                    tw_i = getattr(target_nodes[i], "tag_weights", {})
-                    tw_j = getattr(target_nodes[j], "tag_weights", {})
-                    if tw_i and tw_j:
-                        shared_keys = set(tw_i) & set(tw_j)
-                        overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
-                        norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
-                        norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
-                        signed_cosine = overlap / (norm_i * norm_j)
-                        tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
-                    else:
-                        tag_overlap_factor = 1.0
-                        
-                    weight = float(sim * chiral_factor * tag_overlap_factor)
-                    nid_i = getattr(target_nodes[i], "node_id", str(i))
-                    nid_j = getattr(target_nodes[j], "node_id", str(j))
-                    edges.append({
-                        "source": str(nid_i),
-                        "target": str(nid_j),
-                        "weight": weight,
-                        "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
-                    })
+        mask = torch.triu(sim_matrix > self.edge_threshold, diagonal=1)
+        passing_coords = torch.nonzero(mask, as_tuple=False)
+        if passing_coords.shape[0] > max_edges * 3:
+            vals = sim_matrix[passing_coords[:, 0], passing_coords[:, 1]]
+            _, top_idx = torch.topk(vals, k=max_edges * 3)
+            passing_coords = passing_coords[top_idx]
+        passing_pairs = passing_coords.tolist()
+        for i, j in passing_pairs:
+            sim = sim_matrix[i, j].item()
+            c_i = getattr(target_nodes[i], "chiral_score", 0.0)
+            c_j = getattr(target_nodes[j], "chiral_score", 0.0)
+            if isinstance(c_i, torch.Tensor): c_i = c_i.item()
+            if isinstance(c_j, torch.Tensor): c_j = c_j.item()
+            chiral_factor = math.exp(-abs(c_i - c_j))
+            
+            tw_i = getattr(target_nodes[i], "tag_weights", {})
+            tw_j = getattr(target_nodes[j], "tag_weights", {})
+            if tw_i and tw_j:
+                shared_keys = set(tw_i) & set(tw_j)
+                overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
+                norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
+                norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
+                signed_cosine = overlap / (norm_i * norm_j)
+                tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
+            else:
+                tag_overlap_factor = 1.0
+                
+            weight = float(sim * chiral_factor * tag_overlap_factor)
+            nid_i = getattr(target_nodes[i], "node_id", str(i))
+            nid_j = getattr(target_nodes[j], "node_id", str(j))
+            edges.append({
+                "source": str(nid_i),
+                "target": str(nid_j),
+                "weight": weight,
+                "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
+            })
                     
         if edges and top_k_per_node > 0 and len(edges) > max_edges:
             edges.sort(key=lambda x: x['weight'], reverse=True)
@@ -581,13 +587,12 @@ class GyroidicGraphManager:
             nid = getattr(n, "node_id", None) or (n.get("node_id") if isinstance(n, dict) else None) or (n.get("id") if isinstance(n, dict) else "unknown")
             visible_ids.add(str(nid))
 
-            n_state = getattr(n, "state", None)
-            if n_state is None and isinstance(n, dict):
-                n_state = n.get("state")
-            if n_state is not None:
-                px, py = self.compute_poincare_projection(n_state)
+            if isinstance(n, dict):
+                px = float(n.get("px", 0.0) or 0.0)
+                py = float(n.get("py", 0.0) or 0.0)
             else:
-                px, py = 0.0, 0.0
+                px = float(getattr(n, "px", None) or 0.0)
+                py = float(getattr(n, "py", None) or 0.0)
 
             text_val = getattr(n, "text", None) or (n.get("text") if isinstance(n, dict) else "") or (n.get("label") if isinstance(n, dict) else "")
             chiral_val = getattr(n, "chiral_score", None) or (n.get("chiral") if isinstance(n, dict) else 0.0)
@@ -680,66 +685,70 @@ class GyroidicGraphManager:
         
         edges = []
         num_nodes = len(self.nodes)
+        mask = torch.triu(sim_matrix > self.edge_threshold, diagonal=1)
+        passing_coords = torch.nonzero(mask, as_tuple=False)
+        if passing_coords.shape[0] > max_edges * 3:
+            vals = sim_matrix[passing_coords[:, 0], passing_coords[:, 1]]
+            _, top_idx = torch.topk(vals, k=max_edges * 3)
+            passing_coords = passing_coords[top_idx]
+        passing_pairs = passing_coords.tolist()
         
-        for i in range(num_nodes):
-            for j in range(i + 1, num_nodes):
-                sim = sim_matrix[i, j].item()
+        for i, j in passing_pairs:
+            sim = sim_matrix[i, j].item()
+            # Chiral Interference factor
+            c_i = self.nodes[i].chiral_score
+            c_j = self.nodes[j].chiral_score
+            
+            # Ensure scalars
+            if isinstance(c_i, torch.Tensor): c_i = c_i.item()
+            if isinstance(c_j, torch.Tensor): c_j = c_j.item()
+            
+            chiral_factor = math.exp(-abs(c_i - c_j))
+
+            # Tag overlap factor: shared high-weight tags indicate shared topological
+            # lineage (same friction type, archetype, alias) — they pull manifold
+            # distance closer. Uses the same key normalization as SuperposedTagStacker.
+            #
+            # SIGN AWARENESS: SuperposedTagStacker allows negative weights (feature
+            # subtraction / hyperbolic divergence). A negative * negative product is
+            # geometrically a divergence, not an attraction. We use max(overlap, 0)
+            # so only genuine positive co-activation increases edge affinity.
+            tw_i = self.nodes[i].tag_weights
+            tw_j = self.nodes[j].tag_weights
+            if tw_i and tw_j:
+                shared_keys = set(tw_i) & set(tw_j)
+                overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
+                norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
+                norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
+                # clamp to [0, 1]: only positive co-activation amplifies affinity
+                signed_cosine = overlap / (norm_i * norm_j)
+                tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
+            else:
+                tag_overlap_factor = 1.0
                 
-                if sim > self.edge_threshold:
-                    # Chiral Interference factor
-                    c_i = self.nodes[i].chiral_score
-                    c_j = self.nodes[j].chiral_score
-                    
-                    # Ensure scalars
-                    if isinstance(c_i, torch.Tensor): c_i = c_i.item()
-                    if isinstance(c_j, torch.Tensor): c_j = c_j.item()
-                    
-                    chiral_factor = math.exp(-abs(c_i - c_j))
+            # LCFT Logarithmic Correlation for Neglecton Scars
+            is_scar_i = "scar" in self.nodes[i].node_id.lower() or "damage" in self.nodes[i].node_id.lower()
+            is_scar_i = is_scar_i or self.nodes[i].metrics.get('type') in ['live_scarred', 'live_damage']
+            is_scar_j = "scar" in self.nodes[j].node_id.lower() or "damage" in self.nodes[j].node_id.lower()
+            is_scar_j = is_scar_j or self.nodes[j].metrics.get('type') in ['live_scarred', 'live_damage']
+            
+            if is_scar_i and is_scar_j:
+                # Logarithmic Conformal Field Theory (LCFT) 2-point function for partner fields
+                dist = torch.norm(self.nodes[i].state - self.nodes[j].state).item()
+                # <psi(x) psi(y)> ~ -2 log|x-y| + C
+                # We map it to a multiplicative boost [1.0, 3.0] based on log distance
+                lcft_boost = max(1.0, -2.0 * math.log(dist + 1e-4) / 10.0 + 1.5)
+            else:
+                lcft_boost = 1.0
 
-                    # Tag overlap factor: shared high-weight tags indicate shared topological
-                    # lineage (same friction type, archetype, alias) — they pull manifold
-                    # distance closer. Uses the same key normalization as SuperposedTagStacker.
-                    #
-                    # SIGN AWARENESS: SuperposedTagStacker allows negative weights (feature
-                    # subtraction / hyperbolic divergence). A negative * negative product is
-                    # geometrically a divergence, not an attraction. We use max(overlap, 0)
-                    # so only genuine positive co-activation increases edge affinity.
-                    tw_i = self.nodes[i].tag_weights
-                    tw_j = self.nodes[j].tag_weights
-                    if tw_i and tw_j:
-                        shared_keys = set(tw_i) & set(tw_j)
-                        overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
-                        norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
-                        norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
-                        # clamp to [0, 1]: only positive co-activation amplifies affinity
-                        signed_cosine = overlap / (norm_i * norm_j)
-                        tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
-                    else:
-                        tag_overlap_factor = 1.0
-                        
-                    # LCFT Logarithmic Correlation for Neglecton Scars
-                    is_scar_i = "scar" in self.nodes[i].node_id.lower() or "damage" in self.nodes[i].node_id.lower()
-                    is_scar_i = is_scar_i or self.nodes[i].metrics.get('type') in ['live_scarred', 'live_damage']
-                    is_scar_j = "scar" in self.nodes[j].node_id.lower() or "damage" in self.nodes[j].node_id.lower()
-                    is_scar_j = is_scar_j or self.nodes[j].metrics.get('type') in ['live_scarred', 'live_damage']
-                    
-                    if is_scar_i and is_scar_j:
-                        # Logarithmic Conformal Field Theory (LCFT) 2-point function for partner fields
-                        dist = torch.norm(self.nodes[i].state - self.nodes[j].state).item()
-                        # <psi(x) psi(y)> ~ -2 log|x-y| + C
-                        # We map it to a multiplicative boost [1.0, 3.0] based on log distance
-                        lcft_boost = max(1.0, -2.0 * math.log(dist + 1e-4) / 10.0 + 1.5)
-                    else:
-                        lcft_boost = 1.0
-
-                    weight = float(sim * chiral_factor * tag_overlap_factor * lcft_boost)
-                    
-                    edges.append({
-                        "source": str(self.nodes[i].node_id),
-                        "target": str(self.nodes[j].node_id),
-                        "weight": weight,
-                        "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
-                    })
+            weight = float(sim * chiral_factor * tag_overlap_factor * lcft_boost)
+            
+            edges.append({
+                "source": str(self.nodes[i].node_id),
+                "target": str(self.nodes[j].node_id),
+                "weight": weight,
+                "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
+            })
                     
         # Prune dense hairballs (e.g. 62k edges down to top-k resonance links) to prevent browser lockups
         if edges and top_k_per_node > 0 and len(edges) > max_edges:

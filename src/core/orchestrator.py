@@ -1454,8 +1454,9 @@ class UniversalOrchestrator(nn.Module):
 
             # Evaluate recurrent dynamics and track topological scars
             current_state, updated_scar = self.rnn_core(
-                current_state, (current_state, self._cerumen_pot_buffer)
+                current_state, (current_state, self._cerumen_pot_buffer.detach())
             )
+            self._cerumen_pot_buffer = updated_scar.detach()
             
             # Paradox Hardening Gate: evaluate unclosed oscillations and charge mischief probe
             if micro_idx > 0:

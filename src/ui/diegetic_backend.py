@@ -1526,6 +1526,8 @@ class DiegeticPhysicsEngine(nn.Module):
         # We pass input_tensor as attention_states to trigger M update
         # We also pass collision_residues (Gap A) to excite breathers AND seed D_dark
         expected_residues = getattr(self, '_last_est_residues', None)
+        if isinstance(expected_residues, torch.Tensor):
+            expected_residues = expected_residues.detach()
         cavity_out = self.cavity(
             input_tensor.unsqueeze(1),
             expected_residues=expected_residues,
@@ -1538,12 +1540,13 @@ class DiegeticPhysicsEngine(nn.Module):
             try:
                 if not hasattr(self, '_cerumen_pot_buffer') or self._cerumen_pot_buffer.shape != memory_state.shape:
                     self._cerumen_pot_buffer = torch.zeros_like(memory_state)
-                memory_state, self._cerumen_pot_buffer = self.rnn_core(
-                    memory_state, (memory_state, self._cerumen_pot_buffer)
+                memory_state, updated_pot = self.rnn_core(
+                    memory_state, (memory_state, self._cerumen_pot_buffer.detach())
                 )
+                self._cerumen_pot_buffer = updated_pot.detach()
             except Exception:
                 pass
-        self._last_memory_state = memory_state
+        self._last_memory_state = memory_state.detach()
         
         # 4. FRACTAL META-RECURSION
         est_residues = torch.tanh(self.associator.residue_map(memory_state)) # [1, k]
@@ -1551,16 +1554,16 @@ class DiegeticPhysicsEngine(nn.Module):
         
         # Ensure previous meta_state is finite before update (smooth radial bound)
         if not torch.isfinite(self.meta_state).all():
-            finite_meta = torch.nan_to_num(self.meta_state)
+            finite_meta = torch.nan_to_num(self.meta_state.detach())
             fn_norm = torch.norm(finite_meta, p=2, dim=-1, keepdim=True)
-            self.meta_state = torch.where(fn_norm > 5.0, finite_meta * (5.0 * torch.tanh(fn_norm / 5.0) / (fn_norm + 1e-8)), finite_meta)
+            self.meta_state = torch.where(fn_norm > 5.0, finite_meta * (5.0 * torch.tanh(fn_norm / 5.0) / (fn_norm + 1e-8)), finite_meta).detach()
 
         meta_out = self.fractal_meta(
             current_state=memory_state,
-            meta_state_prev=self.meta_state,
+            meta_state_prev=self.meta_state.detach(),
             residues=est_residues,
-            dark_matter=self.cavity.D_dark[0].mean(dim=0, keepdim=True),# [1, dim]
-            cavity_overtones=self.cavity.M
+            dark_matter=self.cavity.D_dark[0].mean(dim=0, keepdim=True).detach(),# [1, dim]
+            cavity_overtones=self.cavity.M.detach()
         )
         
         # Update persistent meta-state (detach to prevent graph blowup here)
@@ -1577,12 +1580,12 @@ class DiegeticPhysicsEngine(nn.Module):
             new_meta * (r_max * torch.tanh(meta_norm / r_max) / (meta_norm + 1e-8)),
             new_meta
         )
-        self.meta_state = bounded_meta if is_training_active else bounded_meta.detach()
+        self.meta_state = bounded_meta.detach()
         
         # Return state for character generation / training
         # IMPORTANT: During training or diegetic response synthesis, we return the non-detached fractal state
         # to allow gradient propagation for Ricci Flow and Association learning.
-        output_state = meta_out['s_fractal'] if is_training_active else self.meta_state
+        output_state = bounded_meta if is_training_active else self.meta_state
         if hasattr(self, 'advanced_bridge') and self.advanced_bridge is not None:
             output_state = self.advanced_bridge.apply_lcft_projection(output_state)
         return output_state
@@ -2332,9 +2335,11 @@ class DiegeticPhysicsEngine(nn.Module):
         # but block external user calls if the engine is already occupied by a main process.
         if getattr(self, '_shutting_down', False) or (hasattr(self, '_shutdown_event') and self._shutdown_event.is_set()):
             return {"response": "System shutting down.", "status": "SHUTDOWN"}
-        acquired = self._processing_lock.acquire(timeout=180.0)
+        is_bg_call = (not generate_response) or ingestion_mode or text_input == "IDLE_RESONANCE_HEARTBEAT"
+        lock_timeout = 3.0 if is_bg_call else 180.0
+        acquired = self._processing_lock.acquire(timeout=lock_timeout)
         if not acquired:
-            if not getattr(self, '_shutting_down', False):
+            if not is_bg_call and not getattr(self, '_shutting_down', False):
                 print("[ENGINE] Warning: Re-entrant call detected or lock timeout. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
             
@@ -2377,9 +2382,10 @@ class DiegeticPhysicsEngine(nn.Module):
         """
         if getattr(self, '_shutting_down', False) or (hasattr(self, '_shutdown_event') and self._shutdown_event.is_set()):
             return {"response": "System shutting down.", "status": "SHUTDOWN"}
-        acquired = self._processing_lock.acquire(timeout=180.0)
+        is_bg_text = text.startswith("INGEST_DYAD:") or text == "IDLE_RESONANCE_HEARTBEAT"
+        acquired = self._processing_lock.acquire(timeout=5.0 if is_bg_text else 180.0)
         if not acquired:
-            if not getattr(self, '_shutting_down', False):
+            if not is_bg_text and not getattr(self, '_shutting_down', False):
                 print("[ENGINE] Warning: Re-entrant call detected or lock timeout in process_text. Returning placeholder.")
             return {"response": "System busy: topological re-indexing in progress...", "status": "BUSY"}
             
@@ -8138,17 +8144,19 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     elapsed_ms = (time.time() - t_graph_start) * 1000.0
                     print(f"[GRAPH] Served {len(graph_data.get('nodes', []))} nodes, {len(graph_data.get('links', []))} links in {elapsed_ms:.2f}ms (procedural={is_procedural}, cached={has_sufficient_nodes})")
 
-                    total_idx = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else len(getattr(graph_mgr, 'nodes', []))
+                    f_inst = getattr(ENGINE, 'fossilizer', None) if ENGINE else None
+                    total_idx = len(getattr(f_inst, 'fossil_index', {})) if f_inst else len(getattr(graph_mgr, 'nodes', []))
                     graph_data["total_index"] = total_idx
                     graph_data["cached"] = not force_reload and has_sufficient_nodes
                     graph_data["procedural_mode"] = is_procedural
                     self._send_json(graph_data)
                 except Exception as e:
+                    f_inst = getattr(ENGINE, 'fossilizer', None) if ENGINE else None
                     self._send_json({
                         "nodes": [],
                         "links": [],
                         "error": str(e),
-                        "total_index": len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0,
+                        "total_index": len(getattr(f_inst, 'fossil_index', {})) if f_inst else 0,
                         "cached": False
                     })
                 return
@@ -8160,7 +8168,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json({"status": "error", "message": str(e)})
                 return
             elif base_path == '/api/index_size':
-                size = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else 0
+                f_inst = getattr(ENGINE, 'fossilizer', None) if ENGINE else None
+                size = len(getattr(f_inst, 'fossil_index', {})) if f_inst else 0
                 self._send_json({"total_index": size})
                 return
             elif base_path == '/api/progress':
@@ -10452,7 +10461,12 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
             elif self.path == '/api/viewer/fossils':
                 try:
-                    import glob
+                    now_ts = time.time()
+                    cache_entry = getattr(DiegeticRequestHandler, '_viewer_fossils_cache', None)
+                    if cache_entry and (now_ts - cache_entry[0] < 5.0):
+                        self._send_json({"status": "ok", "files": cache_entry[1]})
+                        return
+
                     files = []
                     search_dirs = [
                         os.path.join("data", "fossils"),
@@ -10460,27 +10474,42 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         "checkpoints",
                         "."
                     ]
-                    exts = ["*.pkl", "*.pt", "*.arrow", "*.feather", "*.parquet", "*.json", "*.npy", "*.npz"]
+                    valid_exts = (".pkl", ".pt", ".arrow", ".feather", ".parquet", ".json", ".npy", ".npz")
                     seen = set()
                     for sdir in search_dirs:
                         if not os.path.exists(sdir):
                             continue
-                        for ext in exts:
-                            for fpath in glob.glob(os.path.join(sdir, ext)):
-                                norm = os.path.normpath(fpath)
-                                if norm in seen or ".venv" in norm or "__pycache__" in norm:
-                                    continue
-                                seen.add(norm)
-                                sz = os.path.getsize(norm)
-                                mtime = os.path.getmtime(norm)
-                                files.append({
-                                    "filename": os.path.basename(norm),
-                                    "path": norm,
-                                    "size_bytes": sz,
-                                    "mtime": datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
-                                })
+                        try:
+                            with os.scandir(sdir) as it:
+                                dir_count = 0
+                                for entry in it:
+                                    if dir_count >= 200:
+                                        break
+                                    if not entry.is_file():
+                                        continue
+                                    if not entry.name.lower().endswith(valid_exts):
+                                        continue
+                                    norm = os.path.normpath(entry.path)
+                                    if norm in seen or ".venv" in norm or "__pycache__" in norm:
+                                        continue
+                                    seen.add(norm)
+                                    dir_count += 1
+                                    try:
+                                        st = entry.stat()
+                                        files.append({
+                                            "filename": entry.name,
+                                            "path": norm,
+                                            "size_bytes": st.st_size,
+                                            "mtime": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                                        })
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            pass
                     files.sort(key=lambda x: x["mtime"], reverse=True)
-                    self._send_json({"status": "ok", "files": files[:150]})
+                    result_files = files[:150]
+                    DiegeticRequestHandler._viewer_fossils_cache = (now_ts, result_files)
+                    self._send_json({"status": "ok", "files": result_files})
                 except Exception as e:
                     self._send_error_json(f"Failed to scan fossil repository: {str(e)}")
 
