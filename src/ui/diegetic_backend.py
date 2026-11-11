@@ -2372,6 +2372,12 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Merge evolved state back into persistent self.meta_state (The Ouroboros Loop)
             if isinstance(engine_output, dict):
+                if "evolved_state" in engine_output and isinstance(self.meta_state, torch.Tensor):
+                    try:
+                        evolved_t = engine_output["evolved_state"].to(self.device).view_as(self.meta_state)
+                        self.meta_state = 0.85 * self.meta_state + 0.15 * evolved_t
+                    except Exception:
+                        pass
                 # Apply Audience Mapping (: M -> A)
                 if self.audience_mapper:
                     try:
@@ -4231,10 +4237,11 @@ class DiegeticPhysicsEngine(nn.Module):
                     # Operational ADMM: Differentiable Ontological Splitting constraint repair
                     if hasattr(self, 'operational_admm') and self.operational_admm is not None:
                         try:
-                            q_evolved = self.operational_admm(
+                            admm_res = self.operational_admm(
                                 initial_c=q_evolved,
                                 forward_op=lambda s: s
                             )
+                            q_evolved = admm_res[0] if isinstance(admm_res, tuple) else admm_res
                         except Exception:
                             pass
 
@@ -5036,6 +5043,15 @@ class DiegeticPhysicsEngine(nn.Module):
                 torch.save(snapshot_data, snapshot_path)
             except Exception as e:
                 print(f"[GRAPH] Failed to save Neglecton snapshot: {e}")
+
+        # Reconnect live manifold to response generation: Close the recurrent Ouroboros loop
+        if hasattr(self, 'meta_state') and isinstance(self.meta_state, torch.Tensor) and seed_state is not None:
+            try:
+                evolved_component = seed_state.detach().view_as(self.meta_state)
+                self.meta_state = 0.85 * self.meta_state + 0.15 * evolved_component
+                metrics["evolved_state"] = seed_state.detach().cpu()
+            except Exception as _merge_err:
+                print(f"[OUROBOROS] Manifold recurrence merge non-fatal: {_merge_err}")
 
         print("[OUT] Returning metrics")
         return metrics

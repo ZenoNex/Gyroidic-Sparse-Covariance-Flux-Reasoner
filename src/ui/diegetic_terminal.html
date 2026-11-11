@@ -1328,25 +1328,25 @@
                         style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Toggle between Rotate and Pan on Left Drag">MODE: ROTATE</button>
 
                     <button id="btn-toggle-procedural-load" onclick="toggleProceduralGraphLoad()"
-                        style="background: rgba(0, 242, 255, 0.1); border: 1px solid var(--terminal-blue); color: var(--terminal-blue); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Toggle Procedural Cone / Occlusion / Shear Load Mode">PROCEDURAL: OFF</button>
+                        style="background: rgba(0, 255, 65, 0.15); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Toggle Procedural Cone / Occlusion / Shear Load Mode">PROCEDURAL: ON</button>
 
                     <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888;" title="Render Horizon Distance">
                         <span>DIST</span>
-                        <input type="number" id="graph-render-dist" value="800" min="200" max="3000" step="50" style="width: 50px; background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                        <input type="number" id="graph-render-dist" value="800" min="200" max="3000" step="50" style="width: 50px; background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem;" onchange="if(!graphProceduralLoad) toggleProceduralGraphLoad(true); else refreshGraph(false);">
                     </label>
 
                     <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888;" title="Viewing Cone Field of View (Degrees)">
                         <span>CONE</span>
-                        <input type="number" id="graph-cone-fov" value="65" min="20" max="180" step="5" style="width: 42px; background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                        <input type="number" id="graph-cone-fov" value="65" min="20" max="180" step="5" style="width: 42px; background: #111; border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem;" onchange="if(!graphProceduralLoad) toggleProceduralGraphLoad(true); else refreshGraph(false);">
                     </label>
 
                     <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888; cursor: pointer;" title="Expand horizon along Alexander Wild Shear planes">
-                        <input type="checkbox" id="graph-shear-corridor" checked style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                        <input type="checkbox" id="graph-shear-corridor" checked style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="if(!graphProceduralLoad) toggleProceduralGraphLoad(true); else refreshGraph(false);">
                         <span>SHEAR</span>
                     </label>
 
                     <label style="display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.65rem; color: #888; cursor: pointer;" title="Directional depth ray occlusion culling">
-                        <input type="checkbox" id="graph-occlusion-cull" checked style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="if(graphProceduralLoad) refreshGraph(false)">
+                        <input type="checkbox" id="graph-occlusion-cull" checked style="accent-color: var(--terminal-blue); cursor: pointer;" onchange="if(!graphProceduralLoad) toggleProceduralGraphLoad(true); else refreshGraph(false);">
                         <span>OCCL</span>
                     </label>
 
@@ -3124,12 +3124,16 @@
         let graphDataGlobal = null;
         let graphPhysicsFrozen = true;
         let graphNavMode = 'rotate'; // 'rotate' | 'pan'
-        let graphProceduralLoad = false;
+        let graphProceduralLoad = true;
         let proceduralUpdateTimer = null;
         const graphNodePositions = new Map();
 
-        function toggleProceduralGraphLoad() {
-            graphProceduralLoad = !graphProceduralLoad;
+        function toggleProceduralGraphLoad(forceVal = null) {
+            if (forceVal !== null) {
+                graphProceduralLoad = !!forceVal;
+            } else {
+                graphProceduralLoad = !graphProceduralLoad;
+            }
             const btn = document.getElementById('btn-toggle-procedural-load');
             const hud = document.getElementById('graph-procedural-hud');
             if (btn) {
@@ -3262,16 +3266,23 @@
                 }
             }
 
-            // Show non-destructive loading overlay
+            // Show non-destructive loading overlay with live progress timer
+            const outerContainer = document.getElementById('graph-container') || container;
             let loadingOverlay = document.getElementById('graph-loading-overlay');
             if (!loadingOverlay) {
                 loadingOverlay = document.createElement('div');
                 loadingOverlay.id = 'graph-loading-overlay';
-                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100; pointer-events: none; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;';
-                container.appendChild(loadingOverlay);
+                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100; pointer-events: none; background: rgba(0,0,0,0.85); padding: 10px 16px; border-radius: 5px; border: 1px solid rgba(0,242,255,0.3); text-align: center;';
+                outerContainer.appendChild(loadingOverlay);
             }
-            loadingOverlay.innerText = forceReload ? 'FORCE RESCANNING COGNITIVE FIELD...' : 'POLLING COGNITIVE FIELD...';
+            let scanSec = 0;
+            const statusBase = graphProceduralLoad ? 'STREAMING PROCEDURAL HORIZON' : (forceReload ? 'RESCANNING COGNITIVE DISK' : 'POLLING COGNITIVE FIELD');
+            loadingOverlay.innerText = `[${statusBase}] ... (0.0s)`;
             loadingOverlay.style.display = 'block';
+            let loadTicker = setInterval(() => {
+                scanSec += 0.5;
+                if (loadingOverlay) loadingOverlay.innerText = `[${statusBase}] ... (${scanSec.toFixed(1)}s)`;
+            }, 500);
 
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
@@ -3329,16 +3340,17 @@
                 }
                 window._graphAbortController = new AbortController();
 
-                // 3.5s watchdog timer: prompt for procedural mode if default dense graph takes time
+                // 1.8s watchdog timer: prompt for procedural mode if default dense graph takes time
                 if (!graphProceduralLoad) {
                     procPromptTimer = setTimeout(() => {
                         showProceduralViewPrompt();
-                    }, 3500);
+                    }, 1800);
                 }
 
                 const response = await fetch(url, { signal: window._graphAbortController.signal });
                 if (procPromptTimer) clearTimeout(procPromptTimer);
                 hideProceduralViewPrompt();
+                if (loadTicker) clearInterval(loadTicker);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -3377,7 +3389,8 @@
                         repaired: !!node.repaired,
                         locked: !!node.locked,
                         type: node.type || 'fossil',
-                        tags: node.tags || []
+                        tags: node.tags || [],
+                        public_domain_tags: node.public_domain_tags || []
                     };
 
                     // Anchor with cached position or backend 3D projection, and freeze if physics halted
@@ -3506,11 +3519,14 @@
                             }
                         })
                         .nodeLabel(node => {
-                            return `<div style="font-family: var(--font-mono); font-size: 0.7rem; background: rgba(0,0,0,0.8); padding: 5px; border: 1px solid var(--terminal-blue); border-radius: 3px;">
+                            const pdHtml = (node.public_domain_tags && node.public_domain_tags.length > 0)
+                                ? `<br/><span style="color:var(--terminal-green); font-size:0.65rem;">[PD/STRUCTURAL HONESTY]: ${node.public_domain_tags.slice(0, 4).join(', ')}</span>`
+                                : '';
+                            return `<div style="font-family: var(--font-mono); font-size: 0.7rem; background: rgba(0,0,0,0.85); padding: 6px; border: 1px solid var(--terminal-blue); border-radius: 3px;">
                                 <strong style="color:var(--terminal-blue);">${node.id}</strong><br/>
                                 ${node.label ? node.label.substring(0, 50) + '...' : ''}<br/>
                                 <span style="color:#aaa;">Type: ${node.type}</span><br/>
-                                <span style="color:var(--terminal-magenta);">Tags: ${node.tags.join(', ') || 'none'}</span>
+                                <span style="color:var(--terminal-magenta);">Tags: ${node.tags.join(', ') || 'none'}</span>${pdHtml}
                             </div>`;
                         })
                         .nodeColor(node => {
@@ -3624,7 +3640,7 @@
         }
 
         function showProceduralViewPrompt() {
-            const container = document.getElementById('graph-canvas-container');
+            const container = document.getElementById('graph-container') || document.getElementById('graph-canvas-container');
             if (!container) return;
             let promptCard = document.getElementById('graph-procedural-prompt-card');
             if (!promptCard) {
@@ -3669,7 +3685,7 @@
                 btnProc.style.color = "var(--terminal-green)";
                 btnProc.style.borderColor = "var(--terminal-green)";
             }
-            const hud = document.getElementById('procedural-hud');
+            const hud = document.getElementById('graph-procedural-hud');
             if (hud) hud.style.display = 'block';
             refreshGraph(false);
         }
@@ -4266,7 +4282,13 @@
             appendMessage('user', finalInput);
             userInput.value = '';
 
-            let progressPollTimer = null;
+            state.is_interacting = true;
+            if (window._progressPollTimer) {
+                clearInterval(window._progressPollTimer);
+                window._progressPollTimer = null;
+            }
+            window._isPollingProgress = false;
+
             let progressEl = null;
             if (chatFeed) {
                 progressEl = document.createElement('div');
@@ -4276,7 +4298,9 @@
                 chatFeed.appendChild(progressEl);
                 if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
 
-                progressPollTimer = setInterval(async () => {
+                window._progressPollTimer = setInterval(async () => {
+                    if (window._isPollingProgress) return;
+                    window._isPollingProgress = true;
                     try {
                         const pRes = await fetch(`${state.backend_url}/api/progress`);
                         if (pRes.ok) {
@@ -4289,7 +4313,10 @@
                             }
                         }
                     } catch (_) {}
-                }, 350);
+                    finally {
+                        window._isPollingProgress = false;
+                    }
+                }, 1200);
             }
 
             try {
@@ -4363,7 +4390,11 @@
                 console.error("Communication Rupture:", err);
                 appendMessage('system', "COMMUNICATION RUPTURE. BACKEND DISSOCIATED.");
             } finally {
-                if (progressPollTimer) clearInterval(progressPollTimer);
+                if (window._progressPollTimer) {
+                    clearInterval(window._progressPollTimer);
+                    window._progressPollTimer = null;
+                }
+                state.is_interacting = false;
                 if (progressEl && progressEl.parentNode) progressEl.remove();
             }
         }
@@ -5569,6 +5600,10 @@
         // --- Topological Heartbeat (Service Mode) ---
         // Keeps the system "awake" and updates diagnostics every 15s
         setInterval(async () => {
+            if (state.is_interacting) {
+                console.log("[HEARTBEAT] Deferred while user interaction active.");
+                return;
+            }
             try {
                 const response = await fetch(`${state.backend_url}/interact`, {
                     method: 'POST',
