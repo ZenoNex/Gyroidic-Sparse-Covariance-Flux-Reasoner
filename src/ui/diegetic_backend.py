@@ -8058,9 +8058,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         if ENGINE:
                             ENGINE.graph_manager = graph_mgr
 
+                    t_graph_start = time.time()
                     # Serve cached graph structure if sufficient nodes exist, unless forced
                     current_node_count = len(getattr(graph_mgr, 'nodes', []))
-                    has_sufficient_nodes = current_node_count >= (limit or 100)
+                    has_sufficient_nodes = current_node_count > 0
                     if force_reload or not has_sufficient_nodes:
                         # Reload with specified limit and expanded scan window
                         graph_mgr.load_fossils(
@@ -8098,6 +8099,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             graph_data = json.loads(graph_mgr.export_graph_json())
                     else:
                         graph_data = json.loads(graph_mgr.export_graph_json())
+
+                    elapsed_ms = (time.time() - t_graph_start) * 1000.0
+                    print(f"[GRAPH] Served {len(graph_data.get('nodes', []))} nodes, {len(graph_data.get('links', []))} links in {elapsed_ms:.2f}ms (procedural={is_procedural}, cached={has_sufficient_nodes})")
 
                     total_idx = len(ENGINE.fossilizer.fossil_index) if hasattr(ENGINE, 'fossilizer') else len(getattr(graph_mgr, 'nodes', []))
                     graph_data["total_index"] = total_idx

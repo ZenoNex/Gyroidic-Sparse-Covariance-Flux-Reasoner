@@ -3245,6 +3245,18 @@
             const container = document.getElementById('graph-canvas-container');
             if (!container) return;
 
+            // Concurrency guard: avoid overlapping redundant dense graph fetches
+            if (window._isFetchingGraph) {
+                if (graphProceduralLoad) {
+                    if (window._graphAbortController) {
+                        try { window._graphAbortController.abort(); } catch(e) {}
+                    }
+                } else {
+                    return;
+                }
+            }
+            window._isFetchingGraph = true;
+
             // Suppress native contextmenu on graph canvas to enable smooth right-click panning
             container.oncontextmenu = (e) => {
                 e.preventDefault();
@@ -3272,16 +3284,25 @@
             if (!loadingOverlay) {
                 loadingOverlay = document.createElement('div');
                 loadingOverlay.id = 'graph-loading-overlay';
-                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:100; pointer-events: none; background: rgba(0,0,0,0.85); padding: 10px 16px; border-radius: 5px; border: 1px solid rgba(0,242,255,0.3); text-align: center;';
+                loadingOverlay.style.cssText = 'position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:var(--font-mono); color:var(--terminal-blue); font-size:0.75rem; letter-spacing:1px; z-index:300; pointer-events: auto; background: rgba(0,0,0,0.92); padding: 12px 18px; border-radius: 6px; border: 1px solid rgba(0,242,255,0.4); text-align: center; box-shadow: 0 0 20px rgba(0,242,255,0.25);';
                 outerContainer.appendChild(loadingOverlay);
             }
             let scanSec = 0;
             const statusBase = graphProceduralLoad ? 'STREAMING PROCEDURAL HORIZON' : (forceReload ? 'RESCANNING COGNITIVE DISK' : 'POLLING COGNITIVE FIELD');
-            loadingOverlay.innerText = `[${statusBase}] ... (0.0s)`;
+            loadingOverlay.innerHTML = `<div>[${statusBase}] ... (0.0s)</div>`;
             loadingOverlay.style.display = 'block';
             let loadTicker = setInterval(() => {
                 scanSec += 0.5;
-                if (loadingOverlay) loadingOverlay.innerText = `[${statusBase}] ... (${scanSec.toFixed(1)}s)`;
+                if (loadingOverlay) {
+                    let cancelBtn = '';
+                    if (scanSec >= 1.5) {
+                        cancelBtn = `<div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
+                            ${!graphProceduralLoad ? '<button onclick="activateProceduralFromPrompt()" style="background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-weight: bold; font-size: 0.68rem; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer;">FAST PROCEDURAL</button>' : ''}
+                            <button onclick="abortGraphLoad()" style="background: rgba(255,50,50,0.2); color: #ff6666; font-family: var(--font-mono); font-size: 0.68rem; border: 1px solid #ff4444; padding: 4px 8px; border-radius: 3px; cursor: pointer;">CANCEL</button>
+                        </div>`;
+                    }
+                    loadingOverlay.innerHTML = `<div>[${statusBase}] ... (${scanSec.toFixed(1)}s)</div>${cancelBtn}`;
+                }
             }, 500);
 
             const limitEl = document.getElementById('graph-limit');
@@ -3636,7 +3657,21 @@
                 }
                 console.error(e);
                 showProceduralFallbackError(e.message || e);
+            } finally {
+                window._isFetchingGraph = false;
+                if (procPromptTimer) clearTimeout(procPromptTimer);
+                if (loadTicker) clearInterval(loadTicker);
             }
+        }
+
+        function abortGraphLoad() {
+            if (window._graphAbortController) {
+                try { window._graphAbortController.abort(); } catch(e) {}
+            }
+            window._isFetchingGraph = false;
+            const overlay = document.getElementById('graph-loading-overlay');
+            if (overlay) overlay.style.display = 'none';
+            hideProceduralViewPrompt();
         }
 
         function showProceduralViewPrompt() {
@@ -3646,7 +3681,7 @@
             if (!promptCard) {
                 promptCard = document.createElement('div');
                 promptCard.id = 'graph-procedural-prompt-card';
-                promptCard.style.cssText = 'position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(5, 12, 24, 0.95); border: 1px solid var(--terminal-blue); border-radius: 8px; padding: 18px 22px; z-index: 250; text-align: center; max-width: 460px; box-shadow: 0 0 25px rgba(0, 242, 255, 0.35); backdrop-filter: blur(8px);';
+                promptCard.style.cssText = 'position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(5, 12, 24, 0.95); border: 1px solid var(--terminal-blue); border-radius: 8px; padding: 18px 22px; z-index: 350; text-align: center; max-width: 460px; box-shadow: 0 0 25px rgba(0, 242, 255, 0.35); backdrop-filter: blur(8px); pointer-events: auto;';
                 container.appendChild(promptCard);
             }
             promptCard.innerHTML = `

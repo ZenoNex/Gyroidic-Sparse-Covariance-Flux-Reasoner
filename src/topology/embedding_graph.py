@@ -52,6 +52,11 @@ class KnowledgeFossilNode:
                 and t not in ('atrophy_rehydrated', 'non_semisimple_refreshed')
             ]
         self.public_domain_tags: list = raw_public_domain_tags
+        self.x: Optional[float] = None
+        self.y: Optional[float] = None
+        self.z: Optional[float] = None
+        self.px: Optional[float] = None
+        self.py: Optional[float] = None
 
 class GyroidicGraphManager:
     """
@@ -66,6 +71,8 @@ class GyroidicGraphManager:
         self.edge_threshold = PHI_RECIPROCAL  # Similarity threshold for edge creation via Golden Conjugate proxy
         self.dedup_threshold = 0.9999 # Threshold for identity (to prune duplicates)
         self.loaded_from_snapshot = False
+        self._cached_edges: Optional[List[Dict[str, Any]]] = None
+        self._edges_dirty: bool = True
         
     def get_valid_node_count(self) -> int:
         """Returns the number of actual nodes, excluding uncollapsed homological ghost cycles."""
@@ -91,7 +98,7 @@ class GyroidicGraphManager:
                 print(f"[GRAPH] Loading Neglecton from snapshot: {snapshot_path}")
                 data = torch.load(snapshot_path, map_location='cpu')
                 self.load_memory_snapshot(data)
-                if len(self.nodes) >= (limit or 150):
+                if len(self.nodes) > 0:
                     loaded_full_from_snapshot = True
                     if limit and 0 < limit < len(self.nodes):
                         self.nodes = self.nodes[:limit]
@@ -173,6 +180,9 @@ class GyroidicGraphManager:
                     print(f"Failed to load fossil {f}: {e}")
                     
         self.loaded_from_snapshot = loaded_full_from_snapshot
+        # Invalidate edge cache so it is cleanly populated on next access
+        self._cached_edges = None
+        self._edges_dirty = True
         # Always inject live states at the end of load_fossils
         self._inject_live_gyroid_states()
 
@@ -181,6 +191,9 @@ class GyroidicGraphManager:
         Integrates current states from gyroid_state.pt as special live nodes
         with type classification for visual distinction and adjacency mapping.
         """
+        # Invalidate edge cache when live state mutations occur
+        self._cached_edges = None
+        self._edges_dirty = True
         # Remove any existing live nodes to avoid duplicates
         self.nodes = [n for n in self.nodes if not n.node_id.startswith("live_")]
         
@@ -319,6 +332,102 @@ class GyroidicGraphManager:
         except Exception:
             return 0.0, 0.0, 0.0
 
+    def ensure_node_coordinates(self, n: Any):
+        """Precompute and cache 3D harmonic and Poincare coordinates on the node."""
+        metrics = getattr(n, "metrics", n if isinstance(n, dict) else {})
+        mx = getattr(n, "x", None) or (metrics.get("x") if isinstance(metrics, dict) else None)
+        my = getattr(n, "y", None) or (metrics.get("y") if isinstance(metrics, dict) else None)
+        mz = getattr(n, "z", None) or (metrics.get("z") if isinstance(metrics, dict) else None)
+        
+        mpx = getattr(n, "px", None) or (metrics.get("px") if isinstance(metrics, dict) else None)
+        mpy = getattr(n, "py", None) or (metrics.get("py") if isinstance(metrics, dict) else None)
+
+        if mx is not None and my is not None and mz is not None:
+            x, y, z = float(mx), float(my), float(mz)
+        else:
+            n_state = getattr(n, 'state', None)
+            if n_state is None and isinstance(n, dict):
+                n_state = n.get("state")
+            if n_state is not None:
+                x, y, z = self.compute_3d_projection(n_state)
+            else:
+                x, y, z = 0.0, 0.0, 0.0
+
+        if mpx is not None and mpy is not None:
+            px, py = float(mpx), float(mpy)
+        else:
+            n_state = getattr(n, 'state', None)
+            if n_state is None and isinstance(n, dict):
+                n_state = n.get("state")
+            if n_state is not None:
+                px, py = self.compute_poincare_projection(n_state)
+            else:
+                px, py = 0.0, 0.0
+
+        if isinstance(n, dict):
+            n['x'], n['y'], n['z'] = x, y, z
+            n['px'], n['py'] = px, py
+        else:
+            n.x, n.y, n.z = x, y, z
+            n.px, n.py = px, py
+
+    def get_adjacency_list_for_nodes(self, target_nodes: List[Any], top_k_per_node: int = 6, max_edges: int = 1500) -> List[Dict[str, Any]]:
+        """
+        Fast local adjacency list computed only for a visible candidate subset of nodes.
+        Avoids O(N^2) global scan during procedural camera view streaming.
+        """
+        if not target_nodes or len(target_nodes) < 2:
+            return []
+        
+        try:
+            states = torch.stack([n.state for n in target_nodes if hasattr(n, 'state')])
+            if len(states) < 2:
+                return []
+            states_norm = states / (torch.norm(states, dim=1, keepdim=True) + 1e-8)
+            sim_matrix = torch.mm(states_norm, states_norm.t())
+        except Exception:
+            return []
+            
+        edges = []
+        num_nodes = len(target_nodes)
+        for i in range(num_nodes):
+            for j in range(i + 1, num_nodes):
+                sim = sim_matrix[i, j].item()
+                if sim > self.edge_threshold:
+                    c_i = getattr(target_nodes[i], "chiral_score", 0.0)
+                    c_j = getattr(target_nodes[j], "chiral_score", 0.0)
+                    if isinstance(c_i, torch.Tensor): c_i = c_i.item()
+                    if isinstance(c_j, torch.Tensor): c_j = c_j.item()
+                    chiral_factor = math.exp(-abs(c_i - c_j))
+                    
+                    tw_i = getattr(target_nodes[i], "tag_weights", {})
+                    tw_j = getattr(target_nodes[j], "tag_weights", {})
+                    if tw_i and tw_j:
+                        shared_keys = set(tw_i) & set(tw_j)
+                        overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
+                        norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
+                        norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
+                        signed_cosine = overlap / (norm_i * norm_j)
+                        tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
+                    else:
+                        tag_overlap_factor = 1.0
+                        
+                    weight = float(sim * chiral_factor * tag_overlap_factor)
+                    nid_i = getattr(target_nodes[i], "node_id", str(i))
+                    nid_j = getattr(target_nodes[j], "node_id", str(j))
+                    edges.append({
+                        "source": str(nid_i),
+                        "target": str(nid_j),
+                        "weight": weight,
+                        "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
+                    })
+                    
+        if edges and top_k_per_node > 0 and len(edges) > max_edges:
+            edges.sort(key=lambda x: x['weight'], reverse=True)
+            edges = edges[:max_edges]
+            
+        return edges
+
     def query_procedural_graph(
         self,
         camera_pos: Tuple[float, float, float] = (0.0, 0.0, 800.0),
@@ -371,10 +480,6 @@ class GyroidicGraphManager:
         sn_x, sn_y, sn_z = 0.57735, 0.57735, 0.57735
         shear_tolerance = 80.0
 
-        try:
-            edges = self.get_adjacency_list()
-        except Exception:
-            edges = []
         candidates = []
         culled_dist = 0
         culled_cone = 0
@@ -384,20 +489,11 @@ class GyroidicGraphManager:
             nid = n.node_id if hasattr(n, "node_id") else (n.get("node_id") or n.get("id") or "")
             if "ghost" in str(nid).lower() or "live_damage" in str(nid).lower():
                 continue
-            metrics = getattr(n, "metrics", n if isinstance(n, dict) else {})
-            mx = getattr(n, "x", None) or (metrics.get("x") if isinstance(metrics, dict) else None)
-            my = getattr(n, "y", None) or (metrics.get("y") if isinstance(metrics, dict) else None)
-            mz = getattr(n, "z", None) or (metrics.get("z") if isinstance(metrics, dict) else None)
-            if mx is not None and my is not None and mz is not None:
-                x, y, z = float(mx), float(my), float(mz)
+            self.ensure_node_coordinates(n)
+            if isinstance(n, dict):
+                x, y, z = float(n.get("x", 0.0)), float(n.get("y", 0.0)), float(n.get("z", 0.0))
             else:
-                n_state = getattr(n, "state", None)
-                if n_state is None and isinstance(n, dict):
-                    n_state = n.get("state")
-                if n_state is not None:
-                    x, y, z = self.compute_3d_projection(n_state)
-                else:
-                    x, y, z = 0.0, 0.0, 0.0
+                x, y, z = float(n.x or 0.0), float(n.y or 0.0), float(n.z or 0.0)
             
             # Relative vector from camera
             dx, dy, dz = x - cx, y - cy, z - cz
@@ -530,10 +626,14 @@ class GyroidicGraphManager:
                 "type": node_type
             })
 
-        visible_edges = [
-            e for e in edges
-            if e['source'] in visible_ids and e['target'] in visible_ids
-        ]
+        if self._cached_edges is not None and not self._edges_dirty:
+            visible_edges = [
+                e for e in self._cached_edges
+                if e['source'] in visible_ids and e['target'] in visible_ids
+            ]
+        else:
+            visible_nodes = [it["node"] for it in candidates]
+            visible_edges = self.get_adjacency_list_for_nodes(visible_nodes, top_k_per_node=6, max_edges=1500)
 
         return {
             "nodes": nodes_data,
@@ -561,6 +661,9 @@ class GyroidicGraphManager:
         W = Sim(state_i, state_j) * exp(-abs(chiral_i - chiral_j))
         Prunes dense meshes to top_k_per_node to prevent WebGL lockups and render clear Obsidian clusters.
         """
+        if not self._edges_dirty and self._cached_edges is not None:
+            return self._cached_edges
+
         if not self.nodes:
             return []
             
@@ -684,6 +787,8 @@ class GyroidicGraphManager:
                     })
                     connected_ids.add(nid)
 
+        self._cached_edges = edges
+        self._edges_dirty = False
         return edges
 
     def get_memory_snapshot(self) -> Dict[str, Any]:
@@ -721,6 +826,8 @@ class GyroidicGraphManager:
         self.dedup_threshold = snapshot.get("dedup_threshold", self.dedup_threshold)
         
         self.nodes = []
+        self._cached_edges = None
+        self._edges_dirty = True
         for node_data in snapshot.get("nodes", []):
             state = node_data.get("state")
             if state is not None:
@@ -764,8 +871,9 @@ class GyroidicGraphManager:
             if n.node_id in valid_node_ids:
                 continue
             valid_node_ids.add(n.node_id)
-            px, py = self.compute_poincare_projection(n.state)
-            x3, y3, z3 = self.compute_3d_projection(n.state)
+            self.ensure_node_coordinates(n)
+            px, py = n.px, n.py
+            x3, y3, z3 = n.x, n.y, n.z
             nodes_data.append({
                 "id": str(n.node_id),
                 "label": str(n.text[:100]),

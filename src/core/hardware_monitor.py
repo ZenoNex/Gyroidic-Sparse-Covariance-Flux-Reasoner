@@ -802,6 +802,9 @@ class HardwareMonitor:
         """
         import time
         now = time.time()
+        if hasattr(self, '_feelers_cache') and self._feelers_cache is not None:
+            if now - getattr(self, '_feelers_cache_time', 0.0) < 1.0:
+                return self._feelers_cache
         t0_ns = time.perf_counter_ns()
         # Non-allocating L1/DRAM cache-line stride touch to sense t_RFC refresh stall
         _accum = 0
@@ -920,6 +923,9 @@ class HardwareMonitor:
             "recommended_procedural_max_nodes": rec_max_nodes,
             "recommended_mandelbulb_power": rec_mandelbulb_power,
         }
+        self._feelers_cache = feelers
+        self._feelers_cache_time = now
+        return feelers
 
     def evaluate_speculative_routing_timings(
         self,
