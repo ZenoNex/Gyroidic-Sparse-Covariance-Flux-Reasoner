@@ -984,13 +984,21 @@ class DiegeticPhysicsEngine(nn.Module):
             def run_harvester_loop():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
-                    from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
-                    if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
-                        self._temporal_dataset = TemporalAssociationDataset(device=self.device)
-                    self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
-                
-                loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
+                try:
+                    if not hasattr(self, '_temporal_trainer') or self._temporal_trainer is None:
+                        from src.training.temporal_association_trainer import TemporalAssociationTrainer, TemporalAssociationDataset
+                        if not hasattr(self, '_temporal_dataset') or self._temporal_dataset is None:
+                            self._temporal_dataset = TemporalAssociationDataset(device=self.device)
+                        self._temporal_trainer = TemporalAssociationTrainer(model=self, dataset=self._temporal_dataset)
+                    
+                    loop.run_until_complete(auto_temporal_training_loop(self.chatgpt_harvester, self._temporal_trainer, delay=0.1))
+                except (asyncio.CancelledError, RuntimeError, KeyboardInterrupt):
+                    pass
+                finally:
+                    try:
+                        loop.close()
+                    except Exception:
+                        pass
                 
             from src.core.hardware_monitor import has_compute_affordance
             disable_bg = bool(os.environ.get("Sovereign_Disable_Background")) or bool(self.config.get("lightweight", False)) or not has_compute_affordance()

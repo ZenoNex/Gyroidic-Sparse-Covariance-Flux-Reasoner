@@ -258,7 +258,7 @@ class FreenetClient:
     async def _connect_and_listen(self):
         while self.running:
             try:
-                async with websockets.connect(self.uri) as ws:
+                async with websockets.connect(self.uri, open_timeout=2.0) as ws:
                     self.ws = ws
                     logger.debug(f"[FREENET] Connected to local daemon at {self.uri}")
                     while self.running:
@@ -274,7 +274,13 @@ class FreenetClient:
                 self.ws = None
             
             if self.running:
-                await asyncio.sleep(5.0)
+                try:
+                    for _ in range(20):
+                        if not self.running:
+                            break
+                        await asyncio.sleep(0.25)
+                except (asyncio.CancelledError, Exception):
+                    break
 
     def _handle_message(self, message: str):
         try:
@@ -301,17 +307,48 @@ class FreenetClient:
         
         def run_loop():
             asyncio.set_event_loop(self.loop)
-            self.loop.run_until_complete(self._connect_and_listen())
+            try:
+                self.loop.run_until_complete(self._connect_and_listen())
+            except (asyncio.CancelledError, RuntimeError, KeyboardInterrupt):
+                pass
+            except Exception as e:
+                logger.debug(f"[FREENET] Loop terminated: {e}")
+            finally:
+                try:
+                    pending = asyncio.all_tasks(self.loop)
+                    for task in pending:
+                        task.cancel()
+                    if pending:
+                        self.loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                except Exception:
+                    pass
+                try:
+                    self.loop.close()
+                except Exception:
+                    pass
             
         self.thread = threading.Thread(target=run_loop, daemon=True)
         self.thread.start()
 
     def stop(self):
         self.running = False
-        if self.thread:
+        if self.loop and self.loop.is_running():
+            def _cancel_and_stop():
+                try:
+                    for task in asyncio.all_tasks(self.loop):
+                        task.cancel()
+                except Exception:
+                    pass
+                try:
+                    self.loop.stop()
+                except Exception:
+                    pass
+            try:
+                self.loop.call_soon_threadsafe(_cancel_and_stop)
+            except Exception:
+                pass
+        if self.thread and self.thread.is_alive():
             self.thread.join(timeout=2.0)
-        if self.loop:
-            self.loop.stop()
 
     def subscribe(self, contract_id: str, callback: Callable):
         """Subscribe to a specific topological state contract."""
