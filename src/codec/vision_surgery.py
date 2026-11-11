@@ -48,6 +48,27 @@ class IntercosaminationOperator(nn.Module):
         # This deforms the CNN manifold towards the Gyroidic skeletal truth.
         alpha = torch.sigmoid(self.stitch_gauge)
         interlaced = cnn_feat + alpha * (bone_proj - cnn_feat) + jitter
+
+        # 4. PyOpenCL Four Revisions Surgical Manifold Integration (Queue A)
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if SiliconSovereigntyEngine._shared_ctx is not None:
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    inter_np = interlaced.detach().cpu().numpy()
+                    res_np = gyroid_residue.detach().cpu().numpy()
+                    surg_np = engine.apply_surgical_integration(
+                        state_vec=inter_np,
+                        residues=res_np,
+                        moduli=None,
+                        pas_h=float(alpha.detach().item()),
+                        braid_twist=0.1,
+                        rp4_scale=1.0
+                    )
+                    surg_t = torch.from_numpy(surg_np).to(device=interlaced.device, dtype=interlaced.dtype).view_as(interlaced)
+                    interlaced = interlaced + (surg_t - interlaced).detach()
+        except Exception:
+            pass
         
         return interlaced
 

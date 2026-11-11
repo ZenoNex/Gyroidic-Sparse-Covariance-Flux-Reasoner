@@ -637,8 +637,20 @@ class DiegeticPhysicsEngine(nn.Module):
         # Shape [k] -- one scalar per polynomial coprime field.
         self.register_buffer('trust_scalars', torch.ones(k, device=device))
 
-        # --- SOVEREIGN VISION INGESTION ---
+        # --- SOVEREIGN VISION INGESTION & AFFORDANCE-DRIVEN RECURRENT CORE ---
         self.image_processor = ImageProcessor(device=self.device)
+        try:
+            from src.core.texture_dsp import TextureDSPEngine, AdaptiveGaborWindowController
+            self.texture_dsp = TextureDSPEngine(device=str(self.device))
+            self.gabor_controller = AdaptiveGaborWindowController(device=str(self.device))
+        except Exception:
+            self.texture_dsp = None
+            self.gabor_controller = None
+        try:
+            from src.core.fgrt_rnn_cells import UnifiedFGRTRNNCell
+            self.rnn_core = UnifiedFGRTRNNCell(input_dim=dim, hidden_dim=dim, regime='feature_scar').to(self.device)
+        except Exception:
+            self.rnn_core = None
         self.register_buffer('trust_scalars', torch.ones(k))
 
         # Temporal Association Trainer state (eagerly initialized to support background loops)
@@ -1522,6 +1534,15 @@ class DiegeticPhysicsEngine(nn.Module):
             bouligand_bubble_residual=bouligand_bubble_residual
         )
         memory_state = cavity_out['memory_state'].mean(dim=1) # [1, dim]
+        if getattr(self, 'rnn_core', None) is not None:
+            try:
+                if not hasattr(self, '_cerumen_pot_buffer') or self._cerumen_pot_buffer.shape != memory_state.shape:
+                    self._cerumen_pot_buffer = torch.zeros_like(memory_state)
+                memory_state, self._cerumen_pot_buffer = self.rnn_core(
+                    memory_state, (memory_state, self._cerumen_pot_buffer)
+                )
+            except Exception:
+                pass
         self._last_memory_state = memory_state
         
         # 4. FRACTAL META-RECURSION

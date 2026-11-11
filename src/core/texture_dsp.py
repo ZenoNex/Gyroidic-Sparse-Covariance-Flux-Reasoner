@@ -30,6 +30,7 @@ class TextureDSPEngine:
         ImageProcessor, _, ConjugateColorTransport = _get_image_extension_classes()
         self.image_processor = ImageProcessor(device=self.device)
         self.color_transport = ConjugateColorTransport(device=self.device)
+        self.gabor_window_controller = AdaptiveGaborWindowController(device=self.device)
 
     def apply_conjugate_color_filter(
         self,

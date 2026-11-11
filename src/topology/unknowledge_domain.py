@@ -1,4 +1,4 @@
-"""
+r"""
 Unknowledge Domain ($\mathcal{U}$)
 
 The formal substrate that protects functionally creative or "dream-like"
@@ -91,6 +91,26 @@ class NostalgicLeakFunctional(nn.Module):
             leak = base_leak * (1.0 - split_mask) + nostalgic_ghost * split_mask
         else:
             leak = base_leak
+
+        # PyOpenCL Queue B TEA-Salt Hardware Stall Anchor Modulation
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if SiliconSovereigntyEngine._shared_ctx is not None:
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    h_val = float(h_meta.mean().item()) if isinstance(h_meta, torch.Tensor) else float(h_meta or 0.5)
+                    salted_np = engine.apply_nostalgic_leak_tea_salt(
+                        state_vec=x.detach().cpu().numpy(),
+                        mu_l_vec=self.mu_l.detach().cpu().numpy(),
+                        h_meta=h_val,
+                        theta_leak=float(theta_leak),
+                        alpha=float(self.alpha)
+                    )
+                    salted_t = torch.from_numpy(salted_np).to(device=x.device, dtype=x.dtype).view_as(x)
+                    tea_delta = (salted_t - x.detach()).mean(dim=-1, keepdim=True)
+                    leak = leak + 0.05 * tea_delta
+        except Exception:
+            pass
 
         return leak
 

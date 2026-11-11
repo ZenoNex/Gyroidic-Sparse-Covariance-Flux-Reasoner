@@ -204,8 +204,9 @@ Encodes text-image dyads $E(T, I) = \text{CRT}(\{R_k(T) \cdot G_k(I)\})$. Measur
 ---
 
 ### [vision_surgery.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/codec/vision_surgery.py)
+**Class**: `IntercosaminationOperator`, `MirrorTestProbe`  
 **Function**: `conformal_to_gyroid_mapping`, `extract_fossil_patch`  
-**Role**: Conformal-to-gyroid tensor mapping and fossil patch extraction for visual dyad surgery.
+**Role**: Surgical handle-attachment operator (`IntercosaminationOperator`), topological parity mirror test probe (`MirrorTestProbe`), conformal-to-gyroid tensor mapping, and PyOpenCL Four Revisions surgical manifold integration (`SiliconSovereigntyEngine.apply_surgical_integration`).
 
 ---
 
@@ -3026,6 +3027,25 @@ The following bridge layers resolve the previously disconnected parallel tracks 
 - **Connected Method**: [`GyroidicGraphManager.query_procedural_graph()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py#L328)
 - **Frontend Controller**: Procedural HUD & URL stream parameters in [`diegetic_terminal.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.html#L3284)
 - **Functionality**: Dynamically filters node clouds based on camera position, gaze vector, viewing cone FOV, Alexander Wild fault-plane corridor boost ($2.5\times$ render distance along $\vec{n} = [1,1,1]/\sqrt{3}$), and radial depth ray occlusion culling with dual-mode support for both typed `KnowledgeFossilNode` and dictionary nodes.
+
+---
+
+### 5. PyOpenCL Kernel & TorchVision Full Rehybridization (Phase 23 Integration)
+- **7-Regime Polymorphic Recurrent Core ([`UnifiedFGRTRNNCell`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_rnn_cells.py#L306))**: Mounts all 7 canonical FGRT recurrent cells (`FeatureScarLCFTCell`, `PyOpenCLHardwareSovereigntyCell`, `BerryPhaseGRUCell`, `ChiralGatedRNNCell`, `ComplexFGRTRNNCell`, `SaturatedQuantizerRNNCell`, `LazarusSuperpositionRNNCell`) and exposes `select_affordance_regime()` wired into `UniversalOrchestrator.forward()`, `DiegeticPhysicsEngine.forward()`, and `StructuralEntanglementNet.forward()`.
+- **PyOpenCL Hardware Kernels ([`SiliconSovereigntyEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py))**:
+  - `evaluate_bspline_basis` (`bspline_basis_eval`): Wired into `PolynomialBasis._bspline` (`src/core/polynomial_coprime.py`) and `KANLayer.b_splines` (`src/surrogates/kagh_networks.py`) with STE gradient preservation.
+  - `evaluate_dyadic_transfer` (`dyadic_proficiency_transfer`): Wired into `DyadicTransferMap.forward` (`src/core/dyadic_transfer.py`) with STE gradient preservation.
+  - `apply_nostalgic_leak_tea_salt` (`nostalgic_leak_tea`): Wired into `NostalgicLeakFunctional.forward` (`src/topology/unknowledge_domain.py`) on Queue B.
+  - `apply_surgical_integration` (`surgical_manifold_integration`): Wired into `IntercosaminationOperator.forward` (`src/codec/vision_surgery.py`).
+  - `process_crt_dual_queue`: Wired into `EnhancedBezoutCRT.apply_crt_decomposition` (`src/core/enhanced_bezout_crt.py`) across Queue A (Odd moduli) and Queue B (Even moduli).
+  - `filter_dead_logic` (`parity_filter`): Wired into `SpeculativeCoprimeGate.speculative_recovery` (`src/core/speculative_coprime_gate.py`).
+  - `evaluate_elliptical_hash_lattice`: Wired into `ImageProcessor.extract_geometrize_primitives` (`image_extension.py`).
+  - `process_dualpath_transfer`: Wired into `UniversalOrchestrator.forward` (`src/core/orchestrator.py`).
+- **TorchVision & Spectral Texture DSP ([`image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py), [`src/core/texture_dsp.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/texture_dsp.py))**:
+  - Vectorized `StructuralEntanglementNet.forward` batch CNN feature extraction and `TailSlayerImageGenerator.generate_sovereign_image` tensor-to-PIL rendering via `torchvision.transforms.ToPILImage()`.
+  - Mounted `TextureDSPEngine` and `AdaptiveGaborWindowController` across `UniversalOrchestrator` and `DiegeticPhysicsEngine`.
+- **Additional Audited Classes**: `GraphTopologyMetrics` (`src/topology/embedding_graph.py`), `ManifoldDiagnosis` (`src/core/manifold_diagnosis.py`), `SovereignIngestor` (`src/data/sovereign_ingestor.py`), `MandelbulbTrainer` (`src/augmentation/mandelbulb_trainer.py`).
+
 
 
 

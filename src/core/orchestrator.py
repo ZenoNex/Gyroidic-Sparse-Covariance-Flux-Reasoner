@@ -429,12 +429,14 @@ class UniversalOrchestrator(nn.Module):
         self.get_typed_affordance = get_typed_affordance
         self.get_affordance_telemetry = get_compute_affordance_telemetry
 
-        # 7.29 Spectral Texture DSP Engine (Signal & Kinematics Island Integration)
+        # 7.29 Spectral Texture DSP Engine & Adaptive Gabor Window Controller (Signal & Kinematics Island Integration)
         try:
-            from src.core.texture_dsp import TextureDSPEngine
+            from src.core.texture_dsp import TextureDSPEngine, AdaptiveGaborWindowController
             self.texture_dsp = TextureDSPEngine(device=str(_device))
+            self.gabor_controller = AdaptiveGaborWindowController(device=str(_device))
         except Exception:
             self.texture_dsp = None
+            self.gabor_controller = None
 
         # 7.30 Gyroidic Codec & Mandelbulb Augmentation Co-Processing Suite
         try:
@@ -1437,11 +1439,19 @@ class UniversalOrchestrator(nn.Module):
                     # Apply erosion filter (Surface weathering)
                     current_state = self.erosion_filter(current_state, pressure_grad, intensity=0.05)
             
-            # --- FGRT Recurrent Core (LCFT Feature Scar Cell) ---
+            # --- FGRT Recurrent Core (Affordance-Driven Polymorphic Core) ---
             # Process state through the Recurrent Topological Engine
             if not hasattr(self, '_cerumen_pot_buffer') or self._cerumen_pot_buffer.shape != current_state.shape:
                 self._cerumen_pot_buffer = torch.zeros_like(current_state)
             
+            # Dynamically select recurrent regime based on compute affordances and topological strain
+            if hasattr(self.rnn_core, 'select_affordance_regime'):
+                self.rnn_core.select_affordance_regime(
+                    pas_h=float(pas_h),
+                    atrophy=float(atrophy),
+                    boundary_strain=float(drift_micro)
+                )
+
             # Evaluate recurrent dynamics and track topological scars
             current_state, updated_scar = self.rnn_core(
                 current_state, (current_state, self._cerumen_pot_buffer)
@@ -2416,6 +2426,24 @@ class UniversalOrchestrator(nn.Module):
             
         braid_race_delta = self.silicon_engine.execute_braid_race(state_governed, state_shielded)
         routing = braid_race_delta
+
+        # DualPath Queue A Prefill / Queue B Async Decode Cache Synchronization
+        try:
+            if hasattr(self.silicon_engine, 'process_dualpath_transfer'):
+                prefill_np = state_governed.detach().cpu().numpy().flatten()
+                cache_np = state_shielded.detach().cpu().numpy().flatten()
+                dp_res = self.silicon_engine.process_dualpath_transfer(
+                    prefill_state=prefill_np,
+                    decode_kv_cache=cache_np,
+                    pas_h=float(pas_h)
+                )
+                if isinstance(dp_res, dict) and hasattr(self, 'telemetry_state') and isinstance(self.telemetry_state, dict):
+                    self.telemetry_state['dualpath_transfer'] = {
+                        'mode': dp_res.get('mode', 'emulated'),
+                        'queue_balance': float(dp_res.get('queue_balance', 1.0))
+                    }
+        except Exception:
+            pass
         
         # Modulate Leontief Governor based on hardware race
         self.leontief.spectral_safety_margin = max(0.8, min(0.99, 0.95 + (braid_race_delta / 1000000.0)))
@@ -3325,7 +3353,17 @@ class UniversalOrchestrator(nn.Module):
                 image_emb = torch.zeros((1, target_dim), device=dev)
         else:
             if isinstance(image_emb, torch.Tensor):
-                image_emb = image_emb.to(dev)
+                # If raw spatial image tensor [C, H, W] or [B, C, H, W] passed, route through TextureDSPEngine
+                if image_emb.dim() in (3, 4) and getattr(self, 'texture_dsp', None) is not None:
+                    try:
+                        img_4d = image_emb.unsqueeze(0) if image_emb.dim() == 3 else image_emb
+                        if img_4d.shape[1] == 3 and img_4d.shape[-1] >= 16 and img_4d.shape[-2] >= 16:
+                            filtered = self.texture_dsp.apply_spectral_filter(img_4d.to(dev))
+                            image_emb = self.texture_dsp.image_processor.forward(filtered).to(dev)
+                    except Exception:
+                        image_emb = image_emb.to(dev)
+                else:
+                    image_emb = image_emb.to(dev)
             else:
                 from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
                 image_emb = project_multimodal_fingerprint_to_96(image_emb).unsqueeze(0).to(dev)

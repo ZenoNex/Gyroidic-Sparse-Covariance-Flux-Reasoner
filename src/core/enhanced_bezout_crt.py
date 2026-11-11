@@ -267,6 +267,31 @@ class EnhancedBezoutCRT(nn.Module):
         
         # Concatenate residues
         crt_state = torch.cat(residues, dim=1)
+
+        # PyOpenCL Dual-Channel Intercosamination Formula (Queue A Odd / Queue B Even Moduli)
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if SiliconSovereigntyEngine._shared_ctx is not None and len(residues) >= 2:
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    odd_res = torch.cat(residues[0::2], dim=1)
+                    even_res = torch.cat(residues[1::2], dim=1)
+                    odd_mod = self.moduli[0::2]
+                    even_mod = self.moduli[1::2]
+                    res_a_np, res_b_np = engine.process_crt_dual_queue(
+                        residues_odd=odd_res.detach().cpu().numpy(),
+                        moduli_odd=odd_mod.detach().cpu().numpy(),
+                        residues_even=even_res.detach().cpu().numpy(),
+                        moduli_even=even_mod.detach().cpu().numpy()
+                    )
+                    dual_cat = torch.cat([
+                        torch.from_numpy(res_a_np).to(device=crt_state.device, dtype=crt_state.dtype).view_as(odd_res),
+                        torch.from_numpy(res_b_np).to(device=crt_state.device, dtype=crt_state.dtype).view_as(even_res)
+                    ], dim=1)
+                    if dual_cat.shape == crt_state.shape:
+                        crt_state = crt_state + 0.01 * (dual_cat - crt_state).detach()
+        except Exception:
+            pass
         
         return crt_state
     

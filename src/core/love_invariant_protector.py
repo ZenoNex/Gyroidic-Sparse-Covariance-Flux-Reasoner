@@ -93,7 +93,7 @@ class LoveInvariantProtector(nn.Module):
         return ownership_op
     
     def compute_null_space_projection(self, ownership_operator: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Compute null space projection P = I - (\Phi^\top \Phi)^{-1} \Phi^\top.
         
         Args:

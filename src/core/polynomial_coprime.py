@@ -253,6 +253,22 @@ class PolynomialBasis:
         elif bases.shape[-1] < target_dim:
             pad = torch.zeros(n, target_dim - bases.shape[-1], device=x.device, dtype=x.dtype)
             bases = torch.cat([bases, pad], dim=-1)
+
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if SiliconSovereigntyEngine._shared_ctx is not None:
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    cl_bases = engine.evaluate_bspline_basis(
+                        x=x.detach(),
+                        grid_size=grid_size,
+                        spline_order=k,
+                        target_dim=target_dim
+                    ).to(device=x.device, dtype=x.dtype)
+                    if cl_bases.shape == bases.shape:
+                        bases = bases + (cl_bases - bases).detach()
+        except Exception:
+            pass
             
         return bases
 

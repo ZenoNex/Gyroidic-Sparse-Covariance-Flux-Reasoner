@@ -64,6 +64,7 @@ class ChiralGatedRNNCell(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int, num_attractors: int = 8):
         super().__init__()
         self.hidden_dim = hidden_dim
+        self.num_attractors = num_attractors
         # Silicon Sovereignty: hardware-anchored jitter initialization
         self.chiral_vectors = nn.Parameter(harvest_honest_jitter((num_attractors, hidden_dim)) * 0.1)
         self.W_x = nn.Linear(input_dim, hidden_dim)
@@ -304,12 +305,15 @@ class FeatureScarLCFTCell(nn.Module):
 # -----------------------------------------------------------------------------
 class UnifiedFGRTRNNCell(nn.Module):
     """
-    Polymorphic dispatcher for FGRT recurrent cells.
-    Allows UniversalOrchestrator to dynamically route between:
+    Polymorphic dispatcher for FGRT recurrent cells (Affordance-Driven Polymorphic Core).
+    Allows UniversalOrchestrator and DiegeticPhysicsEngine to dynamically route between:
       - 'feature_scar': B-Spline KAGH memory with Cerumen Pot fossilization
       - 'opencl': Hardware-sovereign PyOpenCL matrix breeding kernel offload
       - 'berry_phase': Holonomy-sensitive GRU with Stiefel-Whitney parity flips
-      - 'chiral': Chiral gated attractor network
+      - 'chiral': Chiral gated attractor network with boundary refraction
+      - 'complex': Cyclotomic complex-valued FGRT rotation cell
+      - 'saturated_quantizer': KAGH + Weyl-group saturated quantizer cell
+      - 'lazarus': Incommensurate PrimeResonanceLadder linear superposition cell
     """
     def __init__(self, input_dim: int, hidden_dim: int, regime: str = 'feature_scar'):
         super().__init__()
@@ -317,23 +321,84 @@ class UnifiedFGRTRNNCell(nn.Module):
         self.hidden_dim = hidden_dim
         self.regime = regime
         
-        # Instantiate sub-cells
+        # Instantiate all 7 canonical FGRT recurrent cells
         self.feature_scar_cell = FeatureScarLCFTCell(input_dim, hidden_dim)
         self.opencl_cell = PyOpenCLHardwareSovereigntyCell(input_dim, hidden_dim)
         self.berry_cell = BerryPhaseGRUCell(input_dim, hidden_dim)
         self.chiral_cell = ChiralGatedRNNCell(input_dim, hidden_dim)
+        self.complex_cell = ComplexFGRTRNNCell(input_dim, hidden_dim)
+        self.saturated_quantizer_cell = SaturatedQuantizerRNNCell(input_dim, hidden_dim)
+        self.lazarus_cell = LazarusSuperpositionRNNCell(input_dim, hidden_dim)
         
         self.register_buffer('gamma_buffer', torch.zeros(1, 1))
+        self.register_buffer('step_counter', torch.zeros(1, dtype=torch.long))
 
     def set_regime(self, regime: str):
         """Switch active recurrence regime without resetting parameters."""
-        valid_regimes = {'feature_scar', 'opencl', 'berry_phase', 'chiral'}
+        valid_regimes = {
+            'feature_scar',
+            'opencl',
+            'berry_phase',
+            'chiral',
+            'complex',
+            'saturated_quantizer',
+            'lazarus',
+        }
         if regime not in valid_regimes:
             raise ValueError(f"Unknown regime '{regime}'. Choose from {valid_regimes}")
         self.regime = regime
 
-    def forward(self, x: torch.Tensor, state: tuple) -> tuple:
+    def select_affordance_regime(
+        self,
+        pas_h: float = 0.85,
+        atrophy: float = 0.0,
+        boundary_strain: float = 0.0,
+        prefer_opencl: bool = False
+    ) -> str:
+        """
+        Affordance-Driven Polymorphic Core selector (docs/FGRT_RNN_IMPLEMENTATION_DRAFTS.md Section 5.5).
+        Queries HardwareMonitor compute affordances and topological telemetry to dynamically
+        select the optimal recurrent cell regime without resetting state.
+        """
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
+            hw = HardwareMonitor.get_instance()
+            feelers = hw.probe_local_feelers()
+            if feelers.get("thermal_spike_detected", False) or feelers.get("t_rfc_stall_detected", False):
+                self.set_regime('lazarus')
+                return self.regime
+
+            if boundary_strain > 0.65:
+                self.set_regime('chiral')
+                return self.regime
+
+            if atrophy > 0.80:
+                self.set_regime('saturated_quantizer')
+                return self.regime
+
+            if pas_h < 0.45:
+                self.set_regime('berry_phase')
+                return self.regime
+
+            gpu_aff = hw.get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
+            if prefer_opencl and bool(gpu_aff) and getattr(self.opencl_cell.sovereignty_engine, 'is_initialized', False):
+                self.set_regime('opencl')
+                return self.regime
+        except Exception:
+            pass
+
+        self.set_regime('feature_scar')
+        return self.regime
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        state: tuple,
+        boundary_strain: Optional[torch.Tensor] = None
+    ) -> tuple:
         h_prev, cerumen_pot = state
+        step_idx = int(self.step_counter.item())
+        self.step_counter.add_(1)
         
         if self.regime == 'opencl':
             h_t = self.opencl_cell(x, h_prev)
@@ -343,7 +408,7 @@ class UnifiedFGRTRNNCell(nn.Module):
             return h_t, updated_scar
             
         elif self.regime == 'berry_phase':
-            if self.gamma_buffer.shape[0] != x.shape[0]:
+            if self.gamma_buffer.shape[0] != x.shape[0] or self.gamma_buffer.device != x.device:
                 self.gamma_buffer = torch.zeros(x.shape[0], 1, device=x.device)
             h_t, gamma = self.berry_cell(x, (h_prev, self.gamma_buffer))
             self.gamma_buffer = gamma.detach()
@@ -353,7 +418,25 @@ class UnifiedFGRTRNNCell(nn.Module):
             return h_t, updated_scar
             
         elif self.regime == 'chiral':
-            h_t = self.chiral_cell(x, h_prev)
+            h_t = self.chiral_cell(x, h_prev, boundary_strain=boundary_strain)
+            updated_scar = cerumen_pot
+            return h_t, updated_scar
+
+        elif self.regime == 'complex':
+            h_prev_complex = torch.cat([h_prev, cerumen_pot], dim=-1)
+            h_t_complex = self.complex_cell(x, h_prev_complex)
+            h_t, imag_scar = torch.chunk(h_t_complex, 2, dim=-1)
+            updated_scar = 0.9 * cerumen_pot + 0.1 * imag_scar
+            return h_t, updated_scar
+
+        elif self.regime == 'saturated_quantizer':
+            h_t = self.saturated_quantizer_cell(x, h_prev)
+            quant_scar = (torch.abs(h_t - h_prev) > (1.0 / self.saturated_quantizer_cell.quant_levels)).float()
+            updated_scar = cerumen_pot + 0.05 * quant_scar * h_t
+            return h_t, updated_scar
+
+        elif self.regime == 'lazarus':
+            h_t = self.lazarus_cell(x, h_prev, step=step_idx)
             updated_scar = cerumen_pot
             return h_t, updated_scar
             

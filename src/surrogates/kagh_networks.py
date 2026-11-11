@@ -184,6 +184,22 @@ class KANLayer(nn.Module):
              # This shouldn't happen with correct grid sizing, but detailed padded required
              padding = torch.zeros(bases.shape[0], bases.shape[1], target_dim - bases.shape[-1], device=x.device)
              bases = torch.cat([bases, padding], dim=-1)
+
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if SiliconSovereigntyEngine._shared_ctx is not None:
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    cl_bases = engine.evaluate_bspline_basis(
+                        x=x.squeeze(-1).detach(),
+                        grid_size=self.grid_size,
+                        spline_order=self.spline_order,
+                        target_dim=target_dim
+                    ).to(device=x.device, dtype=bases.dtype)
+                    if cl_bases.shape == bases.shape:
+                        bases = bases + (cl_bases - bases).detach()
+        except Exception:
+            pass
              
         return bases
 

@@ -658,7 +658,7 @@ class SpeculativeCoprimeGate(nn.Module):
                 engine = SiliconSovereigntyEngine()
                 if hasattr(engine, 'apply_gyroid_projection'):
                     try:
-                        proj_np = engine.apply_gyroid_projection(converged_state.detach().cpu().numpy())
+                        proj_np = engine.apply_gyroid_projection(converged_state.detach().cpu().numpy()); proj_np = engine.filter_dead_logic(proj_np) if hasattr(engine, 'filter_dead_logic') else proj_np
                         converged_state = torch.from_numpy(proj_np).to(converged_state.device)
                     except Exception:
                         pass # Fallback to CPU calculation

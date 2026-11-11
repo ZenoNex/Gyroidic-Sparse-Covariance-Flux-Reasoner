@@ -300,6 +300,25 @@ classDiagram
     BonfireNomadicRing --> HardwareMonitor
     FreenetGhostCaller --> HardwareMonitor
     SiliconSovereigntyEngine --> HardwareMonitor
+    UnifiedFGRTRNNCell --> PyOpenCLHardwareSovereigntyCell
+    UnifiedFGRTRNNCell --> FeatureScarLCFTCell
+    UnifiedFGRTRNNCell --> BerryPhaseGRUCell
+    UnifiedFGRTRNNCell --> ChiralGatedRNNCell
+    UnifiedFGRTRNNCell --> ComplexFGRTRNNCell
+    UnifiedFGRTRNNCell --> SaturatedQuantizerRNNCell
+    UnifiedFGRTRNNCell --> LazarusSuperpositionRNNCell
+    UniversalOrchestrator --> UnifiedFGRTRNNCell
+    UniversalOrchestrator --> TextureDSPEngine
+    UniversalOrchestrator --> AdaptiveGaborWindowController
+    DiegeticPhysicsEngine --> UnifiedFGRTRNNCell
+    DiegeticPhysicsEngine --> TextureDSPEngine
+    DiegeticPhysicsEngine --> AdaptiveGaborWindowController
+    KANLayer --> SiliconSovereigntyEngine
+    PolynomialBasis --> SiliconSovereigntyEngine
+    DyadicTransferMap --> SiliconSovereigntyEngine
+    NostalgicLeakFunctional --> SiliconSovereigntyEngine
+    IntercosaminationOperator --> SiliconSovereigntyEngine
+    EnhancedBezoutCRT --> SiliconSovereigntyEngine
 ```
 
 ## Growth Log

@@ -377,7 +377,7 @@ class SparseGyroidCovarianceProbe(nn.Module):
         }
 
     def compute_interference_matrix(self, h: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Compute pairwise interference between batch elements.
         
         Measures how much the spectral signatures of different elements 
@@ -1058,7 +1058,7 @@ class LeyLineGeodesicMetric(nn.Module):
 
 
 class MoebiusFiberBundle(nn.Module):
-    """
+    r"""
     Orientation-twisted recursive fiber bundle.
     
     Implements a transition function g satisfying g in O(n) \ SO(n),

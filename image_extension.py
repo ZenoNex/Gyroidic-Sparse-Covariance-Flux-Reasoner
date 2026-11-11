@@ -54,9 +54,9 @@ class StructuralEntanglementNet(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
         
-        # The true recurrent FGRT layer bridging the gap!
-        from src.core.fgrt_rnn_cells import FeatureScarLCFTCell
-        self.fossilizer_rnn = FeatureScarLCFTCell(input_dim=128, hidden_dim=128)
+        # The true recurrent FGRT layer bridging the gap via Affordance-Driven Polymorphic Core!
+        from src.core.fgrt_rnn_cells import UnifiedFGRTRNNCell
+        self.fossilizer_rnn = UnifiedFGRTRNNCell(input_dim=128, hidden_dim=128, regime='feature_scar')
         
         # Projection to compatible embedding space (768-dim)
         self.projection = nn.Linear(128, output_dim)
@@ -66,25 +66,23 @@ class StructuralEntanglementNet(nn.Module):
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: [Num_Tiles, 3, 64, 64]
-        # Treat tiles as a sequence for the RNN
+        # Vectorized batch CNN feature extraction across all tiles simultaneously on GPU/device
         B = x.size(0)
-        
-        spatial_features = []
-        for i in range(B):
-            tile = x[i:i+1] # [1, 3, 64, 64]
-            c = F.relu(self.conv1(tile))
-            c = F.max_pool2d(c, 2)
-            c = F.relu(self.conv2(c))
-            c = F.max_pool2d(c, 2)
-            c = F.relu(self.conv3(c))
-            c = F.adaptive_avg_pool2d(c, (1, 1))
-            spatial_features.append(c.view(1, 128))
+        c = F.relu(self.conv1(x))
+        c = F.max_pool2d(c, 2)
+        c = F.relu(self.conv2(c))
+        c = F.max_pool2d(c, 2)
+        c = F.relu(self.conv3(c))
+        c = F.adaptive_avg_pool2d(c, (1, 1)).view(B, 128)
             
-        # Recurrent Fossilization Pass
+        # Recurrent Fossilization Pass via UnifiedFGRTRNNCell
+        if hasattr(self.fossilizer_rnn, 'select_affordance_regime'):
+            self.fossilizer_rnn.select_affordance_regime()
         h_t = torch.zeros(1, 128, device=x.device)
         cerumen_pot = torch.zeros(1, 128, device=x.device)
         
-        for feat in spatial_features:
+        for i in range(B):
+            feat = c[i:i+1]
             h_t, cerumen_pot = self.fossilizer_rnn(feat, (h_t, cerumen_pot))
             
         # The final state contains both the temporal flow and the isolated feature scars
@@ -417,10 +415,28 @@ class ImageProcessor(nn.Module):
         ]
         from src.codec.vision_utilities import project_geometrize_primitives
         signature = project_geometrize_primitives(prim_dicts, target_dim=96)
+
+        lattice_mask_mean = 0.0
+        containment_pressure_mean = 0.0
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if HAS_SOVEREIGN_SILICON:
+                engine = SiliconSovereigntyEngine()
+                pts = np.array([p["center"] for p in prim_dicts], dtype=np.float32)
+                if pts.size > 0:
+                    q_coeffs = np.array([[1.0, 1.0, 1.0, 0.0, 0.0, 0.0, -float(w)*0.5, -float(h)*0.5, 0.0, -1.0]], dtype=np.float32)
+                    bitmask, c_press = engine.evaluate_elliptical_hash_lattice(pts, q_coeffs)
+                    lattice_mask_mean = float(np.mean(bitmask))
+                    containment_pressure_mean = float(np.mean(c_press))
+        except Exception:
+            pass
+
         return {
             "num_primitives": len(primitives),
             "primitives": prim_dicts,
             "spectral_signature": signature,
+            "elliptical_lattice_mask_mean": lattice_mask_mean,
+            "elliptical_containment_pressure": containment_pressure_mean,
         }
 
     def streamlines_to_image(
@@ -518,20 +534,18 @@ class TailSlayerImageGenerator:
             scars = np.where(mischief > 0.88, 0.18 * mischief, 0.0)
             mixed_matrix = (1.0 - alpha) * matrix_a + alpha * matrix_b + scars
         
-        # 3. Render "Harmonious Scars" 
-        img = Image.new('RGB', (64, 64))
-        pixels = img.load()
-        
-        for x in range(64):
-            for y in range(64):
-                val = mixed_matrix[x, y]
-                # The 'scar' manifests as a chiral color shift
-                r = int(np.clip(val * 255, 0, 255))
-                g = int(np.clip((1.0 - val) * 180, 0, 255))
-                b = int(np.clip(val * 140 + 60, 0, 255))
-                pixels[x, y] = (r, g, b)
-                    
-        return img
+        # 3. Render "Harmonious Scars" via vectorized tensor/torchvision transform
+        val_t = torch.from_numpy(np.asarray(mixed_matrix, dtype=np.float32)).clamp(0.0, 1.0)
+        # Note: PIL pixels[x, y] indexed [width, height], so transpose spatial axes to match (H, W)
+        val_hw = val_t.T
+        r_ch = torch.clamp(val_hw * 255.0, 0.0, 255.0) / 255.0
+        g_ch = torch.clamp((1.0 - val_hw) * 180.0, 0.0, 255.0) / 255.0
+        b_ch = torch.clamp(val_hw * 140.0 + 60.0, 0.0, 255.0) / 255.0
+        rgb_tensor = torch.stack([r_ch, g_ch, b_ch], dim=0) # [3, 64, 64]
+        if T is not None and hasattr(T, 'ToPILImage'):
+            return T.ToPILImage()(rgb_tensor)
+        rgb_uint8 = (rgb_tensor.permute(1, 2, 0).numpy() * 255.0).astype(np.uint8)
+        return Image.fromarray(rgb_uint8, mode='RGB')
 
     def generate_from_text(self, prompt: str) -> Image.Image:
         """Legacy compatibility wrapper for the Reasoner pipeline."""

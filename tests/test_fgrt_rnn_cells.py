@@ -15,7 +15,8 @@ from src.core.fgrt_rnn_cells import (
     SaturatedQuantizerRNNCell,
     PyOpenCLHardwareSovereigntyCell,
     LazarusSuperpositionRNNCell,
-    FeatureScarLCFTCell
+    FeatureScarLCFTCell,
+    UnifiedFGRTRNNCell,
 )
 
 
@@ -101,3 +102,32 @@ def test_feature_scar_lcft_cell():
     assert updated_pot.shape == (batch, hidden_dim)
     assert torch.isfinite(h_t).all()
     assert torch.isfinite(updated_pot).all()
+
+
+def test_unified_fgrt_rnn_cell_all_7_regimes_and_affordance_selector():
+    batch, input_dim, hidden_dim = 2, 16, 32
+    unified = UnifiedFGRTRNNCell(input_dim=input_dim, hidden_dim=hidden_dim)
+    x = torch.randn(batch, input_dim)
+    h_prev = torch.zeros(batch, hidden_dim)
+    cerumen_pot = torch.zeros(batch, hidden_dim)
+
+    all_regimes = [
+        'feature_scar',
+        'opencl',
+        'berry_phase',
+        'chiral',
+        'complex',
+        'saturated_quantizer',
+        'lazarus',
+    ]
+    for reg in all_regimes:
+        unified.set_regime(reg)
+        h_t, updated_pot = unified(x, (h_prev, cerumen_pot))
+        assert h_t.shape == (batch, hidden_dim)
+        assert updated_pot.shape == (batch, hidden_dim)
+        assert torch.isfinite(h_t).all()
+        assert torch.isfinite(updated_pot).all()
+
+    selected = unified.select_affordance_regime(pas_h=0.30, atrophy=0.1, boundary_strain=0.1)
+    assert selected in all_regimes
+

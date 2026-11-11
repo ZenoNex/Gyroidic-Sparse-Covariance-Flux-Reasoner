@@ -140,7 +140,26 @@ class DyadicTransferMap(nn.Module):
         leaked_signal_pure = torch.einsum('bid,ij->bjd', effective_source, T_masked)
         
         # Add to original state (residual connection)
-        return task_states + leaked_signal_pure
+        out_states = task_states + leaked_signal_pure
+
+        # Hardware-Sovereign PyOpenCL Queue A Offload with STE Gradient Preservation
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if SiliconSovereigntyEngine._shared_ctx is not None:
+                engine = SiliconSovereigntyEngine()
+                if engine.is_initialized:
+                    cl_out = engine.evaluate_dyadic_transfer(
+                        task_states=task_states.detach(),
+                        proficiency_scores=proficiency_scores.detach(),
+                        transfer_matrix=T.detach(),
+                        leakage_threshold=float(self.leakage_threshold)
+                    ).to(device=task_states.device, dtype=task_states.dtype)
+                    if cl_out.shape == out_states.shape:
+                        out_states = out_states + (cl_out - out_states).detach()
+        except Exception:
+            pass
+
+        return out_states
 
 class CommutatorOracle(nn.Module):
     """
