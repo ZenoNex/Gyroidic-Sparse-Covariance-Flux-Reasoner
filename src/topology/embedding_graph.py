@@ -83,7 +83,7 @@ class GyroidicGraphManager:
         Attempts to load from a unified snapshot first for maximum performance.
         If snapshot has fewer nodes than limit, continues scanning disk to fulfill limit.
         """
-        scan_limit = max(scan_limit, (limit * 2) if limit else 500)
+        scan_limit = min(scan_limit, (limit * 2) if limit else 500)
         loaded_full_from_snapshot = False
         snapshot_path = os.path.join(self.data_dir, "neglecton_snapshot.pt")
         if use_snapshot and os.path.exists(snapshot_path):
@@ -111,8 +111,13 @@ class GyroidicGraphManager:
                 existing_norms = torch.empty((0, self.dim))
                 existing_texts = []
 
+            scan_start_time = time.time()
+            max_scan_time_sec = 2.5  # Strict latency guard: never hang server for minutes
             for f in files:
                 if len(self.nodes) >= limit: break
+                if time.time() - scan_start_time > max_scan_time_sec:
+                    print(f"[GRAPH] Disk scan reached latency budget ({max_scan_time_sec}s). Loaded {len(self.nodes)} nodes total.")
+                    break
                 
                 try:
                     path = os.path.join(self.data_dir, f)

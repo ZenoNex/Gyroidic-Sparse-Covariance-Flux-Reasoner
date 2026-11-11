@@ -1312,7 +1312,7 @@
                     <div
                         style="display: flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.7rem; color: #888;">
                         <span>LIMIT:</span>
-                        <input type="number" id="graph-limit" value="1000" min="50" max="10000" step="100"
+                        <input type="number" id="graph-limit" value="250" min="50" max="10000" step="50"
                             onchange="refreshGraph(true)" onkeydown="if(event.key==='Enter')refreshGraph(true)"
                             style="width: 65px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 2px 4px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; text-align: center; outline: none;">
                     </div>
@@ -3276,8 +3276,9 @@
             const limitEl = document.getElementById('graph-limit');
             const includeTagsEl = document.getElementById('graph-include-tags');
 
+            let procPromptTimer = null;
             try {
-                const limit = limitEl ? parseInt(limitEl.value) || 1000 : 1000;
+                const limit = limitEl ? parseInt(limitEl.value) || 250 : 250;
                 const includeTags = includeTagsEl ? includeTagsEl.checked : true;
 
                 let url = `${state.backend_url}/graph?limit=${limit}&force=${forceReload ? 'true' : 'false'}`;
@@ -3322,7 +3323,22 @@
                     url += `&procedural=true&cam_x=${cam_x.toFixed(2)}&cam_y=${cam_y.toFixed(2)}&cam_z=${cam_z.toFixed(2)}&gaze_x=${gaze_x.toFixed(3)}&gaze_y=${gaze_y.toFixed(3)}&gaze_z=${gaze_z.toFixed(3)}&dist=${dist}&fov=${fov}&shear=${shear}&occlusion=${occl}`;
                 }
 
-                const response = await fetch(url);
+                // Abort previous hanging graph fetch if still active
+                if (window._graphAbortController) {
+                    try { window._graphAbortController.abort(); } catch(e) {}
+                }
+                window._graphAbortController = new AbortController();
+
+                // 3.5s watchdog timer: prompt for procedural mode if default dense graph takes time
+                if (!graphProceduralLoad) {
+                    procPromptTimer = setTimeout(() => {
+                        showProceduralViewPrompt();
+                    }, 3500);
+                }
+
+                const response = await fetch(url, { signal: window._graphAbortController.signal });
+                if (procPromptTimer) clearTimeout(procPromptTimer);
+                hideProceduralViewPrompt();
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -3594,19 +3610,83 @@
                 }
 
             } catch (e) {
-                console.error(e);
+                if (procPromptTimer) clearTimeout(procPromptTimer);
+                hideProceduralViewPrompt();
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
-                let banner = document.getElementById('graph-status-banner');
-                if (!banner) {
-                    banner = document.createElement('div');
-                    banner.id = 'graph-status-banner';
-                    banner.style.cssText = 'position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.72rem; color: #ff6666; background: rgba(20,0,0,0.85); border: 1px solid #ff4444; padding: 4px 10px; border-radius: 4px; z-index: 200; pointer-events: none;';
-                    container.appendChild(banner);
+
+                if (e.name === 'AbortError') {
+                    // Intentionally aborted due to user activating procedural mode or refreshing
+                    return;
                 }
-                banner.innerText = `[FIELD DESYNC]: ${e.message || e}`;
-                banner.style.display = 'block';
-                setTimeout(() => { if (banner) banner.style.display = 'none'; }, 4000);
+                console.error(e);
+                showProceduralFallbackError(e.message || e);
             }
+        }
+
+        function showProceduralViewPrompt() {
+            const container = document.getElementById('graph-canvas-container');
+            if (!container) return;
+            let promptCard = document.getElementById('graph-procedural-prompt-card');
+            if (!promptCard) {
+                promptCard = document.createElement('div');
+                promptCard.id = 'graph-procedural-prompt-card';
+                promptCard.style.cssText = 'position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(5, 12, 24, 0.95); border: 1px solid var(--terminal-blue); border-radius: 8px; padding: 18px 22px; z-index: 250; text-align: center; max-width: 460px; box-shadow: 0 0 25px rgba(0, 242, 255, 0.35); backdrop-filter: blur(8px);';
+                container.appendChild(promptCard);
+            }
+            promptCard.innerHTML = `
+                <div style="font-family: var(--font-header); font-size: 0.85rem; color: var(--terminal-blue); margin-bottom: 8px; letter-spacing: 1px;">
+                    [HIGH DENSITY COGNITIVE MANIFOLD]
+                </div>
+                <div style="font-family: var(--font-mono); font-size: 0.72rem; color: #ccc; margin-bottom: 14px; line-height: 1.4;">
+                    Global fossil network contains hundreds of topological nodes. Switch to Fast Procedural Horizon View (Viewing Cones & Alexander Wild Shear Planes) for instant 60 FPS streaming?
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="activateProceduralFromPrompt()" style="background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-weight: bold; font-size: 0.72rem; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer;">
+                        ACTIVATE PROCEDURAL VIEW
+                    </button>
+                    <button onclick="hideProceduralViewPrompt()" style="background: rgba(255,255,255,0.08); color: #aaa; font-family: var(--font-mono); font-size: 0.72rem; border: 1px solid #444; padding: 6px 12px; border-radius: 4px; cursor: pointer;">
+                        KEEP WAITING
+                    </button>
+                </div>
+            `;
+            promptCard.style.display = 'block';
+        }
+
+        function hideProceduralViewPrompt() {
+            const promptCard = document.getElementById('graph-procedural-prompt-card');
+            if (promptCard) promptCard.style.display = 'none';
+        }
+
+        function activateProceduralFromPrompt() {
+            hideProceduralViewPrompt();
+            if (window._graphAbortController) {
+                try { window._graphAbortController.abort(); } catch(e) {}
+            }
+            graphProceduralLoad = true;
+            const btnProc = document.getElementById('btn-toggle-procedural-load');
+            if (btnProc) {
+                btnProc.innerText = "PROCEDURAL: ON";
+                btnProc.style.color = "var(--terminal-green)";
+                btnProc.style.borderColor = "var(--terminal-green)";
+            }
+            const hud = document.getElementById('procedural-hud');
+            if (hud) hud.style.display = 'block';
+            refreshGraph(false);
+        }
+
+        function showProceduralFallbackError(errMsg) {
+            const container = document.getElementById('graph-canvas-container');
+            if (!container) return;
+            let banner = document.getElementById('graph-status-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'graph-status-banner';
+                banner.style.cssText = 'position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.72rem; color: #ff6666; background: rgba(20,0,0,0.88); border: 1px solid #ff4444; padding: 6px 14px; border-radius: 4px; z-index: 200;';
+                container.appendChild(banner);
+            }
+            banner.innerHTML = `<span>[FIELD LOAD NOTICE]: ${errMsg}</span> <button onclick="activateProceduralFromPrompt()" style="margin-left: 10px; background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-size: 0.65rem; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">ACTIVATE PROCEDURAL VIEW</button>`;
+            banner.style.display = 'block';
+            setTimeout(() => { if (banner) banner.style.display = 'none'; }, 8000);
         }
 
         function renderPoincareFallback(container, gData) {

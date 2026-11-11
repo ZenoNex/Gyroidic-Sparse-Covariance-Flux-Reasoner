@@ -40,6 +40,10 @@ __pycache__/
 # Local runtime state and databases
 *.vscdb
 *.log
+*.log.txt
+*.pid
+recent log.txt
+docs/recent log.txt
 state*.vscdb
 .gyroid_config.json
 .requirements.hash

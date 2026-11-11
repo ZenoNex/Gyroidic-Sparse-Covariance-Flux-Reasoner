@@ -277,23 +277,34 @@ class DiegeticPhysicsEngine(nn.Module):
         spectral_entropy = torch.tensor([[float(torch.clamp(1.0 - pas_h.mean(), 0.0, 1.0).item())]], device=self.device)
         diegetic_out = self.autoeclectic_head(x_hat.unsqueeze(0), spectral_entropy=spectral_entropy)
 
+        # Connect ResonanceLarynx to Diegetic Response
+        larynx_logits = None
+        larynx_conf = None
+        if hasattr(self, 'larynx') and self.larynx is not None and diegetic_affordance_ok:
+            try:
+                larynx_logits, larynx_conf = self.larynx(diegetic_out.view(1, -1)[:, :self.state_dim])
+            except Exception:
+                pass
+
         # Return updated physics state
         return {
             "c_out": x_hat,
             "betti_shift": betti_shift,
             "betti_0": new_b0,
             "betti_1": new_b1,
-            "pas_h": pas_h.detach(),
+            "pas_h": pas_h if self.training else pas_h.detach(),
             "rupture": bool(is_rupture),
             "closure_gap": gap_val,
             "damped_spin_precession": float(self.damped_spin_precession.item()),
             "delta_psh": float(delta_psh),
             "psh_invariant_active": bool(delta_psh < 1e-4),
             "attention_integrity": bool(attn_integrity.all().item()),
-            "diegetic_response": diegetic_out.squeeze(0).detach(),
+            "diegetic_response": diegetic_out.squeeze(0) if self.training else diegetic_out.squeeze(0).detach(),
+            "larynx_logits": larynx_logits if (larynx_logits is not None and self.training) else (larynx_logits.detach() if larynx_logits is not None else None),
+            "larynx_confidence": larynx_conf if (larynx_conf is not None and self.training) else (larynx_conf.detach() if larynx_conf is not None else None),
             "calm_total_veto": total_veto,
             "calm_gauge": gauge_val,
-            "calm_constraints": calm_constraints.squeeze(0).detach(),
+            "calm_constraints": calm_constraints.squeeze(0) if self.training else calm_constraints.squeeze(0).detach(),
             "diegetic_affordance_ok": diegetic_affordance_ok,
             "valence_hunger": float(valence_hunger.mean().item()),
             "valence_metrics": self.valence_drive.get_metrics()

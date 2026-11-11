@@ -318,7 +318,7 @@ class ResonanceLarynx(nn.Module):
         """
         from src.core.invariants import compute_prove_self_play_drgrpo_advantage
 
-        x = seed_state.detach().float()
+        x = seed_state.float() if (self.training or getattr(self, 'preserve_gradients', False)) else seed_state.detach().float()
         if x.dim() == 1:
             x = x.unsqueeze(0)
         if x.shape[-1] != self.hidden_dim:
@@ -331,9 +331,9 @@ class ResonanceLarynx(nn.Module):
         if target_state is None:
             with torch.no_grad():
                 tgt, _ = self.forward(x, temperature=0.8)
-                target = tgt.detach().float()
+                target = tgt.float() if (self.training or getattr(self, 'preserve_gradients', False)) else tgt.detach().float()
         else:
-            target = target_state.detach().float()
+            target = target_state.float() if (self.training or getattr(self, 'preserve_gradients', False)) else target_state.detach().float()
             if target.dim() == 1:
                 target = target.unsqueeze(0)
             if target.shape[-1] != self.hidden_dim:

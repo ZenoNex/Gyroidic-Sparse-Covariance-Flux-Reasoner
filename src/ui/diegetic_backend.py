@@ -106,7 +106,7 @@ from src.core.leontief_governor import LeontiefGovernor
 from src.training.fgrt_fgrt_trainer import SpectralStructuralTrainer
 from src.training.training_manager import TrainingManager
 from src.models.resonance_cavity import ResonanceCavity
-from src.models.diegetic_heads import ResonanceLarynx, DataAssociationLayer
+from src.models.diegetic_heads import ResonanceLarynx, DataAssociationLayer, AutoeclecticResponderHead
 from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
 
 # GARBLED OUTPUT REPAIR SYSTEM INTEGRATION
@@ -333,6 +333,7 @@ class DiegeticPhysicsEngine(nn.Module):
         self.trust_vault = self.cavity.trust_vault
         self.breather_mode = BreatherMode(num_breathers=min(8, dim), dim=dim)
         self.larynx = ResonanceLarynx(hidden_dim=dim) # Pure Topological
+        self.autoeclectic_head = AutoeclecticResponderHead(hidden_dim=dim, output_dim=dim) # Manifold Roughness & Mischief Diegetic Head
         self.unicode_to_idx = {}
         self.idx_to_unicode = []
         # Centralized Extended Allowed Characters list (supporting ASCII, whitespace, math, Greek, and Voynich-adjacent symbols)
@@ -1536,20 +1537,23 @@ class DiegeticPhysicsEngine(nn.Module):
         # Update persistent meta-state (detach to prevent graph blowup here)
         # Replace hard Euclidean box clamp with smooth Hein-Kahler / analog limiter
         # to preserve high-entropy tails and prevent manifold flattening
-        new_meta = meta_out['s_fractal'].detach()
+        # Preserve non-detached fractal manifold dynamics during training or active adaptation loops
+        is_training_active = self.training or getattr(self, '_in_training', False) or getattr(self, '_is_training_temporal', False)
+        new_meta = meta_out['s_fractal'] if is_training_active else meta_out['s_fractal'].detach()
         meta_norm = torch.norm(new_meta, p=2, dim=-1, keepdim=True)
         r_max = 10.0
         # Smooth asymptotic soft-bounding: preserves unit direction while smoothly compressing magnitude
-        self.meta_state = torch.where(
+        bounded_meta = torch.where(
             meta_norm > r_max,
             new_meta * (r_max * torch.tanh(meta_norm / r_max) / (meta_norm + 1e-8)),
             new_meta
         )
+        self.meta_state = bounded_meta if is_training_active else bounded_meta.detach()
         
         # Return state for character generation / training
-        # IMPORTANT: During training, we return the non-detached fractal state
+        # IMPORTANT: During training or diegetic response synthesis, we return the non-detached fractal state
         # to allow gradient propagation for Ricci Flow and Association learning.
-        output_state = meta_out['s_fractal'] if self.training else self.meta_state
+        output_state = meta_out['s_fractal'] if is_training_active else self.meta_state
         if hasattr(self, 'advanced_bridge') and self.advanced_bridge is not None:
             output_state = self.advanced_bridge.apply_lcft_projection(output_state)
         return output_state
@@ -2511,6 +2515,16 @@ class DiegeticPhysicsEngine(nn.Module):
             except Exception:
                 pass
 
+        # 4b. Autoeclectic Responder Head (Diegetic Response Modulation & Roughness/Mischief Coupling)
+        if hasattr(self, 'autoeclectic_head') and self.autoeclectic_head is not None:
+            try:
+                with torch.no_grad():
+                    cur_entropy = torch.tensor([[float(torch.clamp(1.0 - torch.norm(current_state) / 10.0, 0.0, 1.0).item())]], device=self.device)
+                    ae_out = self.autoeclectic_head(current_state.view(1, -1)[:, :self.dim], spectral_entropy=cur_entropy)
+                    current_state = 0.90 * current_state + 0.10 * ae_out.view_as(current_state)
+            except Exception:
+                pass
+
         # Advance state through ResonanceLarynx (Topology -> Next Topology)
         # We restore the full autoregressive text sequence generation instead of just
         # returning a tensor hash, properly utilizing Echo Suppression and Vowel Boosting 
@@ -3285,7 +3299,8 @@ class DiegeticPhysicsEngine(nn.Module):
         # Extract Braid word from current Zeitgeist state for steering
         braid_word = self._zeitgeist_state.braid_word if self._zeitgeist_state else None
         manifold_state = self.forward(input_tensor, dt=dt, collision_residues=collision_residues, braid_word=braid_word, bouligand_bubble_residual=bouligand_bubble_residual)
-        seed_state = manifold_state.detach() # Explicit seed for response
+        # Reconnect live manifold to response generation: preserve gradients during training / active adaptation
+        seed_state = manifold_state if (self.training or getattr(self, '_in_training', False) or getattr(self, '_is_training_temporal', False)) else manifold_state.clone()
 
         memory_state = getattr(self, '_last_memory_state', self.meta_state)
         est_residues = getattr(self, '_last_est_residues', torch.zeros_like(self.meta_state))
@@ -8034,8 +8049,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                         # Reload with specified limit and expanded scan window
                         graph_mgr.load_fossils(
                             limit=limit,
-                            scan_limit=max(1000, (limit * 2) if limit else 1000),
-                            use_snapshot=(not force_reload and (limit or 150) <= 500)
+                            scan_limit=min(max(200, (limit * 2) if limit else 500), 1000),
+                            use_snapshot=not force_reload
                         )
 
                     # Check for Procedural Load Mode (Geometry Cones, Render Distance, Shear Planes, Occlusion)
@@ -8718,6 +8733,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         import os, sys, subprocess, json, time
+        from urllib.parse import urlparse, parse_qs
+        parsed_url = urlparse(self.path)
+        base_path = parsed_url.path
+        query = parse_qs(parsed_url.query)
         print(f"POST REQUEST RECEIVED: {self.path}")
         try:
             # --- SECURITY ENFORCEMENT ---
