@@ -356,14 +356,43 @@ class InvestorNewsIngestor(nn.Module):
         feed_urls: List[str],
         state: Optional[torch.Tensor] = None
     ) -> List[str]:
-        """Harvests market news items and converts them to raw text payloads."""
+        """Harvests market news items with Martinova/Lazarus state steering and compute feeler gating."""
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            feelers = HardwareMonitor.get_instance().probe_compute_feelers()
+            if feelers.get("thermal_spike_detected") or feelers.get("memory_pressure_detected"):
+                return []
+        except Exception:
+            pass
+
         payloads = []
-        urls = feed_urls
-        # If state provided, prioritize endpoints aligned with state polarity
-        if state is not None and len(feed_urls) > 1:
-            val = float(state.flatten()[0].item()) if state.numel() > 0 else 0.0
-            if val < 0:
-                urls = list(reversed(feed_urls))
+        urls = list(feed_urls)
+        if state is not None and len(urls) > 1 and state.numel() > 0:
+            try:
+                from src.core.martinova_correlation import compute_bounded_correlation
+                from src.core.gluing_operator import LazarusSoftmax
+                flat_state = state.flatten().to(torch.float32)
+                dim = flat_state.shape[0]
+                norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
+                phi = 1.618033988749895
+                indices = torch.arange(dim, device=flat_state.device, dtype=torch.float64)
+                scores = []
+                for u in urls:
+                    seed_val = sum((i + 1) * ord(ch) for i, ch in enumerate(u)) * 0.001
+                    x = ((indices + 1.0) * phi + seed_val) % 1.0
+                    sig = (x * 2.0 - 1.0).to(torch.float32)
+                    sig = sig / (torch.norm(sig) + 1e-8)
+                    sim = compute_bounded_correlation(norm_state.unsqueeze(0), sig.unsqueeze(0)).mean().item()
+                    scores.append(sim)
+                scores_t = torch.tensor(scores, dtype=torch.float32, device=flat_state.device) / 0.2
+                lazarus = LazarusSoftmax(dim=0).to(flat_state.device)
+                probs, _ = lazarus(scores_t, current_pas_h=0.5, previous_pas_h=0.5)
+                order = torch.argsort(probs, descending=True).tolist()
+                urls = [urls[i] for i in order]
+            except Exception:
+                val = float(state.flatten()[0].item())
+                if val < 0:
+                    urls = list(reversed(urls))
 
         for url in urls:
             items = self.fetch_rss_feed(url)

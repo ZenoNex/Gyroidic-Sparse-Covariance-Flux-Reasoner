@@ -216,7 +216,13 @@ class CALM(nn.Module):
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, has_compute_affordance
             hm = HardwareMonitor.get_instance()
-            if hm.thermal_runaway or not has_compute_affordance(ComputeAffordanceType.THERMAL):
+            feelers = hm.probe_compute_feelers()
+            feeler_throttle = (
+                feelers.get('t_rfc_stall_detected', False)
+                or feelers.get('memory_pressure_detected', False)
+                or feelers.get('thermal_spike_detected', False)
+            )
+            if hm.thermal_runaway or feeler_throttle or not has_compute_affordance(ComputeAffordanceType.THERMAL):
                 steps = min(steps, 1)
                 effective_lr = effective_lr * 0.10
             elif not has_compute_affordance(ComputeAffordanceType.SILICON):

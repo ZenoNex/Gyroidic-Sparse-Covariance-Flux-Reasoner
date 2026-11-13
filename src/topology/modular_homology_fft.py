@@ -109,3 +109,65 @@ class CyclotomicTDACompressor(nn.Module):
         # within the cyclotomic orbit.
         shielded = torch.tanh(shielded * PI) # Apply non-linear resonance
         return shielded
+
+    def rref_mod_p(self, matrix: torch.Tensor) -> tuple:
+        """
+        Exact modular Gaussian elimination (Row-Reduced Echelon Form) over Z/pZ.
+
+        Args:
+            matrix: 2D integer/float tensor [rows, cols] representing a boundary or incidence matrix.
+
+        Returns:
+            (rref_matrix, rank): RREF tensor mod p and exact modular rank.
+        """
+        p = int(self.p)
+        mat = torch.remainder(matrix.detach().round().long(), p).tolist()
+        rows = len(mat)
+        cols = len(mat[0]) if rows > 0 else 0
+        rank = 0
+        pivot_row = 0
+
+        for col in range(cols):
+            if pivot_row >= rows:
+                break
+            # Find non-zero pivot in Z/pZ (or coprime unit)
+            sel = None
+            for r in range(pivot_row, rows):
+                if mat[r][col] % p != 0:
+                    try:
+                        pow(mat[r][col] % p, -1, p)
+                        sel = r
+                        break
+                    except ValueError:
+                        continue
+            if sel is None:
+                continue
+
+            mat[pivot_row], mat[sel] = mat[sel], mat[pivot_row]
+            inv_pivot = pow(mat[pivot_row][col] % p, -1, p)
+            mat[pivot_row] = [(v * inv_pivot) % p for v in mat[pivot_row]]
+
+            for r in range(rows):
+                if r != pivot_row and mat[r][col] % p != 0:
+                    factor = mat[r][col] % p
+                    mat[r] = [(mat[r][c] - factor * mat[pivot_row][c]) % p for c in range(cols)]
+
+            pivot_row += 1
+            rank += 1
+
+        rref_tensor = torch.tensor(mat, dtype=torch.long, device=matrix.device)
+        return rref_tensor, rank
+
+    def exact_betti_mod_p(
+        self,
+        boundary_k: torch.Tensor = None,
+        boundary_k_plus_1: torch.Tensor = None,
+        dim_ck: int = 0,
+    ) -> int:
+        """
+        Compute exact Betti number beta_k over Z/pZ via modular Gaussian elimination:
+            beta_k = dim(C_k) - rank_p(d_k) - rank_p(d_{k+1})
+        """
+        rank_k = self.rref_mod_p(boundary_k)[1] if boundary_k is not None and boundary_k.numel() > 0 else 0
+        rank_k1 = self.rref_mod_p(boundary_k_plus_1)[1] if boundary_k_plus_1 is not None and boundary_k_plus_1.numel() > 0 else 0
+        return max(0, int(dim_ck) - rank_k - rank_k1)

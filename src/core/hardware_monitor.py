@@ -892,7 +892,7 @@ class HardwareMonitor:
             rec_max_nodes = 1200
             rec_mandelbulb_power = 6
 
-        return {
+        feelers = {
             "t_rfc_feeler_ns": int(t_rfc_feeler_ns),
             "t_rfc_stall_detected": t_rfc_stall_detected,
             "local_silicon_gauge": float(silicon_aff.gauge),

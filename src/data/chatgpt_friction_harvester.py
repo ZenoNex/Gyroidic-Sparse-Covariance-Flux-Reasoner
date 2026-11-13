@@ -558,7 +558,7 @@ class ChatGPTFrictionHarvester:
         
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
-            monitor = HardwareMonitor()
+            monitor = HardwareMonitor.get_instance()
         except Exception:
             monitor = None
             
@@ -586,8 +586,15 @@ class ChatGPTFrictionHarvester:
                         # Affordance-governed slow drip
                         if drip_delay > 0:
                             time.sleep(drip_delay)
-                        if monitor and not monitor.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
-                            time.sleep(drip_delay * 2)
+                        if monitor:
+                            feelers = monitor.probe_compute_feelers()
+                            if (
+                                not monitor.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC)
+                                or feelers.get("t_rfc_stall_detected")
+                                or feelers.get("thermal_spike_detected")
+                                or feelers.get("memory_pressure_detected")
+                            ):
+                                time.sleep(drip_delay * 2)
                         # Windows memory reclamation
                         try:
                             import psutil
@@ -610,8 +617,9 @@ class ChatGPTFrictionHarvester:
         import time
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
-            monitor = HardwareMonitor()
-            if not monitor.has_compute_affordance(ComputeAffordanceType.P2P_MESH):
+            monitor = HardwareMonitor.get_instance()
+            feelers = monitor.probe_compute_feelers()
+            if not monitor.has_compute_affordance(ComputeAffordanceType.P2P_MESH) and not feelers.get("community_offload_recommended"):
                 return False
         except Exception:
             pass
@@ -703,7 +711,14 @@ async def auto_temporal_training_loop(
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
             hm = HardwareMonitor.get_instance()
-            has_aff = hm.has_compute_affordance(ComputeAffordanceType.SILICON) and hm.has_compute_affordance(ComputeAffordanceType.THERMAL)
+            feelers = hm.probe_compute_feelers()
+            has_aff = (
+                hm.has_compute_affordance(ComputeAffordanceType.SILICON)
+                and hm.has_compute_affordance(ComputeAffordanceType.THERMAL)
+                and not feelers.get("t_rfc_stall_detected")
+                and not feelers.get("thermal_spike_detected")
+                and not feelers.get("memory_pressure_detected")
+            )
             import psutil
             cpu_load = psutil.cpu_percent(interval=0.1)
             ram_percent = psutil.virtual_memory().percent

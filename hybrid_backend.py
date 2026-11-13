@@ -1072,6 +1072,14 @@ class HybridAI:
              print(f"[FAIL] Diegetic Engine connection failed: {e}")
              self.engine = None
 
+        # Attach TailSlayerImageGenerator (torchvision + PyOpenCL matrix_mix_breeding)
+        try:
+            from image_extension import TailSlayerImageGenerator
+            sov_engine = getattr(self.engine, 'sovereignty_engine', None) if self.engine else None
+            self.tail_slayer_image_gen = getattr(self.engine, 'tail_slayer_image_gen', None) or TailSlayerImageGenerator(engine=sov_engine)
+        except Exception:
+            self.tail_slayer_image_gen = None
+
         # =========================================================
         # UNICORN SYNTHESIS: MULTIPLEXED SPATIAL, SCIENTIFIC & FINANCIAL FEEDS
         # =========================================================
@@ -2631,14 +2639,22 @@ class HybridAI:
         import re
         import random
 
-        # Reconnect to full Diegetic converged response pipeline if available
-        if hasattr(self, 'engine') and self.engine and hasattr(self.engine, '_generate_converged_response'):
+        # Reconnect to full Diegetic tri-state pipeline (preserving CONFABULATED, SEARCH_NEEDED, render_manifold_fracture)
+        if hasattr(self, 'engine') and self.engine and not getattr(self, '_in_engine_dispatch', False):
             try:
-                affordances = {'executability_pressure': 0.1, 'runtime_expandability': 0.1, 'conversational_embedding_pressure': 0.2, 'knowledge_seeking': 0.1}
-                s_tensor = hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state
-                return self.engine._generate_converged_response(text, s_tensor, fingerprint=None, affordance_gradients=affordances)
+                self._in_engine_dispatch = True
+                if hasattr(self.engine, 'process_text'):
+                    res = self.engine.process_text(text=text, regime=getattr(self, 'current_regime', 'goo'))
+                    if isinstance(res, dict) and res.get('response'):
+                        return res['response']
+                elif hasattr(self.engine, '_generate_converged_response'):
+                    affordances = {'executability_pressure': 0.1, 'runtime_expandability': 0.1, 'conversational_embedding_pressure': 0.2, 'knowledge_seeking': 0.1}
+                    s_tensor = hidden_state.unsqueeze(0) if hidden_state.dim() == 1 else hidden_state
+                    return self.engine._generate_converged_response(text, s_tensor, fingerprint=None, affordance_gradients=affordances)
             except Exception as e:
-                print(f"[HYBRID] Fallback from converged response notice: {e}")
+                print(f"[HYBRID] Fallback from Diegetic tri-state response notice: {e}")
+            finally:
+                self._in_engine_dispatch = False
 
         # Modular forward passes for Voynich, Cavity, & RNS on HybridAI substrate
         if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:

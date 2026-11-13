@@ -519,8 +519,13 @@ class BezoutCoefficientRefresh(nn.Module):
                 j_start, j_end = j * self.D, (j + 1) * self.D
                 func_correlations[i, j] = correlation_matrix[i_start:i_end, j_start:j_end].mean()
         
-        # Update Bezout matrix (inverse correlation for independence)
-        self.bezout_matrix.copy_(torch.inverse(func_correlations + 1e-6 * torch.eye(self.K, device=self.device)))
+        # Update Bezout matrix (inverse correlation via pivoted Gaussian elimination with pinv fallback)
+        reg_corr = func_correlations + 1e-6 * torch.eye(self.K, device=self.device)
+        eye_k = torch.eye(self.K, device=self.device)
+        try:
+            self.bezout_matrix.copy_(torch.linalg.solve(reg_corr, eye_k))
+        except RuntimeError:
+            self.bezout_matrix.copy_(torch.linalg.pinv(reg_corr))
         
         return self.bezout_matrix
     

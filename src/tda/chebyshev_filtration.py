@@ -126,8 +126,9 @@ class MinimaxPolynomialApproximation(nn.Module):
             coeffs_new = torch.linalg.solve(V, y_nodes)
             self.coefficients.data = coeffs_new
         except RuntimeError:
-            # Fallback if singular (shouldn't be with Chebyshev nodes)
-            print("Warning: Chebyshev interpolation singular.")
+            # Fallback via least-squares Gaussian/QR solve if near-singular
+            coeffs_new = torch.linalg.lstsq(V, y_nodes).solution
+            self.coefficients.data = coeffs_new
 
     def get_filtration_values(self, point_cloud: torch.Tensor) -> torch.Tensor:
         """

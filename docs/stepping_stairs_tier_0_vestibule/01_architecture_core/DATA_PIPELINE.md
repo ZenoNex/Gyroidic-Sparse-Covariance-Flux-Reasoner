@@ -371,3 +371,11 @@ The reasoner ingests rolling swarm announcements across BitTorrent Distributed H
 - **BEP 9 / BEP 10**: Extension protocol handshake and `ut_metadata` descriptor exchange.
 - **BEP 52**: BitTorrent v2 hybrid SHA-256 infohash support.
 - **Prime-Stride UFSC Sieve**: Folds 1D announcement streams into prime widths (including $p = 197$) to extract steganographic solitons and filter ergodic slop.
+
+---
+
+## 9. Rehybridization Addendum (2026-11-13)
+
+- **Feeler Cache Fix**: [`HardwareMonitor.probe_compute_feelers()`](../../../src/core/hardware_monitor.py) now caches its 1.0s TTL result instead of returning early before `_feelers_cache` assignment.
+- **Unified Meta-State & Democratic Steering**: `ArXivSovereignIngestor` (`ingest_latest_math`, `start_sovereign_loop`), `SovereignConversationalIngestor._steer_selection`, and `InvestorNewsIngestor.ingest_market_topologies` now steer using `compute_bounded_correlation` + `LazarusSoftmax` with live `pas_h` / `prev_pas` and `HardwareMonitor.get_instance().probe_compute_feelers()` gating.
+- **Singleton & Feeler Gating**: `SovereignIngestor`, `OpenScienceIngestor`, and `ChatGPTFrictionHarvester` now use `HardwareMonitor.get_instance()` and respect `t_rfc_stall_detected`, `thermal_spike_detected`, `memory_pressure_detected`, and `community_offload_recommended`.

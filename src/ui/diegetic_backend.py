@@ -128,7 +128,7 @@ from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, H
 # Gyroid Covariance for tensor-based momentum instead of scalar averages
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 from src.codec.vision_utilities import get_russian_doll_projection
-from image_extension import ImageProcessor
+from image_extension import ImageProcessor, TailSlayerImageGenerator
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
 from src.core.invariants import (
@@ -639,6 +639,10 @@ class DiegeticPhysicsEngine(nn.Module):
 
         # --- SOVEREIGN VISION INGESTION & AFFORDANCE-DRIVEN RECURRENT CORE ---
         self.image_processor = ImageProcessor(device=self.device)
+        try:
+            self.tail_slayer_image_gen = TailSlayerImageGenerator(engine=getattr(self, 'sovereignty_engine', None))
+        except Exception:
+            self.tail_slayer_image_gen = None
         try:
             from src.core.texture_dsp import TextureDSPEngine, AdaptiveGaborWindowController
             self.texture_dsp = TextureDSPEngine(device=str(self.device))
@@ -2567,7 +2571,9 @@ class DiegeticPhysicsEngine(nn.Module):
             try:
                 with torch.no_grad():
                     cur_entropy = torch.tensor([[float(torch.clamp(1.0 - torch.norm(current_state) / 10.0, 0.0, 1.0).item())]], device=self.device)
-                    ae_out = self.autoeclectic_head(current_state.view(1, -1)[:, :self.dim], spectral_entropy=cur_entropy)
+                    curv_val = float(self._estimate_manifold_curvature(current_state)) if hasattr(self, '_estimate_manifold_curvature') else 0.0
+                    curv_t = torch.tensor([[curv_val]], device=self.device, dtype=torch.float32)
+                    ae_out = self.autoeclectic_head(current_state.view(1, -1)[:, :self.dim], spectral_entropy=cur_entropy, curvature=curv_t)
                     current_state = 0.90 * current_state + 0.10 * ae_out.view_as(current_state)
             except Exception:
                 pass
@@ -4695,9 +4701,20 @@ class DiegeticPhysicsEngine(nn.Module):
                 
                 # 4. Nudge the meta_state to inject the new topological context
                 self._prime_manifold_with_fossils(input_tensor, text_input)
-                
-                # Update response text prefix
-                response_text = f"[SEARCH_HEALED] Manifold updated via {search_source} search for '{query}'. " + response_text
+
+                # 5. Re-run converged response on the healed manifold instead of prepending onto stale pre-search text
+                healed_seed = 0.5 * seed_state + 0.5 * self.meta_state.to(seed_state.device).view_as(seed_state)
+                healed_response = self._generate_converged_response(
+                    text_input=text_input,
+                    seed_state=healed_seed,
+                    fingerprint=fingerprint,
+                    affordance_gradients=affordance_gradients,
+                    audio_dyad=audio_dyad,
+                    video_dyad_b64=video_dyad_b64,
+                    audio_b64=audio_b64,
+                    voynich_token=voynich_token
+                )
+                response_text = f"[SEARCH_HEALED] Manifold updated via {search_source} search for '{query}'. " + healed_response
             except Exception as e:
                 print(f" [SEARCH_GATE] Realtime search and nudge failed: {e}")
 
@@ -5274,15 +5291,27 @@ class DiegeticPhysicsEngine(nn.Module):
             except Exception:
                 return 0.61  # last-resort sentinel
 
+    def probe_compute_feelers(self) -> dict:
+        """Probe local & community compute affordance feelers via HardwareMonitor singleton."""
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            return HardwareMonitor.get_instance().probe_compute_feelers()
+        except Exception as e:
+            return {"error": str(e), "t_rfc_stall_detected": False, "thermal_spike_detected": False, "memory_pressure_detected": False}
+
     def steer_democratically(self, context: dict):
         """
-        Democratic Steering Hub (Phase 20).
-        Aggregates engagement signals from external sources (HN, SE) and internal friction (Ouroboros).
+        Democratic Steering Hub (Phase 20 + Compute Feeler Rehybridization).
+        Aggregates engagement signals from external sources (HN, SE, ArXiv, InvestorNews, OpenScience)
+        and internal friction (Ouroboros, ChatGPTFrictionHarvester).
         Protects from 'smoothness leakage' via thresholded discretization.
-        Governs updates via Leontief Input-Output cascade costs and Kelly Criterion risk hedging.
+        Governs updates via Leontief Input-Output cascade costs, Kelly Criterion risk hedging,
+        and live HardwareMonitor compute affordance feelers.
         """
         if not isinstance(context, dict):
             return
+
+        feelers = self.probe_compute_feelers()
 
         # 1. Cast votes based on signals
         voted = False
@@ -5322,6 +5351,18 @@ class DiegeticPhysicsEngine(nn.Module):
                 self.mischief_votes -= 1 # Lower threshold = deeper exploration
                 voted = True
 
+        # ArXiv / OpenScience / InvestorNews / Friction Votes
+        elif source in ('arxiv', 'open_science', 'investor_news', 'friction'):
+            if context.get('lazarus_triggered', False) or float(context.get('pas_h', 0.5)) > 0.65:
+                self.expressivity_votes += 1
+                voted = True
+            elif float(context.get('pas_h', 0.5)) < 0.35 or context.get('dead_end_cliff', False):
+                self.mischief_votes += 1
+                voted = True
+            if context.get('volatility_high', False) or context.get('jarring_shift', False):
+                self.mischief_votes += 1
+                voted = True
+
         # Internal Ouroboros Friction Votes
         elif source == 'ouroboros' or 'shadow_log' in context:
             # Ouroboros shadow logs indicate loop tension
@@ -5346,6 +5387,12 @@ class DiegeticPhysicsEngine(nn.Module):
             direction = 1.0 if self.mischief_votes > 0 else -1.0
             delta_tau = direction * 0.02
             self.mischief_votes = 0 # Reset accumulator
+
+        # Feeler-driven throttling: if DRAM/thermal/t_RFC stall detected, dampen expressivity expansion
+        if feelers.get("t_rfc_stall_detected") or feelers.get("thermal_spike_detected") or feelers.get("memory_pressure_detected"):
+            if delta_lipschitz > 0.0:
+                delta_lipschitz *= 0.25
+            delta_tau = max(delta_tau, 0.01)
 
         # If no thresholds met, do nothing (guards continuity)
         if delta_lipschitz == 0.0 and delta_tau == 0.0:

@@ -150,9 +150,9 @@ class LeontiefGovernor(nn.Module):
         I = torch.eye(self.state_dim, device=A_bar.device)
 
         if is_productive:
-            # Direct inversion: (I - A)^{-1}
+            # Direct solve via pivoted Gaussian elimination (LU): (I - A) L = I
             try:
-                L = torch.linalg.inv(I - A_bar)
+                L = torch.linalg.solve(I - A_bar, I)
             except Exception:
                 # Singular or near-singular: fall back to Neumann
                 L = self._neumann_series(A_bar, I)

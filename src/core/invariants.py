@@ -1416,7 +1416,10 @@ def compute_landau_homoenergetic_compression_audit(
     is_imploding = bool(det_val <= 1e-5 or (min_eig < -1e-6 and t_val >= implosion_time))
 
     if abs(det_val) > 1e-5:
-        l_t = l0 @ torch.linalg.pinv(mat)
+        try:
+            l_t = torch.linalg.solve(mat.T, l0.T).T
+        except RuntimeError:
+            l_t = l0 @ torch.linalg.pinv(mat)
     else:
         l_t = l0
     op_norm = float(torch.linalg.norm(l_t, ord=2).item()) if l_t.numel() > 0 else 0.0

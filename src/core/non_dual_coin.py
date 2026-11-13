@@ -18,7 +18,7 @@ class CerumenPotWallet(nn.Module):
         self.device = device
         # The economic "value" is a topological state, not a scalar.
         # Initialized as an identity-like sphere with some honest jitter.
-        self.state = nn.Parameter(torch.eye(dim, device=device) + harvest_honest_jitter((dim, dim), device=device, scaled=False) * 0.01)
+        self.state = nn.Parameter(torch.eye(dim, device=device) + harvest_honest_jitter((dim, dim), device=device, scaled=False).to(device) * 0.01)
         
     def get_volume(self) -> float:
         """Returns the scalar volume approximation of the wallet's state (log-det to prevent underflow)."""

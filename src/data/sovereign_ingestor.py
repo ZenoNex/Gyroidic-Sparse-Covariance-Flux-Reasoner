@@ -227,11 +227,17 @@ class SovereignIngestor:
         Query Hacker News via public Algolia search API steered by Larynx query.
         Converts discussions into high-entropy Conversation dyads.
         """
-        # Gated by HardwareMonitor typed compute affordance
+        # Gated by HardwareMonitor typed compute affordance & compute feelers
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
-            hw = HardwareMonitor()
-            if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL):
+            hw = HardwareMonitor.get_instance()
+            feelers = hw.probe_compute_feelers()
+            if (
+                not hw.has_compute_affordance(ComputeAffordanceType.SILICON)
+                or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL)
+                or feelers.get("thermal_spike_detected")
+                or feelers.get("memory_pressure_detected")
+            ):
                 return []
         except Exception:
             pass
@@ -301,11 +307,17 @@ class SovereignIngestor:
         Ingest from Hacker News Firebase API.
         Focuses on 'ask' and 'recent' to maximize entropy per Option D.
         """
-        # Gated by HardwareMonitor typed compute affordance
+        # Gated by HardwareMonitor typed compute affordance & compute feelers
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
-            hw = HardwareMonitor()
-            if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL):
+            hw = HardwareMonitor.get_instance()
+            feelers = hw.probe_compute_feelers()
+            if (
+                not hw.has_compute_affordance(ComputeAffordanceType.SILICON)
+                or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL)
+                or feelers.get("thermal_spike_detected")
+                or feelers.get("memory_pressure_detected")
+            ):
                 return []
         except Exception:
             pass

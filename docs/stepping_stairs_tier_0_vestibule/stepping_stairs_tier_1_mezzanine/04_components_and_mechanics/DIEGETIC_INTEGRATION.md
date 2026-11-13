@@ -189,3 +189,11 @@ Expected diagnostic outputs include:
 - `[OK] Dataset Ingestion System initialized`
 - `[BGLEARN] Background Larynx coherence trainer ACTIVE (30s idle interval)`
 - `[AUDIENCE] Projection active with Symplectic Gluing and Betti-1 scaling`
+
+---
+
+## 5. Responder & Vision Rehybridization Addendum (2026-11-13)
+
+- **`SEARCH_NEEDED` -> `[SEARCH_HEALED]` Re-generation**: In [`src/ui/diegetic_backend.py`](../../../../src/ui/diegetic_backend.py), after `_prime_manifold_with_fossils()` updates `meta_state`, `_generate_converged_response()` is re-run on the healed state rather than prepending `[SEARCH_HEALED]` onto stale pre-search text.
+- **Tri-State Routing in `HybridAI._generate_response_from_state`**: [`hybrid_backend.py`](../../../../hybrid_backend.py) now routes through `self.engine.process_text(...)` (preserving `CONFABULATED`, `SEARCH_NEEDED`, and `render_manifold_fracture`) with a re-entrancy guard.
+- **Live Curvature & `TailSlayerImageGenerator`**: `DiegeticPhysicsEngine._generate_converged_response` passes live `_estimate_manifold_curvature(current_state)` to `AutoeclecticResponderHead`, and both `DiegeticPhysicsEngine` and `HybridAI` attach `TailSlayerImageGenerator` (`torchvision` + `SiliconSovereigntyEngine.matrix_mix_breeding`).

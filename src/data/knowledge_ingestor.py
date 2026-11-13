@@ -334,6 +334,15 @@ class ArXivSovereignIngestor:
         Samples categories based on the reasoner's live meta_state trajectory instead of hardcoded cycling.
         Maintains backwards compatibility with 'set_name' argument if steering is unavailable.
         """
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            feelers = HardwareMonitor.get_instance().probe_compute_feelers()
+            if feelers.get("thermal_spike_detected") or feelers.get("memory_pressure_detected"):
+                print("[INGEST] Deferring ArXiv ingestion due to thermal/memory feeler pressure.")
+                return
+        except Exception:
+            feelers = {}
+
         self._wait_for_rate_limit()
         
         active_categories = self.categories
@@ -387,6 +396,17 @@ class ArXivSovereignIngestor:
             chosen_cat = active_categories[idx]
             prob_val = probs[idx].item()
             print(f"[INGEST] Meta-State Topic Steering selected topic: '{chosen_cat}' (prob: {prob_val:.3f})")
+
+            if self.engine is not None and hasattr(self.engine, 'steer_democratically'):
+                try:
+                    self.engine.steer_democratically({
+                        'source': 'arxiv',
+                        'category': chosen_cat,
+                        'pas_h': pas_h_curr,
+                        'lazarus_triggered': bool(lazarus_triggered),
+                    })
+                except Exception:
+                    pass
             
         cat = self._set_to_category(chosen_cat)
         random_offset = _honest_randint(0, 10, device=self.device)
@@ -1620,16 +1640,19 @@ class ArXivSovereignIngestor:
                             
                             norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
                             
-                            # Compute similarities with deterministic category archetypes
+                            # Compute similarities with deterministic category archetypes via Martinova bounded correlation
+                            from src.core.martinova_correlation import compute_bounded_correlation
                             scores = []
                             for s in sets:
                                 sig = self._get_category_signature(s)
-                                sim = torch.dot(norm_state, sig).item()
+                                sim = compute_bounded_correlation(norm_state.unsqueeze(0), sig.unsqueeze(0)).mean().item()
                                 scores.append(sim)
                             
                             scores_t = torch.tensor(scores, dtype=torch.float32, device=self.device) / 0.2
                             lazarus = LazarusSoftmax(dim=0).to(scores_t.device)
-                            probs, _ = lazarus(scores_t, 0.0, 0.0)
+                            pas_h_curr = self.engine.pas_h.mean().item() if self.engine and hasattr(self.engine, 'pas_h') and self.engine.pas_h is not None else 0.5
+                            pas_h_prev = self.engine.prev_pas if self.engine and hasattr(self.engine, 'prev_pas') else 0.5
+                            probs, _ = lazarus(scores_t, current_pas_h=pas_h_curr, previous_pas_h=pas_h_prev)
                             
                             # Sample category
                             from src.core.honest_jitter import honest_multinomial
@@ -1640,15 +1663,31 @@ class ArXivSovereignIngestor:
                             selected_set = _honest_choice(sets, device=self.device)
                             print(f" [INGEST] Dynamic loop selected uniform topic: '{selected_set}'")
                         
-                        # Run ingestion
-                        self.ingest_latest_math(selected_set)
+                        # Run ingestion (gated by HardwareMonitor compute feelers)
+                        feelers = {}
+                        try:
+                            from src.core.hardware_monitor import HardwareMonitor
+                            feelers = HardwareMonitor.get_instance().probe_compute_feelers()
+                        except Exception:
+                            pass
+                        if feelers.get("t_rfc_stall_detected") or feelers.get("thermal_spike_detected") or feelers.get("memory_pressure_detected"):
+                            print(" [INGEST] Sovereign loop yielding turn due to compute feeler pressure.")
+                        else:
+                            self.ingest_latest_math(selected_set)
                         
                 except Exception as e:
                     print(f"[INGEST] Loop steering/search error: {e}")
                 
                 # Slow-drip timing between pulls - adaptive sleep interval
                 is_busy = hasattr(self, '_engine_busy_fn') and self._engine_busy_fn is not None and self._engine_busy_fn()
-                sleep_sec = 300 if is_busy else 60
+                feeler_busy = False
+                try:
+                    from src.core.hardware_monitor import HardwareMonitor
+                    f = HardwareMonitor.get_instance().probe_compute_feelers()
+                    feeler_busy = bool(f.get("t_rfc_stall_detected") or f.get("thermal_spike_detected") or f.get("memory_pressure_detected"))
+                except Exception:
+                    pass
+                sleep_sec = 300 if (is_busy or feeler_busy) else 60
                 if self._stop_event.wait(timeout=sleep_sec):
                     break
                 

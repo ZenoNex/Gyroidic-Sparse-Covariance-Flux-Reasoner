@@ -1203,6 +1203,13 @@ class SovereignConversationalIngestor:
 
 
     def _steer_selection(self, options: List[str]) -> str:
+        feelers = {}
+        try:
+            from src.core.hardware_monitor import HardwareMonitor
+            feelers = HardwareMonitor.get_instance().probe_compute_feelers()
+        except Exception:
+            pass
+
         state = self._get_active_state()
         if state is not None and len(options) > 0:
             try:
@@ -1210,16 +1217,25 @@ class SovereignConversationalIngestor:
                 dim = state.shape[-1]
                 flat_state = state.flatten()
                 norm_state = flat_state / (torch.norm(flat_state) + 1e-8)
-                
+
+                from src.core.martinova_correlation import compute_bounded_correlation
+                from src.core.gluing_operator import LazarusSoftmax
+                from src.core.honest_jitter import honest_multinomial
+
                 scores = []
                 for opt in options:
                     sig = self._get_signature(opt, dim, device)
-                    sim = torch.dot(norm_state, sig).item()
+                    sim = compute_bounded_correlation(norm_state.unsqueeze(0), sig.unsqueeze(0)).mean().item()
                     scores.append(sim)
-                
-                scores_t = torch.tensor(scores, dtype=torch.float32, device=device) / 0.2
-                from src.core.honest_jitter import honest_multinomial
-                probs = torch.softmax(scores_t, dim=0)
+
+                # Under t_RFC/thermal/memory feeler pressure, soften temperature to avoid greedy lock-in
+                temp = 0.35 if (feelers.get("t_rfc_stall_detected") or feelers.get("thermal_spike_detected") or feelers.get("memory_pressure_detected")) else 0.2
+                scores_t = torch.tensor(scores, dtype=torch.float32, device=device) / temp
+
+                pas_h_curr = self.engine.pas_h.mean().item() if self.engine and hasattr(self.engine, 'pas_h') and self.engine.pas_h is not None else 0.5
+                pas_h_prev = self.engine.prev_pas if self.engine and hasattr(self.engine, 'prev_pas') else 0.5
+                lazarus = LazarusSoftmax(dim=0).to(device)
+                probs, _ = lazarus(scores_t, current_pas_h=pas_h_curr, previous_pas_h=pas_h_prev)
                 idx = honest_multinomial(probs, 1).item()
                 return options[idx]
             except Exception as e:

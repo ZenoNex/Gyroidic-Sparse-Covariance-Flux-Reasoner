@@ -654,17 +654,21 @@ class TemporalAssociationTrainer:
                     C_X = self._gyroid_estimator_x.compute_covariance()
                     C_Y = self._gyroid_estimator_y.compute_covariance()
                     
-                    X_T_X_inv = torch.inverse(C_X + epsilon * I)
-                    Y_T_Y_inv = torch.inverse(C_Y + epsilon * I)
-                    
                     if self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
                         XT_Y = self.engine.hardware_sovereign_matmul(X.T, Y)
-                        F_op = self.engine.hardware_sovereign_matmul(X_T_X_inv, XT_Y)
                         YT_X = self.engine.hardware_sovereign_matmul(Y.T, X)
-                        B_op = self.engine.hardware_sovereign_matmul(Y_T_Y_inv, YT_X)
                     else:
-                        F_op = torch.matmul(X_T_X_inv, torch.matmul(X.T, Y))
-                        B_op = torch.matmul(Y_T_Y_inv, torch.matmul(Y.T, X))
+                        XT_Y = torch.matmul(X.T, Y)
+                        YT_X = torch.matmul(Y.T, X)
+
+                    reg_X = C_X + epsilon * I
+                    reg_Y = C_Y + epsilon * I
+                    try:
+                        F_op = torch.linalg.solve(reg_X, XT_Y)
+                        B_op = torch.linalg.solve(reg_Y, YT_X)
+                    except RuntimeError:
+                        F_op = torch.linalg.lstsq(reg_X, XT_Y).solution
+                        B_op = torch.linalg.lstsq(reg_Y, YT_X).solution
                     
                     if not hasattr(self, 'curvature_tracker') or self.curvature_tracker.dim != h_dim:
                         from src.core.noncommutativity_curvature import NonCommutativityCurvature

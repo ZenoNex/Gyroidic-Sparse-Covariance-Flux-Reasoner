@@ -692,7 +692,24 @@ class KAGHBlock(nn.Module):
             # Modulate by PSH proximity scalar exp(-|alpha^2 - beta^2|), bounded in [0.1, 1.0]
             psh_scale = max(0.1, min(1.0, math.exp(-abs(delta_val))))
             effective_lr = effective_lr * psh_scale
-            
+
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, has_compute_affordance
+            hm = HardwareMonitor.get_instance()
+            feelers = hm.probe_compute_feelers()
+            feeler_throttle = (
+                feelers.get('t_rfc_stall_detected', False)
+                or feelers.get('memory_pressure_detected', False)
+                or feelers.get('thermal_spike_detected', False)
+            )
+            if hm.thermal_runaway or feeler_throttle or not has_compute_affordance(ComputeAffordanceType.THERMAL):
+                steps = min(steps, 1)
+                effective_lr = effective_lr * 0.10
+            elif not has_compute_affordance(ComputeAffordanceType.SILICON):
+                effective_lr = effective_lr * 0.50
+        except Exception:
+            pass
+
         optimizer = torch.optim.SGD(adapted_block.parameters(), lr=effective_lr)
         
         for p in adapted_block.parameters():

@@ -57,7 +57,7 @@ The following files in `docs/` function directly as architectural rules, mathema
 > When you discover or add a real import / ownership / call edge between modules or classes,
 > add it here. Only record edges verified in code (rg on `from src.` imports). Do not invent edges.
 > Entry point: `hybrid_backend.py` (run with `$env:PYTHONPATH="."`). All library code lives in `src/`.
-> Last grown: 2026-10-16.
+> Last grown: 2026-11-13.
 
 ## 1. Module-to-Module Interaction (package level)
 ```mermaid
@@ -319,6 +319,35 @@ classDiagram
     NostalgicLeakFunctional --> SiliconSovereigntyEngine
     IntercosaminationOperator --> SiliconSovereigntyEngine
     EnhancedBezoutCRT --> SiliconSovereigntyEngine
+    DiegeticPhysicsEngine --> TailSlayerImageGenerator
+    HybridAI --> TailSlayerImageGenerator
+    TailSlayerImageGenerator --> SiliconSovereigntyEngine
+    DiegeticPhysicsEngine --> HardwareMonitor
+    ArXivSovereignIngestor --> DiegeticPhysicsEngine
+    CALM --> HardwareMonitor
+    KAGHBlock --> HardwareMonitor
+    UniversalOrchestrator --> KAGHBlock
+    UniversalOrchestrator --> BioArchetypalGovernor
+    UniversalOrchestrator --> PolynomialADMRSolver
+    UniversalOrchestrator --> MetaPolytopeMatrioshka
+    UniversalOrchestrator --> QuantumInspiredReasoningState
+    UniversalOrchestrator --> VoynichLinguist
+    UniversalOrchestrator --> LearnedModalityEmbedder
+    UniversalOrchestrator --> EnergyBasedSolitonHealer
+    UniversalOrchestrator --> SicFaAdmmSolver
+    UniversalOrchestrator --> ConstraintProbeOperator
+    UniversalOrchestrator --> CODES
+    UniversalOrchestrator --> LocalActuationQPOperator
+    UniversalOrchestrator --> ContinuousCoprimality
+    UniversalOrchestrator --> NTMOperator
+    UniversalOrchestrator --> PolynomialCoefficientFunctional
+    UniversalOrchestrator --> EinsteinMonotileTessellation
+    UniversalOrchestrator --> CyclotomicTDACompressor
+    UniversalOrchestrator --> TriadicReciprocityChecker
+    UniversalOrchestrator --> MinimaxPolynomialApproximation
+    UniversalOrchestrator --> HuffmanEntropyCodec
+    UniversalOrchestrator --> EulerTourSparseTableLCA
+    UniversalOrchestrator --> GDPONormalization
 ```
 
 ## Growth Log
@@ -330,3 +359,5 @@ classDiagram
 - 2026-10-26: Rehybridized Signal Processing & Fourier Analysis Systems (ECE2026 L42 Revelations): implemented Parseval unitary energy-conserving invariance (`norm="ortho"`) across `HarmonicWaveDecomposition`, `TrigonometricUnfolding`, and `HuxleyRD` (`src/surrogates/kagh_networks.py`); implemented 2D Hann/Cyclotomic window tapering in `TextureDSPEngine` to suppress incommensurate prime logarithm frequency leakage; created `AdaptiveGaborWindowController` (`src/core/texture_dsp.py`) dynamically contracting windows on high-$H_{\text{spec}}$ Dirac epiphanies and expanding on low-$H_{\text{spec}}$ prime harmonics; added `PolynomialBasis.adapt_degree_for_window` (`src/core/polynomial_coprime.py`) to eliminate the zero-padding interpolation trap. Archived 85 legacy untracked root test/output scripts into `scratch/legacy_adhoc_tests/`. Verified 5/5 tests in `tests/test_signal_analysis_fourier_rehybridization.py`.
 - 2026-10-28: Integrated Catalan Number ($C_n = \frac{1}{n+1}\binom{2n}{n}$) Invariants and Stasheff Associahedron Primitives across the Resonance Intelligence Core (`catalan_number`, `get_catalan_ladder`, `segner_catalan_weights`, `CatalanBranchingInvariant` in `src/core/invariants.py`; `CatalanAssociahedronEntropy` and `FibonacciResonanceEntropy.get_triadic_catalan_coupling` in `src/core/fgrt_primitives.py`), Stieltjes continued fractions and Touchard-Hankel unimodular ($\det H_n = 1$) moment conditioning (`src/core/number_theoretic_stabilizer.py`), Chebyshev semicircle moments and Russian-Doll block parenthesization capacity (`src/core/polynomial_coprime.py`), Euler tour Dyck ballot words (`src/core/euler_tour_lca.py`), Voynich agglutinative Segner-Catalan weighted binary parse trees (`src/core/voynich_architecture.py`), and 8x8 Trajectory Decombiner Catalan merge-tree bounds (`src/core/hessian_8x8_curvature_ledger.py`). Updated `.agents/rules/` with complete root search-hazard directory exclusions and `docs/` governance mappings.
 - 2026-10-28: Audited `MODULE_INVENTORY.md` against all 204 `src/` files and added all 37 missing modules and all unmentioned classes. Reconnected local and community compute affordance feelers (`HardwareMonitor.probe_compute_feelers`, `BonfireNomadicRing.probe_community_compute_feeler`, `FreenetGhostCaller` round-trip Ghost latency telemetry) and speculative routing timings (`HardwareMonitor.evaluate_speculative_routing_timings`, 7-step Chebyshev Polynomial Speculative Trajectory Draft in `SpectralSpeculationEngine.draft_chebyshev_trajectory`, 500ms Restless Thermal Latency Guard in `SiliconSovereigntyEngine.enforce_500ms_restless_thermal_guard`, and Refresh-Triggered Play $t_{\text{RFC}} \to \mathbb{RP}^4$ Void Lazarus Transition in `ZeitgeistRouter.forward` and `SpeculativeCoprimeGate.speculative_recovery`).
+- 2026-11-13: Fixed `HardwareMonitor.probe_compute_feelers()` dead-code cache return in `src/core/hardware_monitor.py`; wired `probe_compute_feelers()`, `compute_bounded_correlation`, `LazarusSoftmax`, and `DiegeticPhysicsEngine.steer_democratically` across `ArXivSovereignIngestor`, `SovereignConversationalIngestor`, `InvestorNewsIngestor`, `SovereignIngestor`, `OpenScienceIngestor`, and `ChatGPTFrictionHarvester`; fixed `SEARCH_NEEDED` -> `[SEARCH_HEALED]` post-`_prime_manifold_with_fossils` re-generation in `src/ui/diegetic_backend.py`; routed `HybridAI._generate_response_from_state` through `DiegeticPhysicsEngine.process_text` in `hybrid_backend.py`; passed live `_estimate_manifold_curvature` to `AutoeclecticResponderHead`; attached `TailSlayerImageGenerator` (`torchvision` + `SiliconSovereigntyEngine.matrix_mix_breeding`) to `DiegeticPhysicsEngine` and `HybridAI`.
+- 2026-11-13: Wired `HardwareMonitor.get_instance().probe_compute_feelers()` gating (`t_rfc_stall_detected`, `memory_pressure_detected`, `thermal_spike_detected`) into both `CALM.adapt` (`src/surrogates/calm_predictor.py`) and `KAGHBlock.adapt_online` (`src/surrogates/kagh_networks.py`). Fixed `UniversalOrchestrator.__init__` `device` forwarding (`_device = torch.device(device) if device is not None else ...`) and rehybridized `KAGHBlock`, `BioArchetypalGovernor` (including `NeuromodulatoryBus` and all 7 `src/governance/` sub-archetypes), `PolynomialADMRSolver`, `MetaPolytopeMatrioshka`, `QuantumInspiredReasoningState`, `VoynichLinguist`, `LearnedModalityEmbedder`, `EnergyBasedSolitonHealer`, `SicFaAdmmSolver`, `ConstraintProbeOperator`, `CODES`, `LocalActuationQPOperator`, `ContinuousCoprimality`, `VoynichExemptionToken`, `NTMOperator`, `PolynomialCoefficientFunctional`, `EinsteinMonotileTessellation`, `CyclotomicTDACompressor`, `TriadicReciprocityChecker`, `MinimaxPolynomialApproximation`, `HuffmanEntropyCodec`, `EulerTourSparseTableLCA`, and `GDPONormalization` into `UniversalOrchestrator` (`src/core/orchestrator.py`) with feeler-gated `step()` hooks.

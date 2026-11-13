@@ -981,12 +981,19 @@ except Exception as err:
         Aggregate results from multiple open-science queries into preprocessed samples.
         Complies with the Gyroidic reasoner input standard.
         """
-        # Gated by HardwareMonitor typed compute affordance
+        # Gated by HardwareMonitor typed compute affordance & compute feelers
         try:
             from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType
-            hw = HardwareMonitor()
-            if not hw.has_compute_affordance(ComputeAffordanceType.SILICON) or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL):
-                print("[INGEST] Throttling open-science query aggregation due to constrained compute/thermal affordance.")
+            hw = HardwareMonitor.get_instance()
+            feelers = hw.probe_compute_feelers()
+            if (
+                not hw.has_compute_affordance(ComputeAffordanceType.SILICON)
+                or not hw.has_compute_affordance(ComputeAffordanceType.THERMAL)
+                or feelers.get("t_rfc_stall_detected")
+                or feelers.get("thermal_spike_detected")
+                or feelers.get("memory_pressure_detected")
+            ):
+                print("[INGEST] Throttling open-science query aggregation due to constrained compute/thermal/feeler affordance.")
                 query_configs = query_configs[:1]
         except Exception:
             pass

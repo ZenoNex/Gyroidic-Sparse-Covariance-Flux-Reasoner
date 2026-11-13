@@ -199,7 +199,7 @@ class UniversalOrchestrator(nn.Module):
         
         # Economic Topology / Yield Stress
         self.tripsodic_ledger = TripsodicLedger(base_volume=1000.0)
-        _device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        _device = torch.device(device) if device is not None else torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.device = _device
         self.sys1_wallet = CerumenPotWallet(dim=dim, device=_device)
         self.sys2_wallet = CerumenPotWallet(dim=dim, device=_device)
@@ -213,7 +213,7 @@ class UniversalOrchestrator(nn.Module):
         if _AGENT_SMITH_ENGINE is not None:
             self.agent_smith = _AGENT_SMITH_ENGINE
         else:
-            self.agent_smith = AgentSmithEngine(device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+            self.agent_smith = AgentSmithEngine(device=_device)
             
         # Fractal Meta-Functional: Adaptive structural pressure
         from src.core.fractal_meta_functional import FractalMetaFunctional
@@ -712,6 +712,187 @@ class UniversalOrchestrator(nn.Module):
         # 9. Semiotic Hierarchy & Lexicographical Ordering (System 2 Strictly Dominates System 1)
         from src.core.invariant_optimization import LexicographicalOrderingDispatcher, SemioticState
         self.semiotic_dispatcher = LexicographicalOrderingDispatcher(eps=1e-5)
+
+        # 10. Unified Subsystem Rehybridization (KAGH, BioArchetypal, ADMR, Soliton, Optimization, Topology, TDA)
+        self.kagh_block = None
+        self.admr_solver = None
+        self.meta_polytope = None
+        self.quantum_reasoning = None
+        self.voynich_linguist = None
+        self.modality_embedder = None
+        self.gyroid_reasoner_cls = None
+        self.bio_governor = None
+        self.neuromodulatory_bus = None
+        self.soliton_healer = None
+        self.sic_fa_admm = None
+        self.constraint_probe = None
+        self.codes_driver = None
+        self.local_qp = None
+        self.continuous_coprimality = None
+        self.voynich_exemption_token_cls = None
+        self.ntm_operator = None
+        self.poly_coeff_functional = None
+        self.einstein_tessellation = None
+        self.cyclotomic_tda = None
+        self.triadic_reciprocity = None
+        self.chebyshev_filtration = None
+        self.huffman_codec = None
+        self.euler_tour_lca = None
+        self.gdpo_norm = None
+
+        try:
+            from src.surrogates.kagh_networks import KAGHBlock
+            self.kagh_block = KAGHBlock(n_in=self.dim, n_out=self.dim, width=min(64, max(16, self.dim)), depth=2).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.core.admr_solver import PolynomialADMRSolver
+            self.admr_solver = PolynomialADMRSolver(poly_config=self.poly_config, state_dim=self.dim, device=str(_device))
+        except Exception:
+            pass
+
+        try:
+            from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka
+            self.meta_polytope = MetaPolytopeMatrioshka(max_depth=3, base_dim=self.dim).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.core.quantum_inspired_reasoning import QuantumInspiredReasoningState
+            self.quantum_reasoning = QuantumInspiredReasoningState(dim=self.dim).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.core.voynich_architecture import VoynichLinguist
+            self.voynich_linguist = VoynichLinguist(latent_dim=self.dim).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.models.modular_embeddings import LearnedModalityEmbedder
+            self.modality_embedder = LearnedModalityEmbedder(hidden_dim=self.dim, poly_config=self.poly_config).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.models.gyroid_reasoner import GyroidicFluxReasoner
+            self.gyroid_reasoner_cls = GyroidicFluxReasoner
+        except Exception:
+            pass
+
+        try:
+            from src.governance.bio_archetypal_governor import BioArchetypalGovernor
+            self.bio_governor = BioArchetypalGovernor(state_dim=self.dim).to(_device)
+            self.neuromodulatory_bus = getattr(self.bio_governor, 'bus', None)
+        except Exception:
+            try:
+                from src.core.neuromodulatory_bus import NeuromodulatoryBus
+                self.neuromodulatory_bus = NeuromodulatoryBus()
+            except Exception:
+                pass
+
+        try:
+            from src.core.energy_based_soliton_healer import EnergyBasedSolitonHealer
+            self.soliton_healer = EnergyBasedSolitonHealer(state_dim=self.dim).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.optimization.sic_fa_admm import SicFaAdmmSolver
+            self.sic_fa_admm = SicFaAdmmSolver(dim=self.dim, device=str(_device))
+        except Exception:
+            pass
+
+        try:
+            from src.optimization.constraint_probe import ConstraintProbeOperator
+            self.constraint_probe = ConstraintProbeOperator(
+                constraint_index=0,
+                sparse_covariance=torch.eye(self.dim, device=_device),
+                device=_device,
+            )
+        except Exception:
+            pass
+
+        try:
+            from src.optimization.codes_driver import CODES
+            self.codes_driver = CODES(state_dim=self.dim).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.optimization.local_qp_operator import LocalActuationQPOperator
+            self.local_qp = LocalActuationQPOperator(constraint_index=0, actuation_dim=min(4, self.dim), device=_device)
+        except Exception:
+            pass
+
+        try:
+            from src.core.continuous_coprimality import ContinuousCoprimality
+            self.continuous_coprimality = ContinuousCoprimality().to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.core.false_negative_subsystem import VoynichExemptionToken
+            self.voynich_exemption_token_cls = VoynichExemptionToken
+        except Exception:
+            pass
+
+        try:
+            from src.core.negentropic_manifold import NTMOperator
+            self.ntm_operator = NTMOperator(dim=self.dim, device=str(_device)).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.core.polynomial_scaffold import PolynomialCoefficientFunctional
+            self.poly_coeff_functional = PolynomialCoefficientFunctional(state_dim=self.dim, device=str(_device)).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.topology.einstein_monotile import EinsteinMonotileTessellation
+            self.einstein_tessellation = EinsteinMonotileTessellation()
+        except Exception:
+            pass
+
+        try:
+            from src.topology.modular_homology_fft import CyclotomicTDACompressor
+            _tda_p = int(self.poly_config.primes[0]) if hasattr(self.poly_config, 'primes') and len(self.poly_config.primes) > 0 else int(getattr(self.poly_config, 'moduli', [5])[0])
+            self.cyclotomic_tda = CyclotomicTDACompressor(p=_tda_p, ring_size=self.dim)
+        except Exception:
+            pass
+
+        try:
+            from src.topology.triadic_reciprocity import TriadicReciprocityChecker
+            self.triadic_reciprocity = TriadicReciprocityChecker()
+        except Exception:
+            pass
+
+        try:
+            from src.tda.chebyshev_filtration import MinimaxPolynomialApproximation
+            self.chebyshev_filtration = MinimaxPolynomialApproximation()
+        except Exception:
+            pass
+
+        try:
+            from src.core.huffman_entropy import HuffmanEntropyCodec
+            self.huffman_codec = HuffmanEntropyCodec()
+        except Exception:
+            pass
+
+        try:
+            from src.core.euler_tour_lca import EulerTourSparseTableLCA
+            self.euler_tour_lca = EulerTourSparseTableLCA()
+        except Exception:
+            pass
+
+        try:
+            from src.core.gdpo_normalization import GDPONormalization
+            self.gdpo_norm = GDPONormalization(num_dimensions=self.dim).to(_device)
+        except Exception:
+            pass
 
     def _on_agent_smith_received(self, filepath: str) -> Optional[Dict[str, Any]]:
         """
@@ -2301,6 +2482,45 @@ class UniversalOrchestrator(nn.Module):
                     self.telemetry_state['number_theoretic_stabilization'] = nt_diag
             except Exception:
                 pass
+
+        # 5b. Unified Subsystem Coupling (KAGHBlock + BioArchetypalGovernor + ADMR, Feeler-Gated)
+        try:
+            feelers = self.probe_compute_feelers()
+            feeler_throttle = (
+                feelers.get('t_rfc_stall_detected', False)
+                or feelers.get('memory_pressure_detected', False)
+                or feelers.get('thermal_spike_detected', False)
+            )
+            if not feeler_throttle:
+                if getattr(self, 'kagh_block', None) is not None and has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+                    s_in = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
+                    kagh_out = self.kagh_block(s_in, use_boltzmann=False)
+                    if torch.isfinite(kagh_out).all():
+                        kagh_out = kagh_out.squeeze(0) if state_shielded.dim() == 1 else kagh_out
+                        state_shielded = 0.90 * state_shielded + 0.10 * kagh_out
+                        self.telemetry_state['kagh_block_active'] = True
+
+                if getattr(self, 'admr_solver', None) is not None and has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+                    s_in = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
+                    admr_out = self.admr_solver(s_in)
+                    if torch.isfinite(admr_out).all():
+                        admr_out = admr_out.squeeze(0) if state_shielded.dim() == 1 else admr_out
+                        state_shielded = 0.95 * state_shielded + 0.05 * admr_out
+                        self.telemetry_state['admr_solver_active'] = True
+
+                if getattr(self, 'bio_governor', None) is not None:
+                    s_in = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
+                    gov_out = self.bio_governor(
+                        s_in,
+                        dt=float(dt.item()) if isinstance(dt, torch.Tensor) else float(dt),
+                        resonance_cavity=getattr(self, 'resonance_cavity', None),
+                        fossilizer=getattr(self, 'dyad_fossilizer', None),
+                        moment_transport=getattr(self, 'moment_transport', None),
+                    )
+                    if isinstance(gov_out, dict):
+                        self.telemetry_state['bio_governor_reflex'] = gov_out.get('active_reflex', getattr(self.bio_governor, 'last_active_reflex', None))
+        except Exception:
+            pass
             
         # 6. DIEGETIC RESPONSE (The "Larynx" & "Scars")
         # -----------------------------------------------
