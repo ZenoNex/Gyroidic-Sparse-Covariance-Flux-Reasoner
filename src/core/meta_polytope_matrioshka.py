@@ -65,8 +65,8 @@ class BoundaryState:
             level: Current shell depth
             max_level: Maximum shell depth
         """
-        stress = torch.outer(state_direction, facet_normal)
         energy = torch.dot(state_direction, facet_normal).abs().item()
+        stress = torch.outer(state_direction, facet_normal) * energy
         return BoundaryState(
             alpha=alpha, level=level, max_level=max_level,
             stress_tensor=stress, crossing_energy=energy
@@ -244,12 +244,11 @@ class MetaPolytopeMatrioshka(nn.Module):
                 if not hasattr(self, '_repunit_gatekeeper'):
                     self._repunit_gatekeeper = ModularVirtualizationLayer(dim=x.shape[-1], device=x.device)
                 
-                modulus = self._repunit_gatekeeper.get_hybrid_modulus().to(x.device)
                 integerized_x = (x_lcft * self._repunit_gatekeeper.scale_factor).long()
-                target_residue = torch.remainder(integerized_x, modulus.long())
-                is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, target_residue)
+                integerized_q = (quantized * self._repunit_gatekeeper.scale_factor).long()
+                is_valid_parity = self._repunit_gatekeeper.repunit_crt_sparse_probe(integerized_x, integerized_q)
                 
-                if not torch.all(is_valid_parity):
+                if is_valid_parity.float().mean().item() < 0.4:
                     # Parity rupture: pop outward to lower resolution shell
                     cand_level -= 1
                     continue
@@ -281,7 +280,8 @@ class MetaPolytopeMatrioshka(nn.Module):
                     else:
                         yq = torch.round(y / effective_delta) * effective_delta
                         
-                    y_energy = torch.norm(y - yq, dim=-1).mean().item()
+                    # Dimension-normalized RMS quantization residual so energy is comparable to boundary_margin across any dim
+                    y_energy = torch.sqrt(((y - yq) ** 2).mean(dim=-1) + 1e-12).mean().item()
                     if y_energy < 0.01 * delta:
                         return yq, alpha, cand_level
                     elif y_energy < boundary_margin * 1.5:

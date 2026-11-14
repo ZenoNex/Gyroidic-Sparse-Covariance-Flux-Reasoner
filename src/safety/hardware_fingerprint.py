@@ -30,8 +30,8 @@ def get_stable_hardware_fingerprint() -> str:
 
     if platform.system() == "Windows":
         try:
-            # Query machine UUID via wmic
-            out = subprocess.check_output("wmic csproduct get uuid", shell=True, stderr=subprocess.DEVNULL)
+            # Query machine UUID via wmic without shell=True
+            out = subprocess.check_output(["wmic", "csproduct", "get", "uuid"], stderr=subprocess.DEVNULL)
             lines = out.decode().splitlines()
             if len(lines) > 1:
                 system_uuid = lines[1].strip()

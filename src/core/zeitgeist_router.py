@@ -383,7 +383,7 @@ class ZeitgeistRouter(nn.Module):
 
         #  Unicorn Synthesis Upgrade: Exact Algebraic Geometry  #
         from .numerical_d_module import NumericalDModuleManager, RationalSnappingLayer
-        self.d_module_manager = NumericalDModuleManager(state_dim=dim, num_functionals=self.M)
+        self.d_module_manager = NumericalDModuleManager(state_dim=self.M, num_functionals=self.M)
         self.snapper = RationalSnappingLayer()
         self.braid_matrices = BraidGroupMatrices(n=self.M)
 
@@ -745,12 +745,14 @@ class ZeitgeistRouter(nn.Module):
         delta_braided = torch.matmul(braid_mat, delta_soft)
                 
         current_residues = torch.diagonal(state.alpha_tensor)
-        delta_final = delta_braided + 0.3 * self.gravity_well_bias
+        delta_final = torch.nan_to_num(delta_braided + 0.3 * self.gravity_well_bias, nan=0.0, posinf=1.0, neginf=-1.0)
         
         new_residues = []
         for i in range(self.M):
-            delta_int = stochastic_round(torch.tensor(delta_final[i]) * self.moduli[i])
-            r_new = (int(current_residues[i].item()) + int(delta_int.item())) % self.moduli[i]
+            scaled_val = delta_final[i].detach().clone() * self.moduli[i]
+            delta_int = stochastic_round(scaled_val)
+            delta_int_val = int(torch.nan_to_num(delta_int, nan=0.0, posinf=0.0, neginf=0.0).item())
+            r_new = (int(current_residues[i].item()) + delta_int_val) % self.moduli[i]
             new_residues.append(float(r_new))
             
         new_diag = torch.tensor(new_residues, device=x.device)
@@ -889,9 +891,10 @@ class ZeitgeistRouter(nn.Module):
         # Use entropy from tadc_kwargs if available, else 0.5 default
         entropy = tadc_kwargs.get('entropy', 0.5) if tadc_kwargs else 0.5
         
-        # Approximate Jacobian by using facet projections
+        # Approximate D-module facet bundle [batch, M, M] so SVD rank reflects active CRT facets (1..M)
+        # rather than a rank-1 [batch, 1, M] row vector that always forces cohom_dim >= M - 1.
         g = self._facet_projections(x_snapped) # [batch, M]
-        d_module_results = self.d_module_manager(g.unsqueeze(1), entropy)
+        d_module_results = self.d_module_manager(torch.diag_embed(g), entropy)
         
         cohom_dim = d_module_results["cohomological_dimension"]
         is_lazarus_void = d_module_results["is_lazarus_void"]
@@ -1017,8 +1020,14 @@ class ZeitgeistRouter(nn.Module):
             # AFFORDANCE & THERMAL LATENCY GUARD:
             # Check real-time hardware affordance, thermal throttle, and predicted latency
             hw = HardwareMonitor.get_instance()
-            is_thermal = hw.is_thermal_throttled()
-            affordance_type, affordance_score = hw.get_compute_affordance()
+            feelers = hw.probe_compute_feelers()
+            is_thermal = bool(
+                getattr(hw, 'thermal_runaway', False)
+                or feelers.get('thermal_spike_detected', False)
+                or feelers.get('t_rfc_stall_detected', False)
+            )
+            from src.core.hardware_monitor import ComputeAffordanceType
+            affordance_score = 1.0 if hw.has_compute_affordance(ComputeAffordanceType.ALGORITHMIC) else 0.5
             routing_mode = spec_timing.get("routing_mode", "normal") if spec_timing else "normal"
             pred_latency = spec_timing.get("execution_ms", routing_latency_ms) if spec_timing else routing_latency_ms
 

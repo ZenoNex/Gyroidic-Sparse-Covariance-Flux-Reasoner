@@ -65,8 +65,13 @@ def download_and_extract(staging_dir):
         shutil.copyfileobj(response, out_file)
     
     print(f"[*] Extracting archive to staging...")
+    staging_real = os.path.realpath(staging_dir)
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(staging_dir)
+        for member in zip_ref.infolist():
+            member_real = os.path.realpath(os.path.join(staging_real, member.filename))
+            if os.path.commonpath([staging_real, member_real]) != staging_real:
+                raise ValueError(f"Unsafe zip member path detected: {member.filename}")
+            zip_ref.extract(member, staging_real)
     
     # The zip usually contains a root folder like "Gyroidic-Sparse-Covariance-Flux-Reasoner-main"
     extracted_dirs = [d for d in os.listdir(staging_dir) if os.path.isdir(os.path.join(staging_dir, d))]

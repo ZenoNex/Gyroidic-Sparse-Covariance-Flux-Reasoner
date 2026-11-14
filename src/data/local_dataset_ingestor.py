@@ -47,7 +47,12 @@ class LocalDatasetIngestor:
         
         def _robust_download(url, dest_path):
             import ssl
-            ctx = ssl._create_unverified_context()
+            ctx = ssl.create_default_context()
+            try:
+                import certifi
+                ctx.load_verify_locations(cafile=certifi.where())
+            except Exception:
+                pass
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
             temp_path = dest_path.with_suffix('.tmp')
             with urllib.request.urlopen(req, context=ctx, timeout=60) as resp, open(temp_path, 'wb') as out_f:

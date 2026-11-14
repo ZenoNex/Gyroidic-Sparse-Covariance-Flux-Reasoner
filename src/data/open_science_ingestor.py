@@ -340,8 +340,12 @@ class OpenScienceIngestor:
             ]
             
             ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
+            try:
+                import certifi
+                ssl_ctx.load_verify_locations(cafile=certifi.where())
+            except Exception:
+                pass
+            ssl_ctx.options |= getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0) | getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
             opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_ctx))
 
             for url in sdss_urls:
@@ -384,8 +388,12 @@ class OpenScienceIngestor:
             tap_url = f"https://tapvizier.u-strasbg.fr/TAPVizieR/tap/sync?{tap_params}"
 
             ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
+            try:
+                import certifi
+                ssl_ctx.load_verify_locations(cafile=certifi.where())
+            except Exception:
+                pass
+            ssl_ctx.options |= getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0) | getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
 
             req = urllib.request.Request(tap_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
             with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as response:

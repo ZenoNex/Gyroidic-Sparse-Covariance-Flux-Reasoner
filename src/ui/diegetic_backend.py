@@ -2883,11 +2883,13 @@ class DiegeticPhysicsEngine(nn.Module):
             
         self._last_mischief = torch.tensor([mischief_bias], device=self.device)
         
-        # Calculate real-time spectral entropy of the current meta_state
+        # Calculate real-time AC spectral entropy of the current meta_state (DC-centered, normalized to [0, 1])
         with torch.no_grad():
-            spectrum = torch.fft.rfft(self.meta_state).abs()
+            centered_state = self.meta_state - self.meta_state.mean(dim=-1, keepdim=True)
+            spectrum = torch.fft.rfft(centered_state).abs()[..., 1:]
             spectrum_norm = spectrum / (spectrum.sum(dim=-1, keepdim=True) + 1e-8)
-            real_entropy = -(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum(dim=-1).mean()
+            raw_ent = -(spectrum_norm * torch.log(spectrum_norm + 1e-8)).sum(dim=-1).mean()
+            real_entropy = raw_ent / max(1e-6, math.log(max(2, spectrum.shape[-1])))
             self._last_spectral_entropy = real_entropy.unsqueeze(0)
             
             # Blend with regime bias
@@ -3617,6 +3619,7 @@ class DiegeticPhysicsEngine(nn.Module):
             if isinstance(out, tuple):
                 response_ghost, new_alpha, new_level = out
                 fixed_point = True
+                self._last_boundary_obj = None
                 print(f" Matrioshka evolution succeeded at level {new_level}, alpha {new_alpha}.")
             else:
                 boundary = out
@@ -5798,11 +5801,12 @@ class DiegeticPhysicsEngine(nn.Module):
                 dim=1
             ).mean().item()
             
-            # Amplify affordances based on tensor properties
-            entropy_amplification = min(tensor_entropy / 5.0, 2.0)  # Cap at 2x
-            variance_amplification = min(tensor_variance / 2.0, 1.5)  # Cap at 1.5x
-            sparsity_amplification = min(tensor_sparsity * 2.0, 1.8)  # Cap at 1.8x
-            coherence_amplification = min(abs(tensor_coherence) * 2.0, 1.6)  # Cap at 1.6x
+            # Amplify affordances based on tensor properties (>= 1.0 amplification, never crush by raw variance)
+            dim_scale = max(1, input_tensor.shape[-1])
+            entropy_amplification = 1.0 + min(tensor_entropy / 5.0, 1.0)  # [1.0, 2.0]
+            variance_amplification = 1.0 + min(tensor_variance * dim_scale * 0.25, 0.5)  # [1.0, 1.5]
+            sparsity_amplification = 1.0 + min(tensor_sparsity * 0.8, 0.8)  # [1.0, 1.8]
+            coherence_amplification = 1.0 + min(abs(tensor_coherence) * 0.6, 0.6)  # [1.0, 1.6]
         
         # Apply tensor-based amplification
         executability_pressure *= entropy_amplification
@@ -10753,11 +10757,11 @@ def kill_port_owner(port):
         try:
             # Sanitize port input to prevent OS command injection
             port = int(port)
-            # Find PID using netstat
-            cmd = f"netstat -ano | findstr :{port}"
-            output = subprocess.check_output(cmd, shell=True).decode()
+            # Find PID using netstat without shell=True
+            output = subprocess.check_output(["netstat", "-ano"], text=True)
+            port_token = f":{port}"
             for line in output.splitlines():
-                if "LISTENING" in line:
+                if port_token in line and "LISTENING" in line:
                     parts = line.strip().split()
                     pid = parts[-1]
                     if int(pid) != os.getpid():

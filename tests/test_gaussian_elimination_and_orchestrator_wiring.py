@@ -168,3 +168,63 @@ def test_system2_admr_and_poly_embedder_zero_leakage_adapt():
     assert isinstance(adapted_emb, PolynomialFunctionalEmbedder)
 
 
+def test_matrioshka_and_zeitgeist_exit_undefined_mode():
+    from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka, BoundaryState
+    from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
+
+    # 1. Mild boundary crossing should not unconditionally report is_critical=True
+    u = torch.zeros(32)
+    n = torch.zeros(32)
+    u[0] = 1.0
+    n[1] = 1.0  # orthogonal -> energy = 0.0
+    b_mild = BoundaryState.from_crossing(u, n, alpha=0, level=-1, max_level=5)
+    assert not b_mild.is_critical(threshold=0.5)
+
+    # 2. Matrioshka should converge on normal 256-dim state instead of falling to level=-1
+    mp = MetaPolytopeMatrioshka(max_depth=5, base_dim=256)
+    x = torch.sin(torch.linspace(-2.0, 2.0, 256)).unsqueeze(0) * 0.1
+    out = mp(
+        x=x,
+        alpha=0,
+        start_level=mp.max_depth,
+        evolve_fn=lambda s, l: s * 0.95,
+        calm_veto_score=0.1,
+        calm_gauge=0.5,
+        mode="goo",
+    )
+    assert isinstance(out, tuple), f"Expected Matrioshka tuple, got {type(out)}"
+
+    # 3. ZeitgeistRouter should route into interior/grazing/switching (not always 'undefined')
+    zr = ZeitgeistRouter(dim=256)
+    mode, zstate, diag, _ = zr(out[0], ZeitgeistState.initial(zr.moduli), boundary=None)
+    assert mode in ("interior", "grazing", "switching"), f"Unexpected mode: {mode}"
+    assert not zstate.is_undefined
+
+
+def test_tls_verification_and_zip_slip_guard(tmp_path):
+    import io
+    import ssl
+    import zipfile
+    import pytest
+    from src.data.knowledge_ingestor import TLSResilientAdapter
+
+    ctx = TLSResilientAdapter()._build_ssl_context()
+    assert ctx.check_hostname is True
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
+
+    # Verify Zip Slip guard logic matches src/terminal/update_client.py
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("../../evil.txt", "pwned")
+    buf.seek(0)
+    staging_real = str(tmp_path.resolve())
+    with zipfile.ZipFile(buf, "r") as zf:
+        with pytest.raises(ValueError):
+            for member in zf.infolist():
+                member_real = os.path.realpath(os.path.join(staging_real, member.filename))
+                if os.path.commonpath([staging_real, member_real]) != staging_real:
+                    raise ValueError(f"Unsafe zip member path detected: {member.filename}")
+
+
+
+

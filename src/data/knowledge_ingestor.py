@@ -53,11 +53,16 @@ class TLSResilientAdapter(HTTPAdapter):
             ctx = create_urllib3_context()
         else:
             ctx = ssl.create_default_context()
+        try:
+            import certifi
+            ctx.load_verify_locations(cafile=certifi.where())
+        except Exception:
+            pass
         op_ignore_eof = getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0)
         op_legacy = getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
         ctx.options |= op_ignore_eof | op_legacy
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        ctx.check_hostname = True
+        ctx.verify_mode = ssl.CERT_REQUIRED
         return ctx
 
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
@@ -1239,17 +1244,20 @@ class ArXivSovereignIngestor:
             "Accept-Language": "en-US,en;q=0.9",
         }
         try:
-            resp = self._tls_session.get(target_url, headers=headers, timeout=timeout, verify=False)
+            resp = self._tls_session.get(target_url, headers=headers, timeout=timeout, verify=True)
             if resp.status_code == 200 and resp.text:
                 return resp.text
         except Exception:
             pass
-        # Fallback: direct urllib with lenient SSLContext (OP_IGNORE_UNEXPECTED_EOF)
+        # Fallback: direct urllib with verified SSLContext + OP_IGNORE_UNEXPECTED_EOF
         try:
             ctx = ssl.create_default_context()
+            try:
+                import certifi
+                ctx.load_verify_locations(cafile=certifi.where())
+            except Exception:
+                pass
             ctx.options |= getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0) | getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
             req = urllib.request.Request(target_url, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout, context=ctx) as response:
                 return response.read().decode("utf-8", errors="ignore")

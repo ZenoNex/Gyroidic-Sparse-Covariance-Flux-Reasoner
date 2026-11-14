@@ -1900,19 +1900,27 @@ class HybridAI:
                 diagnostics = engine_output
                 
                 # --- ENTROPY MONITORING & ACTIVITY INDUCTION ---
-                # Monitor spectral entropy to prevent manifold collapse
-                spectral_entropy = engine_output.get('spectral_entropy', 0.0)
-                if isinstance(spectral_entropy, torch.Tensor):
-                    spectral_entropy = spectral_entropy.item()
-                
-                if spectral_entropy < 0.05:
-                    print(f"[PHYSICS] Spectral Flatness Detected (Entropy: {spectral_entropy:.4f}).")
-                    print("[PHYSICS] Inducing topological activity via Soliton Healer...")
-                    if hasattr(self.engine, 'soliton_healer'):
-                        self.engine.soliton_healer.reset_healing()
-                        # Apply high-pressure ranging signal (Honest Jitter) to "heat" the manifold
-                        honest_heat = self._harvest_honest_jitter(self.engine.soliton_healer.alpha.shape)
-                        self.engine.soliton_healer.alpha.data.add_(torch.abs(honest_heat) * 0.5)
+                # Monitor spectral entropy to prevent manifold collapse (skip when engine returned BUSY/SHUTDOWN placeholder)
+                engine_status = engine_output.get('status')
+                if engine_status in ('BUSY', 'SHUTDOWN'):
+                    _cached_ent = getattr(self.engine, '_last_spectral_entropy', 0.5)
+                    spectral_entropy = float(_cached_ent.item() if isinstance(_cached_ent, torch.Tensor) else _cached_ent)
+                else:
+                    spectral_entropy = engine_output.get(
+                        'spectral_entropy',
+                        engine_output.get('metrics', {}).get('spectral_entropy', 0.0) if isinstance(engine_output.get('metrics'), dict) else 0.0
+                    )
+                    if isinstance(spectral_entropy, torch.Tensor):
+                        spectral_entropy = spectral_entropy.item()
+                    
+                    if spectral_entropy < 0.05:
+                        print(f"[PHYSICS] Spectral Flatness Detected (Entropy: {spectral_entropy:.4f}).")
+                        print("[PHYSICS] Inducing topological activity via Soliton Healer...")
+                        if hasattr(self.engine, 'soliton_healer'):
+                            self.engine.soliton_healer.reset_healing()
+                            # Apply high-pressure ranging signal (Honest Jitter) to "heat" the manifold
+                            honest_heat = self._harvest_honest_jitter(self.engine.soliton_healer.alpha.shape)
+                            self.engine.soliton_healer.alpha.data.add_(torch.abs(honest_heat) * 0.5)
                 
                 # Capture evolved state in local binding for isolation-safe fossilization
                 if 'hidden_state' in engine_output:

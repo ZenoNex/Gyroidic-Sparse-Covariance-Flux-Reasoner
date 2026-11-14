@@ -163,9 +163,12 @@ class InvestorNewsIngestor(nn.Module):
         try:
             import ssl
             ctx = ssl.create_default_context()
+            try:
+                import certifi
+                ctx.load_verify_locations(cafile=certifi.where())
+            except Exception:
+                pass
             ctx.options |= getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0) | getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
             req = urllib.request.Request(
                 robots_url,
                 headers={"User-Agent": self.user_agent}
@@ -244,9 +247,12 @@ class InvestorNewsIngestor(nn.Module):
         try:
             import ssl
             ctx = ssl.create_default_context()
+            try:
+                import certifi
+                ctx.load_verify_locations(cafile=certifi.where())
+            except Exception:
+                pass
             ctx.options |= getattr(ssl, "OP_IGNORE_UNEXPECTED_EOF", 0) | getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
             req = urllib.request.Request(
                 feed_url,
                 headers={"User-Agent": self.user_agent}
