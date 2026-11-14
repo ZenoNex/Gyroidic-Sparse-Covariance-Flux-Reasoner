@@ -1,6 +1,7 @@
 import torch
 import logging
 import math
+import secrets
 import time
 import numpy as np
 from typing import Dict, List, Tuple, Any, Optional
@@ -9,6 +10,117 @@ from src.data.freenet_ghost_caller import FreenetGhostCaller
 from src.data.freenet_bulletin_router import FreenetBulletinRouter
 
 logger = logging.getLogger(__name__)
+
+
+class ShamirThresholdSharing:
+    """
+    Shamir's (t, n) Threshold Secret Sharing over a prime finite field F_p.
+
+    Encodes a secret s as f(0) = s of a degree-(t-1) polynomial
+        f(x) = s + a_1 x + ... + a_{t-1} x^{t-1} (mod p)
+    and reconstructs s = f(0) from any t or more shares (x_i, y_i) via exact
+    Lagrange interpolation at x = 0 over F_p, revealing zero information from
+    fewer than t shares.
+
+    Default prime is the Mersenne prime M_521 = 2^521 - 1 (65 bytes per block).
+    """
+
+    MERSENNE_521 = (1 << 521) - 1
+
+    def __init__(self, prime: int = MERSENNE_521):
+        if prime < 3:
+            raise ValueError("Finite field prime p must be >= 3")
+        self.prime = prime
+
+    def split_int(self, secret: int, threshold: int, num_shares: int) -> List[Tuple[int, int]]:
+        """Split an integer secret in [0, p) into num_shares with reconstruction threshold t."""
+        if not (1 <= threshold <= num_shares):
+            raise ValueError(f"Require 1 <= threshold <= num_shares, got ({threshold}, {num_shares})")
+        if num_shares >= self.prime:
+            raise ValueError("num_shares must be strictly less than prime p")
+        if not (0 <= secret < self.prime):
+            raise ValueError("secret integer must satisfy 0 <= secret < prime")
+
+        coeffs = [secret] + [secrets.randbelow(self.prime) for _ in range(threshold - 1)]
+        shares: List[Tuple[int, int]] = []
+        for x in range(1, num_shares + 1):
+            y = 0
+            for coeff in reversed(coeffs):
+                y = (y * x + coeff) % self.prime
+            shares.append((x, y))
+        return shares
+
+    def reconstruct_int(self, shares: List[Tuple[int, int]]) -> int:
+        """Reconstruct the secret at x = 0 via exact Lagrange interpolation over F_p."""
+        if not shares:
+            raise ValueError("At least one share is required for reconstruction")
+        xs = [x for x, _ in shares]
+        if len(set(xs)) != len(xs):
+            raise ValueError("Duplicate share x-coordinates detected")
+
+        p = self.prime
+        secret = 0
+        for i, (xi, yi) in enumerate(shares):
+            num = 1
+            den = 1
+            for j, (xj, _) in enumerate(shares):
+                if i == j:
+                    continue
+                num = (num * (-xj)) % p
+                den = (den * (xi - xj)) % p
+            lagrange_coeff = (num * pow(den, -1, p)) % p
+            secret = (secret + yi * lagrange_coeff) % p
+        return secret
+
+    def split_bytes(
+        self,
+        secret: bytes,
+        threshold: int,
+        num_shares: int,
+        chunk_size: int = 64,
+    ) -> List[Dict[str, Any]]:
+        """Split arbitrary-length secret bytes into threshold shares across 64-byte F_p blocks."""
+        if not secret:
+            raise ValueError("Secret bytes must be non-empty")
+        chunks = [secret[i:i + chunk_size] for i in range(0, len(secret), chunk_size)]
+        per_chunk_shares = [
+            self.split_int(int.from_bytes(chunk, "big"), threshold, num_shares)
+            for chunk in chunks
+        ]
+        result: List[Dict[str, Any]] = []
+        for idx in range(num_shares):
+            x = idx + 1
+            y_blocks = [hex(chunk_shares[idx][1]) for chunk_shares in per_chunk_shares]
+            result.append({
+                "x": x,
+                "y_blocks": y_blocks,
+                "threshold": threshold,
+                "num_shares": num_shares,
+                "byte_len": len(secret),
+                "chunk_size": chunk_size,
+            })
+        return result
+
+    def reconstruct_bytes(self, shares: List[Dict[str, Any]]) -> bytes:
+        """Reconstruct arbitrary-length secret bytes from >= threshold share dicts."""
+        if not shares:
+            raise ValueError("No shares provided")
+        threshold = int(shares[0]["threshold"])
+        if len(shares) < threshold:
+            raise ValueError(f"Insufficient shares: got {len(shares)}, require at least {threshold}")
+        used = shares[:threshold]
+        byte_len = int(used[0]["byte_len"])
+        chunk_size = int(used[0].get("chunk_size", 64))
+        num_blocks = len(used[0]["y_blocks"])
+
+        out = bytearray()
+        for b_idx in range(num_blocks):
+            pts = [(int(s["x"]), int(s["y_blocks"][b_idx], 16)) for s in used]
+            val = self.reconstruct_int(pts)
+            remaining = byte_len - len(out)
+            block_len = min(chunk_size, remaining)
+            out.extend(val.to_bytes(block_len, "big"))
+        return bytes(out)
 
 class FractalDiscontinuityEmbedding:
     """
@@ -238,6 +350,8 @@ class BonfireNomadicRing:
         from src.p2p.zk_aggregator import ZKAggregator
         self.zk_aggregator = ZKAggregator()
         self.pending_crt_channels: Dict[int, torch.Tensor] = {}
+        self.shamir = ShamirThresholdSharing()
+        self.pending_shamir_shares: Dict[str, List[Dict[str, Any]]] = {}
 
         # Prime Resonance Ladder for Chebyshev-Chebyshev oscillator and CRT fallback
         from src.core.invariants import PrimeResonanceLadder
@@ -252,6 +366,7 @@ class BonfireNomadicRing:
         self.freenet.subscribe(self.contract_id, self._handle_network_update)
         self.freenet.subscribe("agent_smith_ring", self._handle_agent_smith_update)
         self.freenet.subscribe("bonfire_sightline_ring", self._handle_sightline_update)
+        self.freenet.subscribe("bonfire_shamir_threshold", self._handle_shamir_share_update)
         
         # Callback for when a foreign Agent Smith payload is received
         self.on_agent_smith_received = None
@@ -559,3 +674,66 @@ class BonfireNomadicRing:
         return self.embedding_engine.compute_topological_sightline(
             emb_a, emb_b, horizon_radius=horizon_radius
         )
+
+    def _handle_shamir_share_update(self, state_update: Dict[str, Any]):
+        """Receive and verify Shamir threshold shares from isolated/portable traffic points."""
+        secret_id = state_update.get("secret_id")
+        share = state_update.get("share")
+        zk_proof = state_update.get("zk_proof")
+        peer_id = state_update.get("peer_id", "unknown")
+        if not secret_id or not share:
+            return
+        if zk_proof is not None and not self.zk_aggregator.verify_proof(f"shamir_{secret_id}_{share.get('x')}", zk_proof):
+            logger.warning(f"[BONFIRE] Rejected invalid Shamir share for {secret_id} from {peer_id}")
+            return
+        bucket = self.pending_shamir_shares.setdefault(secret_id, [])
+        if not any(existing.get("x") == share.get("x") for existing in bucket):
+            bucket.append(share)
+
+    def distribute_threshold_shares(
+        self,
+        local_peer_id: str,
+        secret_id: str,
+        secret_bytes: bytes,
+        threshold: int,
+        traffic_points: List[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Split a nomadic vault salt, session key, or serialized state digest across
+        isolated or portable traffic points using Shamir's (t, n) Secret Sharing over F_p.
+        """
+        if not traffic_points:
+            raise ValueError("At least one isolated or portable traffic point is required")
+        shares = self.shamir.split_bytes(secret_bytes, threshold=threshold, num_shares=len(traffic_points))
+        packets: List[Dict[str, Any]] = []
+        for target_point, share in zip(traffic_points, shares):
+            zk_proof = self.zk_aggregator.generate_proof(
+                f"shamir_{secret_id}_{share['x']}",
+                {"x": int(share["x"]), "threshold": int(threshold)},
+            )
+            packet = {
+                "peer_id": local_peer_id,
+                "target_point": target_point,
+                "secret_id": secret_id,
+                "share": share,
+                "zk_proof": zk_proof,
+            }
+            packets.append(packet)
+            self.freenet.publish("bonfire_shamir_threshold", packet)
+        logger.info(
+            f"[BONFIRE] Distributed ({threshold}, {len(traffic_points)}) Shamir shares for '{secret_id}' "
+            f"across {len(traffic_points)} traffic points"
+        )
+        return packets
+
+    def reconstruct_from_traffic_points(
+        self,
+        secret_id: str,
+        shares: Optional[List[Dict[str, Any]]] = None,
+    ) -> bytes:
+        """
+        Reconstruct a distributed secret once >= t shares are gathered from reachable
+        isolated or portable traffic points.
+        """
+        pool = shares if shares is not None else self.pending_shamir_shares.get(secret_id, [])
+        return self.shamir.reconstruct_bytes(pool)

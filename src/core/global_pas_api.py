@@ -25,7 +25,8 @@ from src.core.invariants import (
     PhaseAlignmentInvariant,
     APAS_Zeta,
     check_glyphlock,
-    compute_chirality
+    compute_chirality,
+    compute_ihc_bao_shell_modulation,
 )
 from src.core.honest_jitter import harvest_honest_jitter
 
@@ -89,6 +90,10 @@ class GLYPHLOCKHandshake:
             self._secret_key = hashlib.sha256(jitter_bytes + os.urandom(16)).digest()
         else:
             self._secret_key = secret_key
+        self._pas_invariant = PhaseAlignmentInvariant()
+        self._apas_zeta = APAS_Zeta(zeta=0.05)
+        self._last_state: Optional[torch.Tensor] = None
+        self._last_pas_h: Optional[float] = None
 
     def create_handshake(
         self,
@@ -96,27 +101,53 @@ class GLYPHLOCKHandshake:
         field_id: str = "FIELD_01",
         chordlock_anchor: int = 197,  # UFSC prime anchor
         state_tensor: Optional[torch.Tensor] = None,
+        prev_state_tensor: Optional[torch.Tensor] = None,
         theta_L: float = 0.85,
         zeta_drift: float = 0.05
     ) -> PASLockToken:
         """
-        Evaluate engine coherence and issue a signed PASLockToken.
+        Evaluate engine coherence and real step-to-step drift (PAS_zeta + 33-shell Z_3
+        modulation) and issue a signed PASLockToken.
         """
         session_id = hashlib.sha256(f"{client_id}:{time.time()}:{os.urandom(8).hex()}".encode('utf-8')).hexdigest()[:16]
         now = time.time()
-        
-        # Determine coherence from state tensor or initialize baseline
+
         if state_tensor is not None:
-            c_flat = state_tensor.detach().flatten()
+            c_flat = state_tensor.detach().float().flatten()
             norm = torch.norm(c_flat).item()
-            pas_h = float(norm / (norm + 0.1))
-            pas_h = max(0.86, min(1.0, pas_h))  # Coherence guarantee
+            # 33-tori Z_3 counter-rotation shell modulation from IHC invariants
+            ihc_mod = compute_ihc_bao_shell_modulation(comoving_distance_mpc=max(1.0, norm * 10.0))
+            z3_factor = 1.0 + ihc_mod["z3_standing_wave_modulation"]
+
+            # Real multiharmonic phase alignment (no artificial 0.86 floor)
+            if c_flat.numel() >= 2:
+                phases = torch.angle(torch.fft.rfft(c_flat))
+                raw_pas_h = float(self._pas_invariant(phases).mean().item())
+            else:
+                raw_pas_h = float(norm / (norm + 0.1))
+            pas_h = max(0.0, min(1.0, raw_pas_h * z3_factor))
             glyph_ok = bool(check_glyphlock(state_tensor).max().item() > 0)
+
+            # Real PAS_zeta drift measurement against previous state
+            ref_prev = prev_state_tensor.detach().float().flatten() if prev_state_tensor is not None else self._last_state
+            if ref_prev is not None and ref_prev.numel() > 0:
+                m = min(c_flat.numel(), ref_prev.numel())
+                rel_delta = float((torch.norm(c_flat[:m] - ref_prev[:m]) / (torch.norm(ref_prev[:m]) + 1e-8)).item())
+                pas_delta = abs(pas_h - (self._last_pas_h if self._last_pas_h is not None else pas_h))
+                pas_zeta = float(max(1e-6, 0.5 * rel_delta + 0.5 * pas_delta))
+            else:
+                # Irreducible non-zero hardware jitter baseline (CODES v40: PAS_zeta != 0)
+                jitter_val = float(torch.abs(harvest_honest_jitter((1,), scaled=False)).item())
+                pas_zeta = max(1e-4, min(0.02, 0.005 + 0.01 * jitter_val))
+
+            self._last_state = c_flat.clone()
+            self._last_pas_h = pas_h
         else:
             pas_h = 0.92
             glyph_ok = True
+            jitter_val = float(torch.abs(harvest_honest_jitter((1,), scaled=False)).item())
+            pas_zeta = max(1e-4, min(0.02, 0.005 + 0.01 * jitter_val))
 
-        pas_zeta = 0.02
         tempolock_interval = float(chordlock_anchor) / 1000.0  # Prime-indexed timing
         aura_out = bool(pas_h >= theta_L and pas_zeta <= zeta_drift and glyph_ok)
 
