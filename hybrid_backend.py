@@ -2003,12 +2003,13 @@ class HybridAI:
                             print(f"[WARN] Phase 1 Topological Nudge failed: {e}")
                     # -----------------------------------------------------
                     
-                    # We use the raw hidden state for the ADMR step
-                    _out = self.admr_solver.stochastic_differential_step(
-                        states=self.hidden_state.unsqueeze(0),
-                        neighbor_states=neighbor_states,
-                        adjacency_weight=adj_weight
-                    )
+                    # We use the raw hidden state for the ADMR step (inference-only, zero graph leakage)
+                    with torch.no_grad():
+                        _out = self.admr_solver.stochastic_differential_step(
+                            states=self.hidden_state.detach().unsqueeze(0),
+                            neighbor_states=neighbor_states.detach(),
+                            adjacency_weight=adj_weight.detach()
+                        )
                     
                     # Append current states to sliding support buffer
                     self.admr_support_buffer.append((
@@ -2809,11 +2810,41 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed_path.path == '/api/graph':
             if AI_SYSTEM and AI_SYSTEM.graph_manager:
                 try:
-                    graph_json = AI_SYSTEM.graph_manager.export_graph_json()
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(graph_json.encode('utf-8'))
+                    from urllib.parse import parse_qs
+                    query = parse_qs(parsed_path.query)
+                    is_procedural = query.get('procedural', ['false'])[0].lower() in ('true', '1')
+                    if is_procedural and hasattr(AI_SYSTEM.graph_manager, 'query_procedural_graph'):
+                        try:
+                            limit = int(query.get('limit', [150])[0])
+                        except (ValueError, TypeError, IndexError):
+                            limit = 150
+                        cx = float(query.get('cam_x', [0.0])[0])
+                        cy = float(query.get('cam_y', [0.0])[0])
+                        cz = float(query.get('cam_z', [800.0])[0])
+                        gx = float(query.get('gaze_x', [0.0])[0])
+                        gy = float(query.get('gaze_y', [0.0])[0])
+                        gz = float(query.get('gaze_z', [-1.0])[0])
+                        dist = float(query.get('dist', [800.0])[0])
+                        fov = float(query.get('fov', [65.0])[0])
+                        shear_on = query.get('shear', ['true'])[0].lower() in ('true', '1')
+                        occl_on = query.get('occlusion', ['true'])[0].lower() in ('true', '1')
+                        graph_data = AI_SYSTEM.graph_manager.query_procedural_graph(
+                            camera_pos=(cx, cy, cz),
+                            gaze_dir=(gx, gy, gz),
+                            fov_deg=fov,
+                            render_distance=dist,
+                            enable_shear_corridor=shear_on,
+                            enable_occlusion_culling=occl_on,
+                            max_nodes=limit or 2500
+                        )
+                        graph_data["procedural_mode"] = True
+                        self._send_json(graph_data)
+                    else:
+                        graph_json = AI_SYSTEM.graph_manager.export_graph_json()
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(graph_json.encode('utf-8'))
                 except Exception as e:
                     self._send_json({'error': str(e)})
             else:
@@ -3678,10 +3709,13 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
     def _send_json(self, data):
         """Send JSON response."""
         try:
+            response_data = json.dumps(data, cls=TensorEncoder).encode('utf-8')
             self.send_response(200)
-            self.send_header('Content-type', 'application/json')
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(response_data)))
             self.end_headers()
-            self.wfile.write(json.dumps(data, cls=TensorEncoder).encode())
+            self.wfile.write(response_data)
+            self.wfile.flush()
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             pass
 
@@ -4128,6 +4162,7 @@ def start_server(port):
         class ReusableThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
             allow_reuse_address = True
             daemon_threads = True
+            request_queue_size = 64
             
         httpd = ReusableThreadedTCPServer(("127.0.0.1", port), HybridHandler)
         SERVER_INSTANCES.append(httpd)

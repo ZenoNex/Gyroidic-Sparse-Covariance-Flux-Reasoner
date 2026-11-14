@@ -177,8 +177,8 @@ class TopologicalGyrocompass(nn.Module):
             if not torch.isfinite(null_projection).all():
                 null_projection = torch.eye(self.love_dim, device=device)
                 
-            self._cached_ownership_op = ownership_operator.clone()
-            self._cached_null_projection = null_projection.clone()
+            self._cached_ownership_op = ownership_operator.detach().clone()
+            self._cached_null_projection = null_projection.detach().clone()
         except Exception:
             null_projection = torch.eye(self.love_dim, device=device)
             

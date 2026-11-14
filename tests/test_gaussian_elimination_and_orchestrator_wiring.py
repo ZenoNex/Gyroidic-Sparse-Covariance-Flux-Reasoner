@@ -122,3 +122,49 @@ def test_orchestrator_rehybridized_subsystems_and_step():
     assert orch.telemetry_state.get("admr_solver_active") is True
     assert orch.telemetry_state.get("bio_governor_reflex") is not None
 
+
+def test_system2_admr_and_poly_embedder_zero_leakage_adapt():
+    from src.core.admr_solver import PolynomialADMRSolver
+    from src.core.polynomial_coprime import PolynomialCoprimeConfig
+    from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+
+    poly_cfg = PolynomialCoprimeConfig(k=5, degree=4, basis_type="chebyshev", device="cpu")
+    solver = PolynomialADMRSolver(poly_config=poly_cfg, state_dim=16, device="cpu")
+
+    # Graph-attached inputs (simulating System 1 forward pass outputs)
+    base_s = torch.randn(2, 16, requires_grad=True)
+    s1 = base_s * 1.1
+    n1 = (torch.randn(2, 3, 16, requires_grad=True)) * 0.9
+    w1 = torch.ones(2, 3, requires_grad=True)
+
+    # First adaptation call (chained across 2 calls like hybrid_backend.py:1981)
+    # Also prime gyrocompass SVD cache with a graph-attached tensor first to verify
+    # _cached_null_projection / _cached_ownership_op never leak a freed graph.
+    _ = solver.stochastic_differential_step(s1, n1, w1)
+    assert solver.gyrocompass._cached_null_projection.grad_fn is None
+
+    solver = solver.meta_optimize_admm_step(s1, n1, w1, steps=2, lr=0.01)
+    # Second consecutive call on the adapted solver with the same/similar state (hits SVD cache)
+    solver = solver.meta_optimize_admm_step(s1.detach().clone(), n1, w1, steps=2, lr=0.01)
+    s2 = base_s * 0.8
+    n2 = (torch.randn(2, 3, 16, requires_grad=True)) * 0.7
+    w2 = torch.ones(2, 3, requires_grad=True)
+    solver = solver.meta_optimize_admm_step(s2, n2, w2, steps=2, lr=0.01)
+    assert isinstance(solver, PolynomialADMRSolver)
+
+    embedder = PolynomialFunctionalEmbedder(
+        text_dim=16,
+        graph_dim=8,
+        num_dim=8,
+        hidden_dim=16,
+        poly_config=poly_cfg,
+        use_text=True,
+        use_graph=False,
+        use_num=False,
+    )
+    support_text = torch.randn(2, 16, requires_grad=True) * 1.2
+    adapted_emb = embedder.adapt_online(support_text=support_text, steps=2, lr=0.01)
+    adapted_emb = adapted_emb.adapt_online(support_text=support_text * 0.5, steps=2, lr=0.01)
+    assert isinstance(adapted_emb, PolynomialFunctionalEmbedder)
+
+

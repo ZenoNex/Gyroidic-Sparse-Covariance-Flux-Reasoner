@@ -894,6 +894,57 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             pass
 
+        # 11. Core-Orphaned Domain Bridges (Codec, Augmentation, Environment, Safety, Data, Integrations)
+        self.conformal_projector = None
+        self.caine_precision = None
+        self.mandelbulb_pipeline_fn = None
+        self.hardware_fingerprint_fn = None
+        self.local_data_loader_cls = None
+        self.webp_prompt_extractor_cls = None
+        self.tabby_client_cls = None
+
+        try:
+            from src.codec.conformal_log_polar import ConformalLogPolarProjector
+            self.conformal_projector = ConformalLogPolarProjector()
+        except Exception:
+            pass
+
+        try:
+            from src.environment.caine_precision import CainePrecisionGenerator
+            self.caine_precision = CainePrecisionGenerator(state_dim=self.dim).to(_device)
+        except Exception:
+            pass
+
+        try:
+            from src.augmentation.mandelbulb_pipeline import create_mandelbulb_pipeline
+            self.mandelbulb_pipeline_fn = create_mandelbulb_pipeline
+        except Exception:
+            pass
+
+        try:
+            from src.safety.hardware_fingerprint import get_stable_hardware_fingerprint
+            self.hardware_fingerprint_fn = get_stable_hardware_fingerprint
+        except Exception:
+            pass
+
+        try:
+            from src.data.local_data_loader import LocalDataLoader
+            self.local_data_loader_cls = LocalDataLoader
+        except Exception:
+            pass
+
+        try:
+            from src.data.webp_prompt_extractor import WebPPromptExtractor
+            self.webp_prompt_extractor_cls = WebPPromptExtractor
+        except Exception:
+            pass
+
+        try:
+            from src.integrations.tabby_client import TabbyClient
+            self.tabby_client_cls = TabbyClient
+        except Exception:
+            pass
+
     def _on_agent_smith_received(self, filepath: str) -> Optional[Dict[str, Any]]:
         """
         Callback invoked when BonfireNomadicRing receives a foreign Agent Smith (.pt)

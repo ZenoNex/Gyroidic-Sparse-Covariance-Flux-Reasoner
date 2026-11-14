@@ -8,6 +8,7 @@ Author: William Matthew Bryant
 Created: January 2026
 """
 
+import math
 import torch
 import torch.nn as nn
 from typing import Dict, Optional, Any, Union
@@ -302,10 +303,11 @@ class PolynomialFunctionalEmbedder(nn.Module):
             clone._parameters = {}
             for k, v in module._parameters.items():
                 if v is not None:
-                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                    # Detach so inner-loop adaptation runs on an isolated graph without retaining prior graphs
+                    clone._parameters[k] = nn.Parameter(v.detach().clone(), requires_grad=v.requires_grad)
                 else:
                     clone._parameters[k] = None
-            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._buffers = {k: v.detach().clone() if v is not None else None for k, v in module._buffers.items()}
             clone._modules = {}
             for k, v in module._modules.items():
                 if v is not None:
@@ -314,12 +316,37 @@ class PolynomialFunctionalEmbedder(nn.Module):
                     clone._modules[k] = None
             return clone
 
+        # Isolate support tensors from any prior autograd graph (Silent Failure / Zero Leakage)
+        if isinstance(support_text, torch.Tensor):
+            support_text = support_text.detach()
+        if isinstance(support_graph, torch.Tensor):
+            support_graph = support_graph.detach()
+        if isinstance(support_num, torch.Tensor):
+            support_num = support_num.detach()
+
         adapted_embedder = clone_module(self)
         
         effective_lr = lr
         if entropy is not None:
-            entropy_val = entropy.mean().item() if isinstance(entropy, torch.Tensor) else float(entropy)
+            entropy_val = entropy.detach().mean().item() if isinstance(entropy, torch.Tensor) else float(entropy)
             effective_lr = lr * (1.0 + abs(entropy_val))
+
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, has_compute_affordance
+            hm = HardwareMonitor.get_instance()
+            feelers = hm.probe_compute_feelers()
+            feeler_throttle = (
+                feelers.get('t_rfc_stall_detected', False)
+                or feelers.get('memory_pressure_detected', False)
+                or feelers.get('thermal_spike_detected', False)
+            )
+            if hm.thermal_runaway or feeler_throttle or not has_compute_affordance(ComputeAffordanceType.THERMAL):
+                steps = min(steps, 1)
+                effective_lr = effective_lr * 0.10
+            elif not has_compute_affordance(ComputeAffordanceType.SILICON):
+                effective_lr = effective_lr * 0.50
+        except Exception:
+            pass
             
         optimizer = torch.optim.SGD(adapted_embedder.parameters(), lr=effective_lr)
         

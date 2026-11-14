@@ -976,13 +976,17 @@ class PolynomialADMRSolver(nn.Module):
         def clone_module(module):
             import copy
             clone = copy.copy(module)
+            for attr_k, attr_v in list(clone.__dict__.items()):
+                if isinstance(attr_v, torch.Tensor):
+                    clone.__dict__[attr_k] = attr_v.detach().clone()
             clone._parameters = {}
             for k, v in module._parameters.items():
                 if v is not None:
-                    clone._parameters[k] = nn.Parameter(v.clone(), requires_grad=v.requires_grad)
+                    # Detach so System 2 inner-loop adaptation does not share/retain prior autograd graphs
+                    clone._parameters[k] = nn.Parameter(v.detach().clone(), requires_grad=v.requires_grad)
                 else:
                     clone._parameters[k] = None
-            clone._buffers = {k: v.clone() if v is not None else None for k, v in module._buffers.items()}
+            clone._buffers = {k: v.detach().clone() if v is not None else None for k, v in module._buffers.items()}
             clone._modules = {}
             for k, v in module._modules.items():
                 if v is not None:
@@ -991,12 +995,36 @@ class PolynomialADMRSolver(nn.Module):
                     clone._modules[k] = None
             return clone
 
+        # Isolate support/input tensors so consecutive meta_optimize_admm_step calls never
+        # traverse freed intermediate graphs (Silent Failure / Zero Leakage contract).
+        states = states.detach() if isinstance(states, torch.Tensor) else states
+        neighbor_states = neighbor_states.detach() if isinstance(neighbor_states, torch.Tensor) else neighbor_states
+        adjacency_weight = adjacency_weight.detach() if isinstance(adjacency_weight, torch.Tensor) else adjacency_weight
+        cavity_overtones = cavity_overtones.detach() if isinstance(cavity_overtones, torch.Tensor) else cavity_overtones
+
         adapted_solver = clone_module(self)
         
         effective_lr = lr
         if entropy is not None:
-            entropy_val = entropy.mean().item()
+            entropy_val = entropy.detach().mean().item() if isinstance(entropy, torch.Tensor) else float(entropy)
             effective_lr = lr * (1.0 + abs(entropy_val))
+
+        try:
+            from src.core.hardware_monitor import HardwareMonitor, ComputeAffordanceType, has_compute_affordance
+            hm = HardwareMonitor.get_instance()
+            feelers = hm.probe_compute_feelers()
+            feeler_throttle = (
+                feelers.get('t_rfc_stall_detected', False)
+                or feelers.get('memory_pressure_detected', False)
+                or feelers.get('thermal_spike_detected', False)
+            )
+            if hm.thermal_runaway or feeler_throttle or not has_compute_affordance(ComputeAffordanceType.THERMAL):
+                steps = min(steps, 1)
+                effective_lr = effective_lr * 0.10
+            elif not has_compute_affordance(ComputeAffordanceType.SILICON):
+                effective_lr = effective_lr * 0.50
+        except Exception:
+            pass
             
         optimizer = torch.optim.SGD([adapted_solver.A], lr=effective_lr)
         

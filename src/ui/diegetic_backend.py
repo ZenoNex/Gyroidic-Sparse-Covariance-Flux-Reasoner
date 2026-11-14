@@ -8135,9 +8135,11 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     graph_mgr = getattr(ENGINE, 'graph_manager', None)
                     if not graph_mgr:
                         try:
-                            import hybrid_backend
-                            if hybrid_backend.AI_SYSTEM and getattr(hybrid_backend.AI_SYSTEM, 'graph_manager', None):
-                                graph_mgr = hybrid_backend.AI_SYSTEM.graph_manager
+                            import sys
+                            hb_mod = sys.modules.get('hybrid_backend') or sys.modules.get('__main__')
+                            ai_sys = getattr(hb_mod, 'AI_SYSTEM', None) if hb_mod is not None else None
+                            if ai_sys and getattr(ai_sys, 'graph_manager', None):
+                                graph_mgr = ai_sys.graph_manager
                         except Exception:
                             pass
                     if not graph_mgr:
@@ -10717,12 +10719,14 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def _send_json(self, data):
         try:
+            # Serialize before sending headers so serialization errors don't leave a half-open 200 response
+            response_data = json.dumps(data, cls=TensorEncoder).encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(response_data)))
             self.end_headers()
-            # Use custom encoder to handle tensors and other non-serializable types
-            response_data = json.dumps(data, cls=TensorEncoder).encode('utf-8')
             self.wfile.write(response_data)
+            self.wfile.flush()
         except (ConnectionAbortedError, BrokenPipeError) as e:
             print(f"  Client connection lost during response: {e}")
         except Exception as e:
@@ -10781,6 +10785,7 @@ def main():
     
     class ThreadingSimpleServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
         daemon_threads = True
+        request_queue_size = 64
         
     # Boot SearXNG daemon if installed in WSL and available
     try:

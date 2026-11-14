@@ -78,7 +78,8 @@ class GyroidicGraphManager:
     def get_valid_node_count(self) -> int:
         """Returns the number of actual nodes, excluding uncollapsed homological ghost cycles."""
         count = 0
-        for n in self.nodes:
+        nodes_snapshot = list(self.nodes)
+        for n in nodes_snapshot:
             # Prune out any node ID containing 'ghost' or 'live_damage'
             if "ghost" not in n.node_id.lower() and "live_damage" not in n.node_id.lower():
                 count += 1
@@ -107,9 +108,20 @@ class GyroidicGraphManager:
                 print(f"[GRAPH] Snapshot corrupt or incompatible: {e}. Falling back to scan.")
 
         if not loaded_full_from_snapshot and os.path.exists(self.data_dir):
-            files = sorted(os.listdir(self.data_dir), reverse=True)
-            # Filter for .pt files and exclude the snapshot itself
-            files = [f for f in files if f.endswith(".pt") and f != "neglecton_snapshot.pt"][:scan_limit]
+            # Bounded scandir avoids sorting 40,000+ .pt filenames on the HTTP request thread
+            candidates = []
+            max_collect = max(scan_limit * 2, 500)
+            try:
+                with os.scandir(self.data_dir) as it:
+                    for entry in it:
+                        name = entry.name
+                        if name.endswith(".pt") and name != "neglecton_snapshot.pt":
+                            candidates.append(name)
+                            if len(candidates) >= max_collect:
+                                break
+            except Exception:
+                candidates = [f for f in os.listdir(self.data_dir) if f.endswith(".pt") and f != "neglecton_snapshot.pt"][:max_collect]
+            files = sorted(candidates, reverse=True)[:scan_limit]
             
             if self.nodes:
                 existing_states = torch.stack([n.state for n in self.nodes])
@@ -381,9 +393,17 @@ class GyroidicGraphManager:
             return []
         
         try:
-            states = torch.stack([n.state for n in target_nodes if hasattr(n, 'state')])
-            if len(states) < 2:
+            norm_states = []
+            valid_nodes = []
+            for n in target_nodes:
+                s = getattr(n, 'state', None)
+                if s is not None:
+                    norm_states.append(s.detach().cpu().float().reshape(-1)[:self.dim])
+                    valid_nodes.append(n)
+            if len(norm_states) < 2:
                 return []
+            target_nodes = valid_nodes
+            states = torch.stack(norm_states)
             states_norm = states / (torch.norm(states, dim=1, keepdim=True) + 1e-8)
             sim_matrix = torch.mm(states_norm, states_norm.t())
         except Exception:
@@ -491,7 +511,8 @@ class GyroidicGraphManager:
         culled_cone = 0
         saved_shear = 0
 
-        for n in self.nodes:
+        nodes_snapshot = list(self.nodes)
+        for n in nodes_snapshot:
             nid = n.node_id if hasattr(n, "node_id") else (n.get("node_id") or n.get("id") or "")
             if "ghost" in str(nid).lower() or "live_damage" in str(nid).lower():
                 continue
@@ -807,7 +828,8 @@ class GyroidicGraphManager:
         """
         # We store the core tensors and the text residues
         fossil_data = []
-        for n in self.nodes:
+        nodes_snapshot = list(self.nodes)
+        for n in nodes_snapshot:
             fossil_data.append({
                 "node_id": n.node_id,
                 "state": n.state.detach().cpu(), # The embedding seed
@@ -874,7 +896,8 @@ class GyroidicGraphManager:
 
         nodes_data = []
         valid_node_ids = set()
-        for n in self.nodes:
+        nodes_snapshot = list(self.nodes)
+        for n in nodes_snapshot:
             if "ghost" in n.node_id.lower() or "live_damage" in n.node_id.lower():
                 continue
             if n.node_id in valid_node_ids:

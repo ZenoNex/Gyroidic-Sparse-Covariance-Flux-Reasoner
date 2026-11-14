@@ -3249,7 +3249,7 @@
             if (window._isFetchingGraph) {
                 if (graphProceduralLoad || forceReload) {
                     if (window._graphAbortController) {
-                        try { window._graphAbortController.abort(); } catch(e) {}
+                        try { window._graphAbortController.abort('SUPERSEDED'); } catch(e) {}
                     }
                 } else {
                     return;
@@ -3333,7 +3333,7 @@
             window._graphAbortController = myController;
             window._graphFetchTimeout = setTimeout(() => {
                 try { myController.abort('TIMEOUT'); } catch(e) {}
-            }, 8000);
+            }, 25000);
 
             try {
                 const limit = limitEl ? parseInt(limitEl.value) || 250 : 250;
@@ -3711,12 +3711,15 @@
                     if (loadingOverlay) loadingOverlay.style.display = 'none';
                 }
 
-                if (e.name === 'AbortError' && myController.signal.reason !== 'TIMEOUT') {
+                if (e === 'SUPERSEDED' || (e && e.name === 'AbortError' && myController.signal.reason !== 'TIMEOUT')) {
                     // Intentionally aborted due to a newer refreshGraph call
                     return;
                 }
                 console.error(e);
-                showProceduralFallbackError(e.message || e);
+                const errLabel = (e === 'TIMEOUT' || (myController.signal && myController.signal.reason === 'TIMEOUT'))
+                    ? 'TIMEOUT (25s)'
+                    : ((e && e.message) ? e.message : String(e));
+                showProceduralFallbackError(errLabel);
             } finally {
                 if (procPromptTimer) clearTimeout(procPromptTimer);
                 if (window._graphFetchTimeout) {
@@ -3735,7 +3738,7 @@
 
         function abortGraphLoad() {
             if (window._graphAbortController) {
-                try { window._graphAbortController.abort(); } catch(e) {}
+                try { window._graphAbortController.abort('SUPERSEDED'); } catch(e) {}
                 window._graphAbortController = null;
             }
             if (window._graphLoadTicker) {
@@ -3789,7 +3792,7 @@
         function activateProceduralFromPrompt() {
             hideProceduralViewPrompt();
             if (window._graphAbortController) {
-                try { window._graphAbortController.abort(); } catch(e) {}
+                try { window._graphAbortController.abort('SUPERSEDED'); } catch(e) {}
             }
             graphProceduralLoad = true;
             const btnProc = document.getElementById('btn-toggle-procedural-load');
@@ -3813,7 +3816,10 @@
                 banner.style.cssText = 'position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.72rem; color: #ff6666; background: rgba(20,0,0,0.88); border: 1px solid #ff4444; padding: 6px 14px; border-radius: 4px; z-index: 200;';
                 container.appendChild(banner);
             }
-            banner.innerHTML = `<span>[FIELD LOAD NOTICE]: ${errMsg}</span> <button onclick="activateProceduralFromPrompt()" style="margin-left: 10px; background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-size: 0.65rem; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">ACTIVATE PROCEDURAL VIEW</button>`;
+            const actionBtn = graphProceduralLoad
+                ? `<button onclick="refreshGraph(false)" style="margin-left: 10px; background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-size: 0.65rem; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">RETRY PROCEDURAL</button>`
+                : `<button onclick="activateProceduralFromPrompt()" style="margin-left: 10px; background: var(--terminal-blue); color: #000; font-family: var(--font-mono); font-size: 0.65rem; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">ACTIVATE PROCEDURAL VIEW</button>`;
+            banner.innerHTML = `<span>[FIELD LOAD NOTICE]: ${errMsg}</span> ${actionBtn}`;
             banner.style.display = 'block';
             setTimeout(() => { if (banner) banner.style.display = 'none'; }, 8000);
         }
