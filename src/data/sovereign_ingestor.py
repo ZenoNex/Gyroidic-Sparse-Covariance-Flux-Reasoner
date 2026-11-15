@@ -65,16 +65,23 @@ class SovereignIngestor:
         target_signal: torch.Tensor,
         background_reference: torch.Tensor,
         structural_wobble_threshold: float = 0.05,
-        sun_facing_semicircle_mask: Optional[torch.Tensor] = None
+        sun_facing_semicircle_mask: Optional[torch.Tensor] = None,
+        target_scale: float = 1.0,
+        target_offset: float = 0.0,
+        background_scale: float = 1.0,
+        background_offset: float = 0.0,
+        dimensionless_zscore: bool = False,
     ) -> Dict[str, Any]:
         """
         First Law of Structural Honesty for Physical & Satellite Telemetry
         (Sentinel-2 L2A `s3://sentinel-cogs`, EIA Cushing Inventory, NOAA GOES-R):
 
-        1. Differential Calibration (Instrument Gain Drift Subtraction):
-           Subtracts ambient reference drift (e.g. surrounding dirt/road darkening)
-           from the target proxy (e.g. floating tank roof crescent shadow):
-               signal_calibrated = target_signal - background_reference
+        1. Measurement Standard Alignment & Differential Calibration:
+           Converts target and ambient reference onto a common linear standard
+           before subtracting instrument gain drift:
+               signal_calibrated = t_std - bg_std
+           Optional `dimensionless_zscore=True` divides by background std for
+           cross-unit environments.
         2. Spatial Dilution Masking:
            Restricts integration to the directional active locus (e.g. sun-facing
            semicircle) rather than averaging over an isotropic disk.
@@ -82,15 +89,22 @@ class SovereignIngestor:
            If measurement uncertainty sigma_probe >= structural_wobble_threshold,
            issues a Topological Refusal (NaN boundary state) instead of committing noise.
         """
-        t_sig = target_signal.float()
-        bg_ref = background_reference.float().to(t_sig.device)
+        t_scale = target_scale if abs(float(target_scale)) > 1e-12 else 1.0
+        b_scale = background_scale if abs(float(background_scale)) > 1e-12 else 1.0
+        t_sig = (target_signal.float() - float(target_offset)) / float(t_scale)
+        bg_ref = (background_reference.float().to(t_sig.device) - float(background_offset)) / float(b_scale)
         if bg_ref.shape != t_sig.shape:
             bg_ref = bg_ref.flatten()[:t_sig.numel()]
             if bg_ref.numel() < t_sig.numel():
-                bg_ref = torch.nn.functional.pad(bg_ref, (0, t_sig.numel() - bg_ref.numel()))
+                bg_fill = float(bg_ref.mean().item()) if bg_ref.numel() > 0 else 0.0
+                bg_ref = torch.nn.functional.pad(bg_ref, (0, t_sig.numel() - bg_ref.numel()), value=bg_fill)
             bg_ref = bg_ref.reshape(t_sig.shape)
 
         calibrated = t_sig - bg_ref
+        if dimensionless_zscore and bg_ref.numel() > 1:
+            bg_std = float(torch.std(bg_ref).item())
+            if bg_std > 1e-8:
+                calibrated = calibrated / bg_std
         if sun_facing_semicircle_mask is not None:
             mask = sun_facing_semicircle_mask.to(t_sig.device).float()
             calibrated = calibrated * mask

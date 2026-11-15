@@ -362,7 +362,7 @@ $$\Upsilon_{valley} = \sum_{j} \oint_{\partial \gamma_j} (\nabla \times \boldsym
 - **Projection Sweep Operator ($\hat{\mathcal{P}}_{sweep}$):** Idempotent projection operator flushing topological stagnation, damping rotational vortex debris ($S \mapsto \gamma_{sweep} S$), and clearing stagnant octree nodes.
 - **Codebase Bindings:**
   - Computed by [`ValleyVorticitySweeper`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/fgrt_primitives.py#L561).
-  - Bound to color transport in [`ConjugateColorTransport.evaluate_valley_vorticity_and_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py#L599).
+  - Bound to color transport in [`ConjugateColorTransport.evaluate_valley_vorticity_and_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/image_extension.py#L599).
   - Coupled to octree clearing via [`PointerlessOctree.sweep_valley_vorticity`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py#L1956).
   - Integrated into cleanroom mechanics via [`VoxelboxterHookIntegrator.evaluate_valley_vorticity_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/environment/cleanroom_mechanics.py#L3998).
   - Accessible via node script graph [`PhysicalNodeEditor.hook_valley_vorticity_sweep`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py#L1497).
@@ -404,7 +404,7 @@ The multi-field attention subsystem ([`ModularAttention`](file:///d:/programming
 
 #### 10.4 Codebase Bindings & Validation
 - **Module Bindings**: [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35), [`ModularTransformerLayer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L403), [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461), and [`DiegeticBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025).
-- **Test Suite**: Verified by 15 tests in [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py#L271).
+- **Test Suite**: Verified by 15 tests in [`tests/04_components_and_mechanics/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/04_components_and_mechanics/test_isolated_attention_integration.py#L271).
 
 ---
 

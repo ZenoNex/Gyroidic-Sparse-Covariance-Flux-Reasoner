@@ -394,30 +394,42 @@ class EconomicAgentLinker:
         ambient_ground_series: List[float],
         weekly_physical_wobble: float = 1.5,
         measurement_uncertainty: float = 20.0,
-        signal_type: str = "TANK_SHADOW_OIL_STORAGE"
+        signal_type: str = "TANK_SHADOW_OIL_STORAGE",
+        unit_standard: Optional[str] = None,
+        proxy_scale: float = 1.0,
+        ambient_scale: float = 1.0,
     ) -> Dict[str, Any]:
         """
         Physical Telemetry Structural Honesty & Target Ontology Validator
         (Sentinel-2 Cushing Storage Tank Shadow Proxy vs. EIA Weekly Wobble):
 
-        1. Differential Calibration: Subtracts ambient sensor degradation
-           (e.g. -7.0 ground darkening) from raw proxy (-7.5 tank darkening).
+        1. Differential Calibration: Converts raw/ambient series via `proxy_scale`
+           and `ambient_scale` before subtracting ambient sensor degradation.
         2. Target Ontology Routing: Routes physical volume signals to infrastructure
-           storage operators (midstream capacity landlords: PAA, EPD, ENB) rather
-           than globally priced commodity futures (WTI).
-        3. Wobble-to-Noise Epistemic Veto: If measurement_uncertainty (+/- 20M bbl)
-           exceeds weekly_physical_wobble (+/- 1.5M bbl), issues a Topological Refusal
-           (NaN) rather than executing a live speculative commit.
+           storage operators rather than globally priced commodity futures.
+        3. Wobble-to-Noise Epistemic Veto: If measurement_uncertainty exceeds
+           weekly_physical_wobble, issues a Topological Refusal (NaN) rather than
+           executing a live speculative commit.
         """
         n = min(len(raw_proxy_series), len(ambient_ground_series))
         if n == 0:
             calibrated_deltas = [0.0]
         else:
-            calibrated_deltas = [float(raw_proxy_series[i]) - float(ambient_ground_series[i]) for i in range(n)]
+            calibrated_deltas = [
+                float(raw_proxy_series[i]) * float(proxy_scale) - float(ambient_ground_series[i]) * float(ambient_scale)
+                for i in range(n)
+            ]
 
         mean_calibrated = sum(calibrated_deltas) / float(len(calibrated_deltas))
         snr = float(weekly_physical_wobble) / max(float(measurement_uncertainty), 1e-6)
         veto_triggered = float(measurement_uncertainty) > float(weekly_physical_wobble)
+        unit_defaults = {
+            "TANK_SHADOW_OIL_STORAGE": "mbbl",
+            "TROPOSPHERIC_NO2_MANUFACTURING": "molecules/cm2",
+            "SAR_MARITIME_PORT_CONGESTION": "sigma0_dB",
+            "NOCTURNAL_RADIANCE_GRID_STABILITY": "nW/cm2/sr",
+        }
+        resolved_unit = unit_standard or unit_defaults.get(signal_type, "dimensionless")
         # Ontology routing mapping for physical satellite & orbital proxies
         ontology_map = {
             "TANK_SHADOW_OIL_STORAGE": (
@@ -444,9 +456,12 @@ class EconomicAgentLinker:
 
         return {
             "signal_type": signal_type,
+            "unit_standard": resolved_unit,
             "calibrated_differential_signal": round(mean_calibrated, 4),
             "target_ontology": target_ont if not veto_triggered else "TOPOLOGICAL_REFUSAL_NAN",
             "rejected_ontology": rej_ont,
+            "weekly_physical_wobble": float(weekly_physical_wobble),
+            "measurement_uncertainty": float(measurement_uncertainty),
             "weekly_physical_wobble_mbbl": float(weekly_physical_wobble),
             "measurement_uncertainty_mbbl": float(measurement_uncertainty),
             "wobble_to_noise_snr": round(snr, 4),

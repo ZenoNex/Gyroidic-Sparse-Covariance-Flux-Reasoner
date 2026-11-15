@@ -348,12 +348,22 @@ class GyroidicGraphManager:
     def ensure_node_coordinates(self, n: Any):
         """Precompute and cache 3D harmonic and Poincare coordinates on the node."""
         metrics = getattr(n, "metrics", n if isinstance(n, dict) else {})
-        mx = getattr(n, "x", None) or (metrics.get("x") if isinstance(metrics, dict) else None)
-        my = getattr(n, "y", None) or (metrics.get("y") if isinstance(metrics, dict) else None)
-        mz = getattr(n, "z", None) or (metrics.get("z") if isinstance(metrics, dict) else None)
-        
-        mpx = getattr(n, "px", None) or (metrics.get("px") if isinstance(metrics, dict) else None)
-        mpy = getattr(n, "py", None) or (metrics.get("py") if isinstance(metrics, dict) else None)
+        mx = getattr(n, "x", None)
+        if mx is None and isinstance(metrics, dict):
+            mx = metrics.get("x")
+        my = getattr(n, "y", None)
+        if my is None and isinstance(metrics, dict):
+            my = metrics.get("y")
+        mz = getattr(n, "z", None)
+        if mz is None and isinstance(metrics, dict):
+            mz = metrics.get("z")
+
+        mpx = getattr(n, "px", None)
+        if mpx is None and isinstance(metrics, dict):
+            mpx = metrics.get("px")
+        mpy = getattr(n, "py", None)
+        if mpy is None and isinstance(metrics, dict):
+            mpy = metrics.get("py")
 
         if mx is not None and my is not None and mz is not None:
             x, y, z = float(mx), float(my), float(mz)
@@ -661,14 +671,18 @@ class GyroidicGraphManager:
             visible_nodes = [it["node"] for it in candidates]
             visible_edges = self.get_adjacency_list_for_nodes(visible_nodes, top_k_per_node=6, max_edges=1500)
 
+        closed_topology_sequences = self.extract_closed_topology_sequences(nodes_data, visible_edges)
+
         return {
             "nodes": nodes_data,
             "links": visible_edges,
+            "closed_topology_sequences": closed_topology_sequences,
             "procedural": True,
             "total_nodes": len(self.nodes),
             "procedural_stats": {
                 "total_available": len(self.nodes),
                 "visible_count": len(nodes_data),
+                "closed_topology_count": len(closed_topology_sequences),
                 "culled_distance": culled_dist,
                 "culled_geometry_cone": culled_cone,
                 "culled_occlusion": culled_occlusion,
@@ -679,6 +693,109 @@ class GyroidicGraphManager:
                 "compute_feelers": feeler_telemetry,
             }
         }
+
+    def extract_closed_topology_sequences(
+        self,
+        nodes_data: List[Dict[str, Any]],
+        edges: List[Dict[str, Any]],
+        max_sequences: int = 32,
+        max_cycle_len: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """
+        Group visible procedural fossils into ordered sequences of non-trivial closed
+        topologies (cycles H_1 != 0) rather than an unstructured Euler point cloud.
+        """
+        if len(nodes_data) < 3 or len(edges) < 3:
+            return []
+
+        node_map = {str(n["id"]): n for n in nodes_data}
+        adj: Dict[str, List[str]] = {}
+        for e in edges:
+            s, t = str(e["source"]), str(e["target"])
+            if s != t and s in node_map and t in node_map:
+                adj.setdefault(s, []).append(t)
+                adj.setdefault(t, []).append(s)
+
+        seen_canonical = set()
+        sequences: List[Dict[str, Any]] = []
+
+        for start in sorted(adj.keys()):
+            if len(sequences) >= max_sequences:
+                break
+            stack: List[Tuple[str, List[str]]] = [(start, [start])]
+            while stack and len(sequences) < max_sequences:
+                curr, path = stack.pop()
+                for nxt in adj.get(curr, []):
+                    if nxt == start and len(path) >= 3:
+                        canon = tuple(sorted(path))
+                        if canon in seen_canonical:
+                            continue
+                        coords = [[node_map[nid]["x"], node_map[nid]["y"], node_map[nid]["z"]] for nid in path]
+                        # Non-trivial spatial circulation check (reject degenerate/collapsed loops)
+                        span = sum(
+                            math.sqrt(
+                                (coords[(i + 1) % len(coords)][0] - coords[i][0]) ** 2
+                                + (coords[(i + 1) % len(coords)][1] - coords[i][1]) ** 2
+                                + (coords[(i + 1) % len(coords)][2] - coords[i][2]) ** 2
+                            )
+                            for i in range(len(coords))
+                        )
+                        if span > 1e-4:
+                            seen_canonical.add(canon)
+                            sequences.append({
+                                "node_ids": path,
+                                "coords": coords,
+                                "cycle_len": len(path),
+                                "perimeter": round(span, 4),
+                                "closed": True,
+                            })
+                    elif nxt not in path and len(path) < max_cycle_len and nxt > start:
+                        stack.append((nxt, path + [nxt]))
+        return sequences
+
+    def export_closed_topology_shares(
+        self,
+        bonfire_ring: Any,
+        local_peer_id: str,
+        traffic_points: List[str],
+        threshold: int = 2,
+        **query_kwargs,
+    ) -> List[Dict[str, Any]]:
+        """
+        Query procedural fossils as sequences of closed topologies and distribute them
+        via Non-Euler Shamir (t, n) threshold sharing across isolated/portable traffic points,
+        enforcing Meliponini selective puncture and Idea-Expression Dichotomy sanitization
+        via AgentSubstrateBridge.
+        """
+        from src.core.agent_substrate_bridge import AgentSubstrateBridge
+        bridge = AgentSubstrateBridge()
+        proc = self.query_procedural_graph(**query_kwargs)
+        exported = []
+        for idx, seq in enumerate(proc.get("closed_topology_sequences", [])):
+            topology_id = f"proc_cycle_{idx}_{seq['node_ids'][0]}"
+            packets = bonfire_ring.distribute_closed_topology_shares(
+                local_peer_id=local_peer_id,
+                topology_id=topology_id,
+                cycle_coords=seq["coords"],
+                node_ids=seq["node_ids"],
+                threshold=threshold,
+                traffic_points=traffic_points,
+            )
+            share_meta = packets[0].get("share", {}) if packets else {}
+            attestation_payload = bridge.sanitize_and_verify_non_memorization({
+                "pot_identity_crt": tuple(share_meta.get("pot_identity_crt", (0, 0, 0))),
+                "tags": ["non_euler_shamir", "closed_topology_sequence"],
+                "structural_algebra_attestation": {
+                    "non_invertible_puncture_ratio": share_meta.get("non_invertible_puncture_ratio", 0.3333),
+                },
+            })
+            exported.append({
+                "topology_id": topology_id,
+                "packets": packets,
+                "cycle_len": seq["cycle_len"],
+                "structural_algebra_attestation": attestation_payload["structural_algebra_attestation"],
+            })
+        return exported
 
                 
     def get_adjacency_list(self, top_k_per_node: int = 6, max_edges: int = 3500) -> List[Dict[str, Any]]:

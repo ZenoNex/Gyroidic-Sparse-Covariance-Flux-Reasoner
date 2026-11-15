@@ -25,7 +25,7 @@ Core persistence and stability
 - `python -m examples.run_low_intensity`  low-intensity validation
 
 Frontends/backends reachability
-- Server/terminal checks (consolidated in tests/test_live_backend.py):
+- Server/terminal checks (consolidated in tests/06_integration_benchmarks_and_verify/test_live_backend.py):
   - `python -m tests.test_live_backend` (supersedes legacy test_minimal_server.py, test_backend_startup.py, test_backend_status.py)
   - (Legacy probes `test_backend_startup.py`, `test_backend_status.py`, `test_backend_simple.py`, `test_terminal_interface.py` are tombstoned and wrapped by test_live_backend)
   - `python -m tests.test_algebraic_invariants` (Invariant checks)

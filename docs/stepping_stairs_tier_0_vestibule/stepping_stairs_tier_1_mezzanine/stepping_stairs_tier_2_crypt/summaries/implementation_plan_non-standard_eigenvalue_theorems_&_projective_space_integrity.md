@@ -83,7 +83,7 @@ To confirm that the integration of the Lanczos-Krylov subspace approximations, t
 
 ```powershell
 # Run the centralized test suite in the virtual environment
-.venv\scripts\python.exe -m pytest tests/test_core_systems.py
+.venv\scripts\python.exe -m pytest tests/01_architecture_core/test_core_systems.py
 ```
 
 > [!NOTE]

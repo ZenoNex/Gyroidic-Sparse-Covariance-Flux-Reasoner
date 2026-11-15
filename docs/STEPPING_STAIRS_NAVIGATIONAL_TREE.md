@@ -154,3 +154,6 @@ graph TD
   Master blueprint tracking isolated systems and their binding into [hybrid_backend.py](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py) and [orchestrator.py](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py).
 * [.agents/rules/pythonpath-and-map.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/.agents/rules/pythonpath-and-map.md)
   Living Interaction Mermaid maps tracing verified imports and cross-package topologies in `src/`.
+
+### Tiered Test Suite (`tests/`)
+* [tests/README.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/README.md) — Mirrors the Stepping Stairs domains across 6 subdirectories (`01_architecture_core/` through `06_integration_benchmarks_and_verify/`) with root [tests/conftest.py](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/conftest.py).

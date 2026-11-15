@@ -392,7 +392,15 @@ class InvestorNewsIngestor(nn.Module):
                     scores.append(sim)
                 scores_t = torch.tensor(scores, dtype=torch.float32, device=flat_state.device) / 0.2
                 lazarus = LazarusSoftmax(dim=0).to(flat_state.device)
-                probs, _ = lazarus(scores_t, current_pas_h=0.5, previous_pas_h=0.5)
+                from src.core.invariants import PhaseAlignmentInvariant
+                if flat_state.numel() >= 2:
+                    phases = torch.angle(torch.fft.rfft(flat_state))
+                    current_pas_h = float(PhaseAlignmentInvariant()(phases).mean().item())
+                else:
+                    current_pas_h = float(torch.norm(flat_state).item() / (torch.norm(flat_state).item() + 0.1))
+                previous_pas_h = getattr(self, "_last_pas_h", current_pas_h)
+                self._last_pas_h = current_pas_h
+                probs, _ = lazarus(scores_t, current_pas_h=current_pas_h, previous_pas_h=previous_pas_h)
                 order = torch.argsort(probs, descending=True).tolist()
                 urls = [urls[i] for i in order]
             except Exception:

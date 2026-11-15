@@ -122,6 +122,106 @@ class ShamirThresholdSharing:
             out.extend(val.to_bytes(block_len, "big"))
         return bytes(out)
 
+
+class NonEulerShamirTopologySharing:
+    """
+    Non-Euler Shamir's (t, n) Secret Sharing over sequences of closed topologies.
+
+    Unlike standard scalar Shamir (which reconstructs a single Euler point f(0) in F_p),
+    this operator encodes an ordered, non-Abelian sequence of closed topological states
+    (e.g. procedural fossil hyper-ring cycles) quantized onto the fixed-point lattice,
+    splits the cycle across n isolated/portable traffic points over F_{M_521}, and
+    reconstructs the non-trivial closed loop (verifying non-zero circulation / H_1 != 0)
+    from any >= t reachable traffic points.
+    """
+
+    def __init__(self, scale_factor: float = 65536.0):
+        self.shamir = ShamirThresholdSharing()
+        self.scale_factor = scale_factor
+
+    @staticmethod
+    def _verify_non_trivial_closure(coords: List[List[float]], min_span: float = 1e-4) -> Dict[str, Any]:
+        if len(coords) < 3:
+            return {"is_closed": False, "is_nontrivial": False, "circulation": 0.0}
+        arr = np.asarray(coords, dtype=np.float64)
+        # Signed 2D projection area (Shoelace) + scale-adaptive 3D perimeter span
+        diffs = np.diff(np.vstack([arr, arr[:1]]), axis=0)
+        perimeter = float(np.linalg.norm(diffs, axis=-1).sum())
+        area_xy = 0.5 * float(np.sum(arr[:, 0] * np.roll(arr[:, 1], -1) - np.roll(arr[:, 0], -1) * arr[:, 1]))
+        max_norm = float(np.linalg.norm(arr, axis=-1).max())
+        effective_min_span = min(min_span, max(1e-12, max_norm * 1e-6))
+        if max_norm > 1.0:
+            effective_min_span = max(effective_min_span, max_norm * 1e-6)
+        is_nontrivial = (perimeter > effective_min_span) and (
+            abs(area_xy) > effective_min_span * 1e-2 or np.ptp(arr, axis=0).sum() > effective_min_span
+        )
+        return {
+            "is_closed": True,
+            "is_nontrivial": bool(is_nontrivial),
+            "perimeter": perimeter,
+            "circulation": abs(area_xy),
+        }
+
+    def split_closed_topology_sequence(
+        self,
+        cycle_coords: List[List[float]],
+        node_ids: Optional[List[str]] = None,
+        threshold: int = 2,
+        num_shares: int = 4,
+        pot_identity_crt: Optional[Tuple[int, int, int]] = None,
+        enforce_selective_puncture: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """
+        Encode a closed-topology sequence and split it into (t, n) F_p shares.
+        Applies Meliponini selective puncture (~1/3 non-invertible dimensional masking
+        via KnowledgeDyadFossilizer.apply_selective_puncture) so raw Euclidean meshes
+        are not leaked across P2P traffic points.
+        """
+        closure = self._verify_non_trivial_closure(cycle_coords)
+        if not closure["is_nontrivial"]:
+            raise ValueError("Cannot share a trivial/Euler-collapsed topology; require non-trivial closed cycle")
+
+        puncture_ratio = 0.0
+        coords_to_encode = [[round(float(c), 6) for c in pt] for pt in cycle_coords]
+        if enforce_selective_puncture:
+            import torch
+            from src.core.knowledge_dyad_fossilizer import KnowledgeDyadFossilizer
+            flat = torch.tensor(coords_to_encode, dtype=torch.float32).flatten()
+            if pot_identity_crt is None:
+                pot_identity_crt = KnowledgeDyadFossilizer.generate_residue_tuple(None, flat)
+            punctured = KnowledgeDyadFossilizer.apply_selective_puncture(None, flat, tuple(int(x) for x in pot_identity_crt[:3]))
+            puncture_ratio = float((punctured == 0).sum().item()) / float(max(1, punctured.numel()))
+            coords_to_encode = punctured.view(len(cycle_coords), -1).tolist()
+            coords_to_encode = [[round(float(c), 6) for c in pt] for pt in coords_to_encode]
+        elif pot_identity_crt is None:
+            pot_identity_crt = (0, 0, 0)
+
+        import json
+        payload = json.dumps({
+            "node_ids": node_ids or [f"v{i}" for i in range(len(cycle_coords))],
+            "coords": coords_to_encode,
+            "circulation": closure["circulation"],
+            "pot_identity_crt": [int(x) for x in pot_identity_crt[:3]],
+            "non_invertible_puncture_ratio": round(puncture_ratio, 4),
+            "selective_puncture_applied": bool(enforce_selective_puncture),
+        }, separators=(",", ":")).encode("utf-8")
+        shares = self.shamir.split_bytes(payload, threshold=threshold, num_shares=num_shares)
+        for s in shares:
+            s["topology_kind"] = "non_euler_closed_cycle"
+            s["cycle_len"] = len(cycle_coords)
+            s["non_invertible_puncture_ratio"] = round(puncture_ratio, 4)
+            s["pot_identity_crt"] = [int(x) for x in pot_identity_crt[:3]]
+        return shares
+
+    def reconstruct_closed_topology_sequence(self, shares: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Reconstruct a closed-topology sequence from >= t shares and verify non-trivial closure."""
+        import json
+        raw = self.shamir.reconstruct_bytes(shares)
+        data = json.loads(raw.decode("utf-8"))
+        closure = self._verify_non_trivial_closure(data["coords"])
+        data["closure"] = closure
+        return data
+
 class FractalDiscontinuityEmbedding:
     """
     Embedding Theorem for Discontinuous Fractals:
@@ -351,6 +451,7 @@ class BonfireNomadicRing:
         self.zk_aggregator = ZKAggregator()
         self.pending_crt_channels: Dict[int, torch.Tensor] = {}
         self.shamir = ShamirThresholdSharing()
+        self.non_euler_shamir = NonEulerShamirTopologySharing()
         self.pending_shamir_shares: Dict[str, List[Dict[str, Any]]] = {}
 
         # Prime Resonance Ladder for Chebyshev-Chebyshev oscillator and CRT fallback
@@ -737,3 +838,47 @@ class BonfireNomadicRing:
         """
         pool = shares if shares is not None else self.pending_shamir_shares.get(secret_id, [])
         return self.shamir.reconstruct_bytes(pool)
+
+    def distribute_closed_topology_shares(
+        self,
+        local_peer_id: str,
+        topology_id: str,
+        cycle_coords: List[List[float]],
+        node_ids: Optional[List[str]],
+        threshold: int,
+        traffic_points: List[str],
+    ) -> List[Dict[str, Any]]:
+        """Split a non-Euler closed-topology sequence across isolated/portable traffic points."""
+        if not traffic_points:
+            raise ValueError("At least one traffic point is required")
+        shares = self.non_euler_shamir.split_closed_topology_sequence(
+            cycle_coords=cycle_coords,
+            node_ids=node_ids,
+            threshold=threshold,
+            num_shares=len(traffic_points),
+        )
+        packets: List[Dict[str, Any]] = []
+        for target_point, share in zip(traffic_points, shares):
+            zk_proof = self.zk_aggregator.generate_proof(
+                f"shamir_{topology_id}_{share['x']}",
+                {"x": int(share["x"]), "threshold": int(threshold), "cycle_len": int(share["cycle_len"])},
+            )
+            packet = {
+                "peer_id": local_peer_id,
+                "target_point": target_point,
+                "secret_id": topology_id,
+                "share": share,
+                "zk_proof": zk_proof,
+            }
+            packets.append(packet)
+            self.freenet.publish("bonfire_shamir_threshold", packet)
+        return packets
+
+    def reconstruct_closed_topology_from_traffic_points(
+        self,
+        topology_id: str,
+        shares: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """Reconstruct a closed-topology sequence once >= t traffic point shares are gathered."""
+        pool = shares if shares is not None else self.pending_shamir_shares.get(topology_id, [])
+        return self.non_euler_shamir.reconstruct_closed_topology_sequence(pool)

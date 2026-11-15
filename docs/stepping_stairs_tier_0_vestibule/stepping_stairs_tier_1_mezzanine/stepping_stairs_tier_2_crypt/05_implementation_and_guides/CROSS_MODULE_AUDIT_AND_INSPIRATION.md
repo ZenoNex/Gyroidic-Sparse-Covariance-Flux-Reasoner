@@ -38,3 +38,5 @@ The system now fully implements the harmonized virtualization layer:
 ### Completed Artifacts
 *  `src/core/modular_virtualization.py` - Full hybrid RNS logic.
 *  `src/core/fgrt_primitives.py` - Lazarus Prime prioritized Repunit generators.
+*  `src/core/primitive_ops.py` - `FixedPointField.from_adaptive_float` & scale-consistent arithmetic for heterogeneous measurement standards.
+*  `src/p2p/bonfire_consensus.py` & `src/topology/embedding_graph.py` - `ShamirThresholdSharing`, `NonEulerShamirTopologySharing` ($\mathbb{F}_{M_{521}}$) with Meliponini selective puncture (`KnowledgeDyadFossilizer.apply_selective_puncture` + `AgentSubstrateBridge.sanitize_and_verify_non_memorization`).

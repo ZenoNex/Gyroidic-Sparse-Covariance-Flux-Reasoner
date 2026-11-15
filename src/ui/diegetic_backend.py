@@ -128,7 +128,7 @@ from src.surrogates.kagh_networks import KAGHBlock, HarmonicWaveDecomposition, H
 # Gyroid Covariance for tensor-based momentum instead of scalar averages
 from src.topology.gyroid_covariance import GyroidCovarianceEstimator
 from src.codec.vision_utilities import get_russian_doll_projection
-from image_extension import ImageProcessor, TailSlayerImageGenerator
+from src.codec.image_extension import ImageProcessor, TailSlayerImageGenerator
 # Speculative Coprime Chiral Gating (Legacy Recovery)
 from src.core.speculative_coprime_gate import SpeculativeCoprimeGate
 from src.core.invariants import (

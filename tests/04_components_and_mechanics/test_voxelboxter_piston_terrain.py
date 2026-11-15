@@ -272,7 +272,7 @@ class TestAll15VoxelboxterHooks:
         assert all(val % 16.0 == 0.0 for val in lattice)
 
     def test_hook_03_conjugate_color_transport(self):
-        from image_extension import ConjugateColorTransport
+        from src.codec.image_extension import ConjugateColorTransport
         transport = ConjugateColorTransport()
         test_rgb = torch.tensor([
             [0.8, 0.2, 0.1],

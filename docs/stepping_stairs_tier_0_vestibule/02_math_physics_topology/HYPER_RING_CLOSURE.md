@@ -42,6 +42,10 @@ Provides speculative neural connectivity acting like a non-Euclidean recurrent n
 - Mediated by an adaptive coupling matrix $\omega_{ij}$ and speculative dark matter traces ($D_{\text{dark}}$).
 - The flow step ensures states only propagate toward "higher resonance" or lower "hole energy."
 
+### 3.4 `GyroidicGraphManager.extract_closed_topology_sequences` & `NonEulerShamirTopologySharing`
+- [`GyroidicGraphManager.extract_closed_topology_sequences`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py) groups visible procedural fossils into ordered sequences of non-trivial closed cycles ($H_1 \neq 0$, rejecting collapsed Euler point loops).
+- [`NonEulerShamirTopologySharing`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py) splits selectively-punctured closed-topology sequences across isolated/portable traffic points over $\mathbb{F}_{M_{521}}$ and reconstructs the closed loop from any $\ge t$ reachable traffic points.
+
 ## 4. Operational Role in Phase 4 (Unfolding Closure)
 
 In the 9-stage `process_input` pipeline of the `diegetic_backend.py`, the Hyper-Ring logic constitutes Phase 4.2:

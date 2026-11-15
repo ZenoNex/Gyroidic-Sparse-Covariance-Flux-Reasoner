@@ -179,6 +179,7 @@ class GlobalPASAPI:
         self.engine = engine
         self.handshake = GLYPHLOCKHandshake(secret_key=secret_key)
         self.node_registry: Dict[str, Dict[str, Any]] = {}
+        self._node_states: Dict[str, torch.Tensor] = {}
         self.coherence_log: List[Dict[str, Any]] = []
 
     def initiate_handshake(
@@ -216,14 +217,30 @@ class GlobalPASAPI:
         else:
             t = state_tensor.detach().cpu().float()
 
-        norm = torch.norm(t).item()
-        pas_h = float(norm / (norm + 0.15))
+        t_flat = t.flatten()
+        norm = torch.norm(t_flat).item()
+        ihc_mod = compute_ihc_bao_shell_modulation(comoving_distance_mpc=max(1.0, norm * 10.0))
+        z3_factor = 1.0 + ihc_mod["z3_standing_wave_modulation"]
+        if t_flat.numel() >= 2:
+            phases = torch.angle(torch.fft.rfft(t_flat))
+            raw_pas_h = float(self.handshake._pas_invariant(phases).mean().item())
+        else:
+            raw_pas_h = float(norm / (norm + 0.15))
+        pas_h = max(0.0, min(1.0, raw_pas_h * z3_factor))
         chi = float(compute_chirality(t.unsqueeze(0)).item()) if t.numel() > 1 else 0.0
 
         prev = self.node_registry.get(node_id)
-        prev_pas = prev['pas_h'] if prev else pas_h
-        pas_zeta = abs(pas_h - prev_pas)
+        prev_t = self._node_states.get(node_id)
+        if prev is not None and prev_t is not None:
+            m = min(t_flat.numel(), prev_t.numel())
+            rel_delta = float((torch.norm(t_flat[:m] - prev_t[:m]) / (torch.norm(prev_t[:m]) + 1e-8)).item()) if m > 0 else 0.0
+            pas_delta = abs(pas_h - prev["pas_h"])
+            pas_zeta = float(max(1e-6, 0.5 * rel_delta + 0.5 * pas_delta))
+        else:
+            jitter_val = float(torch.abs(harvest_honest_jitter((1,), scaled=False)).item())
+            pas_zeta = max(1e-4, min(0.02, 0.005 + 0.01 * jitter_val))
 
+        self._node_states[node_id] = t_flat.clone()
         record = {
             "status": "tracked",
             "node_id": node_id,
@@ -233,7 +250,7 @@ class GlobalPASAPI:
             "pas_zeta": pas_zeta,
             "chirality": chi,
             "is_coherent": pas_h >= 0.85 and pas_zeta <= 0.05,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
         self.node_registry[node_id] = record

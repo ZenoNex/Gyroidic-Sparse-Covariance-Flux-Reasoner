@@ -2835,6 +2835,7 @@ To project and render large-scale cognitive graphs without $O(N)$ WebGL overhead
    $$|d_{\text{shear}}| = |\mathbf{x}_i \cdot \mathbf{n}| \le 80$$
    the render distance is scaled by $2.5\times$ ($R_{\text{eff}} = 2.5 R$), preserving Alexander Wild fault-line manifolds even outside the active gaze cone.
 3. **Directional Occlusion Culling**: Discretizes spherical viewing coordinates into angular bins $(\lfloor \phi / 10^\circ \rfloor, \lfloor \theta / 10^\circ \rfloor)$ and retains only the 5 closest foreground nodes per bin (unless designated on a shear corridor), capping draw calls to responsive hardware limits.
+4. **Closed-Topology Sequence Extraction & Non-Euler Shamir Sharing**: Rather than treating procedural fossils as an unstructured Euler point cloud, `GyroidicGraphManager.extract_closed_topology_sequences` groups visible fossils into non-trivial closed cycles ($H_1 \neq 0$, non-zero perimeter/circulation), and `export_closed_topology_shares` distributes them across isolated/portable traffic points via [`NonEulerShamirTopologySharing`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py) over $\mathbb{F}_{M_{521}}$ with Meliponini selective puncture (`KnowledgeDyadFossilizer.apply_selective_puncture`, ~1/3 masking) and `AgentSubstrateBridge` non-memorization attestation.
 
 ---
 

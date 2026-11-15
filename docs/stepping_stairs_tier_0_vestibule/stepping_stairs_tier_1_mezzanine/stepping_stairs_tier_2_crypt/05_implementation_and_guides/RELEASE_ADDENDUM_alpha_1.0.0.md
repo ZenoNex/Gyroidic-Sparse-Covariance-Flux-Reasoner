@@ -171,7 +171,7 @@ Checks serialization, Betti routing, and basic topological properties:
 ### B. Verify Core Systems and Archetype Flux Dynamics
 Verifies that the refactored archetype operators trigger vetos and correct coherence scaling:
 ```powershell
-.venv\scripts\python.exe -u tests/test_core_systems.py
+.venv\scripts\python.exe -u tests/01_architecture_core/test_core_systems.py
 ```
 
 ### C. Verify Zeitgeist CRT Routing
@@ -222,6 +222,6 @@ Introduced the `EnemySubtype` enum and morphological deformation gates:
 
 ### 9.3 Verification Suite
 
-All subsystems are covered by automated unit tests in [tests/test_node_environment.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_node_environment.py), verified via pytest.
+All subsystems are covered by automated unit tests in [tests/05_ingestion_network_and_infra/test_node_environment.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/05_ingestion_network_and_infra/test_node_environment.py), verified via pytest.
 
 

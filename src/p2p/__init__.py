@@ -11,6 +11,7 @@ from .bonfire_consensus import (
     BonfireNomadicRing,
     FractalDiscontinuityEmbedding,
     ShamirThresholdSharing,
+    NonEulerShamirTopologySharing,
 )
 from .freenet_ws_client import FreenetClient, RoguePredictorDefense
 from .zk_aggregator import ZKAggregator
@@ -19,6 +20,7 @@ __all__ = [
     'BonfireNomadicRing',
     'FractalDiscontinuityEmbedding',
     'ShamirThresholdSharing',
+    'NonEulerShamirTopologySharing',
     'FreenetClient',
     'RoguePredictorDefense',
     'ZKAggregator',

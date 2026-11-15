@@ -1,5 +1,8 @@
 # Comprehensive Documentation Audit: How the Reasoner Learns to "Speak Human"
 
+> [!NOTE]
+> **Arbitration Note (November 2026)**: The live pipeline now also incorporates `VoynichLinguist.split_sub_pairs` Wordle information-theoretic entropy pruning (`src/core/voynich_architecture.py`), `LazarusSoftmax` (`src/data/knowledge_ingestor.py`), `VanellopeFirstCausativeAgent` prosodic cadence (`src/governance/causative/vanellope_first_causative.py`), and `src/codec/image_extension.py`.
+
 This document synthesizes the audit of **15 core documentation files** to answer the fundamental question: **How does a system that natively computes in CRT soapbubbles, topological solitons, and multi-dimensional polytopes learn to "speak human"?**
 
 ---

@@ -63,7 +63,7 @@ The following files were deleted on January 11, 2026, as part of the **Polynomia
 
 ### 13. Stranded Root Test `src/test_codec_invariants_resumption.py`
 *   **Original Purpose**: Ad-hoc root script for testing non-Abelian commutativity gaps and GL(n) determinants.
-*   **Superseded By**: Relocated to `tests/test_codec_invariants_resumption.py` under the standardized test harness.
+*   **Superseded By**: Relocated to `tests/02_math_physics_topology/test_codec_invariants_resumption.py` under the standardized test harness.
 
 ### 14. Inline Sinkhorn-Knopp Projection (`src/core/polynomial_coprime.py`)
 *   **Original Purpose**: Inline iterative normalization loop for doubly-stochastic matrix balancing.

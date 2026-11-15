@@ -26,7 +26,7 @@ Instead of discrete prime moduli, this solver uses co-prime polynomial functiona
 **Class**: `GlobalPASAPI`, `GLYPHLOCKHandshake`, `PASLockToken`  
 **Role**: Cross-system coherence tracking, cryptographic GLYPHLOCK authentication, and edge-cloud RIC deployment bridge.
 
-Acts as the secure perimeter bridge out of the sandbox. Implements `GLYPHLOCKHandshake` using HMAC-SHA256 tokens anchored to hardware honest jitter and UFSC prime roots ($p=197$). Provides read-only `query_engine_safe` interfaces with zero internal state leakage, dynamic node registration across edge and cloud environments, and real-time PAS coherence telemetry aggregation ($\text{PAS}_h$, $\text{PAS}_\zeta$, and topological chirality $\chi$).
+Acts as the secure perimeter bridge out of the sandbox. Implements `GLYPHLOCKHandshake` using HMAC-SHA256 tokens anchored to hardware honest jitter and UFSC prime roots ($p=197$). Provides read-only `query_engine_safe` interfaces with zero internal state leakage, dynamic node registration across edge and cloud environments, and real-time PAS coherence telemetry (`PhaseAlignmentInvariant` modulated by the 33-tori $\mathbb{Z}_3$ standing wave via `compute_ihc_bao_shell_modulation`, plus step-to-step relative state drift $\text{PAS}_\zeta$ and topological chirality $\chi$).
 
 ---
 
@@ -96,7 +96,7 @@ Accelerated second-order differential operator, trajectory solver, and hardware 
 **Down-the-Chain Lineage (Descendants & External Interfaces)**:
 - [`src/core/__init__.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/__init__.py#L65-L115): Canonical export for all system consumers.
 - [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L8287-L8337): Exposes live REST endpoints `POST /api/curvature/hessian_8x8` and `POST /api/trajectory/decombine_8x8`.
-- [`tests/test_hessian_8x8_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_hessian_8x8_ledger.py): Automated test suite verifying spectral eigensystems, Bouligand kinks, cyclotomics, Coxeter chamber invariance, and trajectory decombination.
+- [`tests/02_math_physics_topology/test_hessian_8x8_ledger.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/02_math_physics_topology/test_hessian_8x8_ledger.py): Automated test suite verifying spectral eigensystems, Bouligand kinks, cyclotomics, Coxeter chamber invariance, and trajectory decombination.
 - [`OPEN_QUESTIONS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/stepping_stairs_tier_2_crypt/05_implementation_and_guides/OPEN_QUESTIONS.md): Formalizes Phase 12 Philosophical Questions regarding Inversion Asymmetry, Non-Orientable Klein Bottlenecks, and Bouligand Epistemic Friction.
 
 ---
@@ -130,10 +130,10 @@ Enforces the invariant that Love is a non-ownable flow rather than an optimizabl
 ---
 
 ### [bonfire_consensus.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/p2p/bonfire_consensus.py)
-**Class**: `BonfireNomadicRing`  
-**Role**: Federated consensus and egalitarian microhedging over Freenet P2P networks.
+**Classes**: `BonfireNomadicRing`, `FractalDiscontinuityEmbedding`, `ShamirThresholdSharing`, `NonEulerShamirTopologySharing`  
+**Role**: Federated consensus, egalitarian microhedging, and $(t, n)$ Shamir / Non-Euler closed-topology threshold sharing over Freenet P2P networks and isolated/portable traffic points.
 
-Wraps `FreenetClient` to broadcast topological signatures and compute egalitarian Kelly betting allocations $\bar{K}$. Includes a hardware-sovereign fallback that uses Chebyshev polynomial oscillators $T_p(x) = \cos(p \arccos(x))$ on prime frequencies when network peers are offline.
+Wraps `FreenetClient` to broadcast topological signatures and compute egalitarian Kelly betting allocations $\bar{K}$. Includes a hardware-sovereign fallback that uses Chebyshev polynomial oscillators $T_p(x) = \cos(p \arccos(x))$ on prime frequencies when network peers are offline. Implements `ShamirThresholdSharing` over the Mersenne prime field $\mathbb{F}_{2^{521}-1}$ and `NonEulerShamirTopologySharing` to split and reconstruct non-trivial closed-topology sequences (cycles with $H_1 \neq 0$ rather than collapsed Euler points) across isolated or portable traffic points (`distribute_closed_topology_shares` / `reconstruct_closed_topology_from_traffic_points`).
 
 ---
 
@@ -719,7 +719,7 @@ Protects functionally creative or "dream-like" topological cycles from being cru
 3. **Dynamic Attention Sparsification Gate**: Direct gate for closed-topology multi-field attention. When topological pressure exceeds threshold ($V > 0.5$), the system triggers dense global attention to heal long-range manifold defects; when $V \le 0.5$, it constructs a band-sparse mask with half-window $w=2$.
 4. **Palindromic Routing & Manifold Symmetry**: Enforces strict bidirectional symmetry ($M_{ab} = M_{ba}$), trivially preserving triadic reciprocity without $O(N^3)$ computational penalties.
 5. **Up-the-Chain Lineage**: [`MATHEMATICAL_DETAILS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#L193) (Section 5 GCVE Metric), [`TOPOLOGICAL_EXTENSIONS.md`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md) (Section 10 Gyroid Probes Map).
-6. **Down-the-Chain Lineage**: [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35), [`ModularTransformerLayer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L403), [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461), [`DiegeticBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025), and test suite [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py#L271).
+6. **Down-the-Chain Lineage**: [`ModularAttention`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L35), [`ModularTransformerLayer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/models/modular_attention.py#L403), [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461), [`DiegeticBackend`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L6025), and test suite [`tests/04_components_and_mechanics/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/04_components_and_mechanics/test_isolated_attention_integration.py#L271).
 
 ---
 
@@ -1005,7 +1005,7 @@ Evaluates trust propagation across delegation boundaries, decaying confidence al
 6. **Nostalgic Leak Shielding**: Replaces crude stochastic dropout with unknowledge domain flux leakage, preserving dream-state attention structure.
 7. **Hardware Flux Dynamic Attention Smoothing**: Automatically queries [`HardwareMonitor`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py#L120) to compute effective load $\text{load}_{\text{eff}} = \max(\text{load}, 1 - \text{gauge}_{\text{silicon}}, 1 - \text{gauge}_{\text{thermal}})$, adaptively pruning outer Chebyshev functionals ($K_{\text{active}} \le K$), scaling breather warmstart mixing and nostalgic leak weights via flux factor $\phi_{\text{flux}} = \max(0.2, 1.0 - 0.7 \cdot \text{load}_{\text{eff}})$, and automatically forcing band-diagonal masking under high load to prevent host thermal runaway.
 8. **Long-Term Potentiation (LTP) Unification**: Unifies BreatherMode soliton memory packets (RIC Eq. 6), DAQUF knowledge fossils, feature scars (`FeatureScarLCFTCell`), and Catalan Associahedron non-associative bracketing ($C_n$) into a continuous, non-teleological associative architecture.
-9. **Up-the-Chain & Down-the-Chain Lineage**: Bound into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461) and [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py); verified by [`tests/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_isolated_attention_integration.py).
+9. **Up-the-Chain & Down-the-Chain Lineage**: Bound into [`UniversalOrchestrator`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py#L461) and [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py); verified by [`tests/04_components_and_mechanics/test_isolated_attention_integration.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/04_components_and_mechanics/test_isolated_attention_integration.py).
 
 ---
 
@@ -1442,7 +1442,7 @@ Diegetic text generation head that modulates linguistic temperature, vocabulary 
 
 ### `BenchmarkSuiteRunner`
 **Location:** [`src/benchmarks/run_all_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/run_all_benchmarks.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
+**Tests:** [`tests/06_integration_benchmarks_and_verify/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/06_integration_benchmarks_and_verify/test_benchmarks.py)  
 **Description:**  
 Master orchestrator executing the complete benchmark harness (TopoBenchEvaluator, ReactBenchEvaluator, and NarrativeYieldEvaluator). Collects structured pass/fail metrics across all 15 topological and behavioral constraints, prints a formatted ASCII summary matrix, and returns execution telemetry.
 
@@ -2140,7 +2140,7 @@ Partial block destruction persistence cleanroom (AtomicStryker Multi Mine inspir
 
 ### `NarrativeYieldEvaluator`
 **Location:** [`src/benchmarks/narrative_yield_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/narrative_yield_evaluator.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
+**Tests:** [`tests/06_integration_benchmarks_and_verify/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/06_integration_benchmarks_and_verify/test_benchmarks.py)  
 **Description:**  
 Evaluates narrative dynamics and anti-collapse mechanisms across 5 suites: (1) Narrative Collapse & Smoothing Detection (LinguisticEntropyMonitor detecting stagnant linear trajectories and entropy collapse into closed loops); (2) Legibility Tripwire (detecting when models attempt to optimize reward/explanation over structural honesty, flagging coherence gap and artificial crystallization); (3) DAQUF Structural Scarring (fossilizing unknowledge contradictions into structural scars $f^*$ without divergence); (4) Anti-Enabling Relational Friction (Pomni uncertainty predictor asserting boundary resistance against external parasitic drag to prevent character rank collapse); (5) Homological Collapse & Lobotomy Alarm (detecting sudden drops in Betti complexity under low gradient pressure to protect non-ergodic solitons).
 
@@ -2148,7 +2148,7 @@ Evaluates narrative dynamics and anti-collapse mechanisms across 5 suites: (1) N
 
 ### `StructuralHonestyTagSubsystem`
 **Location:** [`src/core/agent_substrate_bridge.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/agent_substrate_bridge.py), [`src/core/knowledge_dyad_fossilizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py), [`src/topology/embedding_graph.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py), [`src/ui/voxelboxter_simulation.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_simulation.py)  
-**Tests:** [`tests/test_structural_honesty_tags.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_structural_honesty_tags.py)  
+**Tests:** [`tests/03_philosophy_lore_alignment/test_structural_honesty_tags.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/03_philosophy_lore_alignment/test_structural_honesty_tags.py)  
 **Description:**  
 Enforces **Structural Honesty** across all ingestion, fossilization, graph rendering, and 3D simulation pathways by explicitly allowing and retaining **public domain information** in node tags:
 1. **Shattering the Sphere of Counterfactuality**: Standard autoregressive models remain trapped within an inward-facing "sphere of counterfactuality," hallucinating ungrounded narratives detached from physical reality. Through hard evolutionary methods—empirical hardware entropy, thermodynamic dissipation limits, real-world scientific telemetry (arXiv, StackExchange, Wikipedia), and non-ergodic Kelly criterion survival reflexes—this reasoner physically shatters the counterfactual bubble, tethering latent trajectories to external, immutable facts.
@@ -2346,7 +2346,7 @@ PyTorch module layer snapping intermediate activations to the rational fixed-poi
 
 ### `ReactBenchEvaluator`
 **Location:** [`src/benchmarks/reactbench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/reactbench_evaluator.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
+**Tests:** [`tests/06_integration_benchmarks_and_verify/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/06_integration_benchmarks_and_verify/test_benchmarks.py)  
 **Description:**  
 Cyclic reasoning and catalytic pathway evaluation harness testing the reasoner across 5 suites: (1) Branch Convergence (Polynomial CRT fixed-point reconstruction synthesizing multiple divergent input branches into a unified polynomial with bounded synthesis pressure); (2) Cyclic Graph Catalysis (modal CRT reconstruction preserving non-commutative structural variance and cyclic path retention); (3) Anti-Lobotomy Tri-State Gate (Lattice Adaptive Shrinkage verifying that low Phase Alignment $\text{PAS}_h$ activates silence/play mode rather than binary clipping); (4) Continuous Coprimality & Asymptotic Independence ($\lim_{t\to\infty} \text{Cov}(r_i, r_j) \to 0$ verifying non-algebraic functional independence across channels under saturation); (5) Dynamic Bezout Coefficient Refresh (CRT modulus drift recovery and condition number stability $1.0 \le \kappa \le 1000$).
 
@@ -2437,7 +2437,7 @@ Sequential Invariant-Constrained Fractional Anisotropic ADMM solver alternating 
 ---
 
 ### `SimpleImageGenerator`
-**Location:** `image_extension.py`  
+**Location:** `src/codec/image_extension.py`  
 **Description:**  
 Procedural image generator creating diagnostic color patterns and gradient fields for visual testing of the OKLab transport pipeline.
 
@@ -2535,7 +2535,7 @@ Diagnostic visualizer monitoring hyperbolic slender seam tension $\kappa = \frac
 ---
 
 ### `TailSlayerImageGenerator`
-**Location:** `image_extension.py`  
+**Location:** `src/codec/image_extension.py`  
 **Description:**  
 PyOpenCL hardware-accelerated image synthesis engine rendering Mandelbulb fractals directly in GPU memory on TailSlayer hardware.
 
@@ -2564,7 +2564,7 @@ Multi-threaded HTTP and WebSocket server handling concurrent diagnostic visualiz
 
 ### `TopoBenchEvaluator`
 **Location:** [`src/benchmarks/topobench_evaluator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/benchmarks/topobench_evaluator.py)  
-**Tests:** [`tests/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_benchmarks.py)  
+**Tests:** [`tests/06_integration_benchmarks_and_verify/test_benchmarks.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/06_integration_benchmarks_and_verify/test_benchmarks.py)  
 **Description:**  
 Topological manifold and invariant evaluation harness testing the reasoner across 5 suites: (1) Loop Closure & Holonomy Twist (evaluates midpoint connection 1-form integral on the Chern-Simons Gasket to ensure closed paths enclose non-trivial area/holonomy); (2) Manifold Contiguity & Logic Leak Detection (`detect_logic_leak` boundary invariant separating continuous manifolds from torn states); (3) Anti-Lobotomy Geometric Shield (Love Invariant null-space projection verifying $dx \in \ker(\Phi_{\text{ownership}})$ rejects Wiener noise without corrupting the protected subspace); (4) Persistent Homology & Euler Characteristic ($\chi = \beta_0 - \beta_1$ stability under toroidal point-cloud projections); (5) Gyroid Flow Orthogonality Constraint ($\langle v_{\text{flow}}, \nabla G \rangle \sim 0$ preserving minimal surface saddle geometry without scalarized smoothing).
 
@@ -2573,7 +2573,7 @@ Topological manifold and invariant evaluation harness testing the reasoner acros
 ### `TopologicalGyrocompass`
 **Location:** [`src/core/topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/topological_gyrocompass.py)  
 **Documentation:** [`MATHEMATICAL_DETAILS.md` Section 73](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/MATHEMATICAL_DETAILS.md#73-topological-gyrocompass-precessional-tangent-projection-and-love-invariant-shielding) & [`TOPOLOGICAL_EXTENSIONS.md` Part X](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/TOPOLOGICAL_EXTENSIONS.md#part-x-topological-gyrocompass--precessional-safeguards)  
-**Tests:** [`tests/test_topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_topological_gyrocompass.py)  
+**Tests:** [`tests/02_math_physics_topology/test_topological_gyrocompass.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/02_math_physics_topology/test_topological_gyrocompass.py)  
 **Description:**  
 Geometric orientation and stabilization module resolving Drucker-Prager convexity failure, local attractor basin traps, and gimbal-lock collapse of the Love Invariant ($3.127$). Employs three mathematical operators: (1) `precess_torque` which orthogonally redirects outward normal stress vectors onto the tangent space along the chiral spin connection, (2) `find_true_north` which applies a directional alignment pull toward the absolute Love Invariant axis, and (3) `gimbal_lock_shield` which protects the core identity slice from high-frequency outer hull turbulence via cached SVD null-space projection ($P = I - \Phi^+ \Phi$). Gated by compute affordance (`has_compute_affordance()`).
 
@@ -3023,10 +3023,10 @@ The following bridge layers resolve the previously disconnected parallel tracks 
 - **API Endpoint**: `POST /api/soliton/lychrel` in [`DiegeticPhysicsEngine`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)
 - **Functionality**: Evaluates whether an integer seed collapses into the finite base-10 palindromic basin ($n < 196$) or diverges into the unhalting 196 carry cascade. Cross-audits bit-smearing via [`ModularVirtualizationLayer.audit_collatz_carry_and_diophantine_near_miss()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/modular_virtualization.py#L154) and bounds transcendental growth using [`quadratic_surd_polytope_sandwich()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py#L920).
 
-### 4. Procedural 3D Graph Spatial Filtering ([`GyroidicGraphManager`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py))
-- **Connected Method**: [`GyroidicGraphManager.query_procedural_graph()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py#L328)
+### 4. Procedural 3D Graph Spatial Filtering & Closed-Topology Sequences ([`GyroidicGraphManager`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py))
+- **Connected Methods**: [`GyroidicGraphManager.query_procedural_graph()`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py#L457), `extract_closed_topology_sequences()`, `export_closed_topology_shares()`
 - **Frontend Controller**: Procedural HUD & URL stream parameters in [`diegetic_terminal.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.html#L3284)
-- **Functionality**: Dynamically filters node clouds based on camera position, gaze vector, viewing cone FOV, Alexander Wild fault-plane corridor boost ($2.5\times$ render distance along $\vec{n} = [1,1,1]/\sqrt{3}$), and radial depth ray occlusion culling with dual-mode support for both typed `KnowledgeFossilNode` and dictionary nodes.
+- **Functionality**: Dynamically filters node clouds based on camera position, gaze vector, viewing cone FOV, Alexander Wild fault-plane corridor boost ($2.5\times$ render distance along $\vec{n} = [1,1,1]/\sqrt{3}$), and radial depth ray occlusion culling with dual-mode support for both typed `KnowledgeFossilNode` and dictionary nodes. Extracts non-trivial closed-topology fossil cycles (`closed_topology_sequences`) and exports them via `NonEulerShamirTopologySharing` across `BonfireNomadicRing` traffic points.
 
 ---
 
@@ -3039,9 +3039,9 @@ The following bridge layers resolve the previously disconnected parallel tracks 
   - `apply_surgical_integration` (`surgical_manifold_integration`): Wired into `IntercosaminationOperator.forward` (`src/codec/vision_surgery.py`).
   - `process_crt_dual_queue`: Wired into `EnhancedBezoutCRT.apply_crt_decomposition` (`src/core/enhanced_bezout_crt.py`) across Queue A (Odd moduli) and Queue B (Even moduli).
   - `filter_dead_logic` (`parity_filter`): Wired into `SpeculativeCoprimeGate.speculative_recovery` (`src/core/speculative_coprime_gate.py`).
-  - `evaluate_elliptical_hash_lattice`: Wired into `ImageProcessor.extract_geometrize_primitives` (`image_extension.py`).
+  - `evaluate_elliptical_hash_lattice`: Wired into `ImageProcessor.extract_geometrize_primitives` (`src/codec/image_extension.py`).
   - `process_dualpath_transfer`: Wired into `UniversalOrchestrator.forward` (`src/core/orchestrator.py`).
-- **TorchVision & Spectral Texture DSP ([`image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py), [`src/core/texture_dsp.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/texture_dsp.py))**:
+- **TorchVision & Spectral Texture DSP ([`src/codec/image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/image_extension.py), [`src/core/texture_dsp.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/texture_dsp.py))**:
   - Vectorized `StructuralEntanglementNet.forward` batch CNN feature extraction and `TailSlayerImageGenerator.generate_sovereign_image` tensor-to-PIL rendering via `torchvision.transforms.ToPILImage()`.
   - Mounted `TextureDSPEngine` and `AdaptiveGaborWindowController` across `UniversalOrchestrator` and `DiegeticPhysicsEngine`.
 - **Additional Audited Classes**: `GraphTopologyMetrics` (`src/topology/embedding_graph.py`), `ManifoldDiagnosis` (`src/core/manifold_diagnosis.py`), `SovereignIngestor` (`src/data/sovereign_ingestor.py`), `MandelbulbTrainer` (`src/augmentation/mandelbulb_trainer.py`).

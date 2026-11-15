@@ -16,7 +16,7 @@ This implicitly stores the voxel data in a spatially-local fractal (the Z-curve)
 The `Conjugate Color` specification outlines a mathematically rigorous way to handle images as probability measures (clouds of points) over the `OKLab` color space. This perfectly complements our new `FeatureScarLCFTCell` and KAGH systems. 
 
 **Where does it belong?**
-This logic should be integrated directly into `image_extension.py` (as a `ConjugateColorTransport` module) and `src/ui/diegetic_visualizer.py` to drive the "breathing" and coloring of the reasoning output.
+This logic should be integrated directly into `src/codec/image_extension.py` (as a `ConjugateColorTransport` module) and `src/ui/diegetic_visualizer.py` to drive the "breathing" and coloring of the reasoning output.
 
 **The Mechanics:**
 1. **OKLab Whitening:** Convert raw RGB to OKLab space, then shift it to a zero-mean, unit-variance point cloud. This prevents "Euclidean flatlining" of colors.

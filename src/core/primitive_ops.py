@@ -63,16 +63,37 @@ class FixedPointField(nn.Module):
     def from_float(x: torch.Tensor) -> 'FixedPointField':
         return FixedPointField(x)
 
+    @staticmethod
+    def from_adaptive_float(x: torch.Tensor, target_bits: int = 24) -> 'FixedPointField':
+        """
+        Quantize float tensor with an adaptive power-of-2 scale so macro-scale
+        (>3e4) and micro-scale (<1e-5) measurement standards avoid Q16.16 saturation
+        or underflow.
+        """
+        max_abs = float(x.detach().abs().max().item()) if x.numel() > 0 else 1.0
+        max_abs = max(max_abs, 1e-12)
+        import math
+        exp = math.floor(math.log2((1 << target_bits) / max_abs))
+        adaptive_scale = float(2.0 ** max(-32, min(48, exp)))
+        return FixedPointField(x, scale=adaptive_scale)
+
     def add(self, other: 'FixedPointField') -> 'FixedPointField':
-        """Deterministic addition."""
-        res_data = self.backing_store + other.backing_store
+        """Deterministic addition (rescaling `other` if scales differ)."""
+        if self.scale == other.scale:
+            res_data = self.backing_store + other.backing_store
+        else:
+            other_aligned = ((other.backing_store.double() * float(self.scale)) / float(other.scale)).round().to(torch.int64)
+            res_data = self.backing_store + other_aligned
         return FixedPointField(res_data, self.scale)
     
     def mul(self, other: 'FixedPointField') -> 'FixedPointField':
-        """Deterministic multiplication with rescaling."""
-        # (x * scale) * (y * scale) = (xy) * scale^2
-        # Need to divide by scale to get back to Q format
-        res_data = (self.backing_store * other.backing_store) // SCALE_INT
+        """Deterministic multiplication with scale-consistent rescaling."""
+        if self.scale == other.scale:
+            scale_div = max(1, int(round(self.scale)))
+            res_data = (self.backing_store * other.backing_store) // scale_div
+        else:
+            other_div = max(1, int(round(other.scale)))
+            res_data = (self.backing_store * other.backing_store) // other_div
         return FixedPointField(res_data, self.scale)
 
 

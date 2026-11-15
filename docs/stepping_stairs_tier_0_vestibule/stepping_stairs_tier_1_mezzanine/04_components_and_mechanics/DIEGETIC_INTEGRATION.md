@@ -175,10 +175,10 @@ To verify that the complete ingestion $\to$ `split_sub_pairs` $\to$ archetypes $
 
 ```bash
 # 1. Run integration tests for the unified Diegetic engine bridge
-.venv\scripts\python.exe -m pytest tests/test_diegetic_integration.py -v
+.venv\scripts\python.exe -m pytest tests/06_integration_benchmarks_and_verify/test_diegetic_integration.py -v
 
 # 2. Run recurrent FGRT and hardware sovereignty cell tests
-.venv\scripts\python.exe -m pytest tests/test_fgrt_rnn_cells.py -v
+.venv\scripts\python.exe -m pytest tests/04_components_and_mechanics/test_fgrt_rnn_cells.py -v
 
 # 3. Launch the unified hybrid backend in sovereign mode
 .venv\scripts\python.exe hybrid_backend.py

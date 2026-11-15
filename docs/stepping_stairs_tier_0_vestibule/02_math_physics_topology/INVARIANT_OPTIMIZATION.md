@@ -57,6 +57,7 @@ $$
 
 *   If drift $> \zeta$: The step is rejected or clamped.
 *   **Role**: Defines the "Speed of Thought" limit, preventing catastrophic forgetting or hallucination chains.
+*   **Cross-System `GlobalPASAPI` Drift & 33-Tori $\mathbb{Z}_3$ Modulation**: [`src/core/global_pas_api.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/global_pas_api.py) evaluates real step-to-step `pas_zeta` (`0.5 * rel_delta + 0.5 * pas_delta`, bounded below by hardware honest-jitter so $\text{PAS}_\zeta \neq 0$) and modulates `PhaseAlignmentInvariant` with `compute_ihc_bao_shell_modulation` (33-tori $\mathbb{Z}_3$ standing wave).
 
 ---
 

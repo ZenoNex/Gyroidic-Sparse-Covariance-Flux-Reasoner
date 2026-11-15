@@ -30,7 +30,7 @@ are the exact equations that physically generate the voxel terrain, simulate veh
 When external signals (3D meshes, audio streams, text documents, or video frames) enter the system through `UniversalTopologyConverter`, `IVSTEncoder`, or `SovereignIngestor`, the objective is **Topological Distillation**:
 
 1. **Decoupling Surface Expression from Structural Topology**:
-   - Visual and acoustic media pass through Hann-windowed frame energy evaluations across the canonical orthogonal polynomial spectrum (Chebyshev $T_k$, Legendre $P_k$, Hermite $He_k$, Laguerre $L_k$, and localized Cox-de Boor B-splines via [`image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py) and [`src/ui/diegetic_visualizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_visualizer.py)).
+   - Visual and acoustic media pass through Hann-windowed frame energy evaluations across the canonical orthogonal polynomial spectrum (Chebyshev $T_k$, Legendre $P_k$, Hermite $He_k$, Laguerre $L_k$, and localized Cox-de Boor B-splines via [`src/codec/image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/image_extension.py) and [`src/ui/diegetic_visualizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_visualizer.py)).
    - Raw pixels, protected Euclidean coordinates, and audio samples are discarded.
    - The engine retains only a 96-coefficient visual fingerprint (32 modes across L/Cr/Cb channels), a 64-coefficient audio harmonic vector, or a compact 16-bin Chromata homotopy filament / Geometrize mass tensor.
    - High-frequency coefficients capture spectral texture density and invariant geometry rather than copyrightable surface expression.
@@ -502,7 +502,7 @@ $$m \ge 2\dim_H(F) + \textstyle\sum_j \omega_j, \qquad \dim_H(F) = 2 + (D_0 - 2)
 2. **Path Tangent Stencils**: When embeddings form sequential trajectories $[B, T, 3]$, path velocity tangents $\mathbf{v}_t = \frac{x_{t+1} - x_{t-1}}{2}$ evaluate directional flow along player/entity trajectories.
 3. **Hamiltonian Skew-Symmetric Stencils**: For coordinate clouds in $\mathbb{R}^3$, the Gyroid implicit surface functional $G(x,y,z)$ is evaluated across displaced axial coordinates $x \pm \delta \mathbf{e}_i$, constructing the Hamiltonian flow $\mathbf{v} = J \nabla G = (-\partial_y G, \partial_x G - \partial_z G, \partial_y G)^T$. Because $J = -J^T$, this guarantees $\langle \mathbf{v}, \nabla G \rangle \equiv 0$ on the manifold while regularizing boundary magnitude via $s(\|\mathbf{v}\|)$.
 
-Tests: [test_fractal_lhopital_voxelboxter.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/test_fractal_lhopital_voxelboxter.py).
+Tests: [test_fractal_lhopital_voxelboxter.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/tests/04_components_and_mechanics/test_fractal_lhopital_voxelboxter.py).
 
 ---
 

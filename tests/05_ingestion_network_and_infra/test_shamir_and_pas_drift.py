@@ -80,3 +80,69 @@ def test_global_pas_real_drift_and_z3_modulation():
     assert tok3.aura_out is False
     assert handshake.verify(tok3) is False
 
+    # GlobalPASAPI.track_coherence must also track non-zero PAS_zeta and JSON-serializable records
+    from src.core.global_pas_api import GlobalPASAPI
+    api = GlobalPASAPI()
+    rec1 = api.track_coherence("edge_1", base_state)
+    assert rec1["pas_zeta"] > 0.0
+    rec2 = api.track_coherence("edge_1", large_drift_state)
+    assert rec2["pas_zeta"] > 0.05
+    assert rec2["is_coherent"] is False
+
+
+def test_non_euler_shamir_and_procedural_closed_topology_sequences():
+    import tempfile
+    from src.p2p import NonEulerShamirTopologySharing
+    from src.topology.embedding_graph import GyroidicGraphManager, KnowledgeFossilNode
+
+    # Reject collapsed/trivial Euler point loop
+    non_euler = NonEulerShamirTopologySharing()
+    with pytest.raises(ValueError):
+        non_euler.split_closed_topology_sequence([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]])
+
+    # Build a 3-node procedural fossil cycle (non-trivial closed triangle)
+    mgr = GyroidicGraphManager(data_dir=tempfile.gettempdir(), dim=16)
+    shared = torch.ones(16)
+    coords = [(0.0, 0.0, 0.0), (20.0, 0.0, 0.0), (10.0, 20.0, 0.0)]
+    for i, (x, y, z) in enumerate(coords):
+        node = KnowledgeFossilNode(
+            node_id=f"cyc_{i}",
+            state=shared + 0.01 * i,
+            text=f"Cycle node {i}",
+            metrics={"chiral_score": 0.1, "spectral_entropy": 0.5, "tags": ["cycle_test"]},
+        )
+        node.x, node.y, node.z = x, y, z
+        mgr.nodes.append(node)
+
+    proc = mgr.query_procedural_graph(camera_pos=(10.0, 5.0, 150.0), gaze_dir=(0.0, 0.0, -1.0), fov_deg=90.0)
+    assert proc["procedural_stats"]["closed_topology_count"] >= 1
+    assert len(proc["closed_topology_sequences"]) >= 1
+    assert proc["closed_topology_sequences"][0]["closed"] is True
+
+    # Export closed-topology sequence via BonfireNomadicRing Non-Euler Shamir (2, 3) shares
+    mock_freenet = MagicMock()
+    ring = BonfireNomadicRing(freenet_client=mock_freenet)
+    traffic_points = ["isolated_room_x", "portable_vault_y", "freenet_peer_z"]
+    exported = mgr.export_closed_topology_shares(
+        bonfire_ring=ring,
+        local_peer_id="node_local",
+        traffic_points=traffic_points,
+        threshold=2,
+        camera_pos=(10.0, 5.0, 150.0),
+        gaze_dir=(0.0, 0.0, -1.0),
+        fov_deg=90.0,
+    )
+    assert len(exported) >= 1
+    assert exported[0]["structural_algebra_attestation"]["idea_expression_dichotomy_compliant"] is True
+    assert exported[0]["structural_algebra_attestation"]["non_invertible_puncture_ratio"] >= 0.3
+    topo_id = exported[0]["topology_id"]
+    pkts = exported[0]["packets"]
+    # Simulate 1 traffic point offline; reconstruct from packets 0 and 2
+    ring._handle_shamir_share_update(pkts[0])
+    ring._handle_shamir_share_update(pkts[2])
+    rec = ring.reconstruct_closed_topology_from_traffic_points(topo_id)
+    assert rec["closure"]["is_nontrivial"] is True
+    assert rec["selective_puncture_applied"] is True
+    assert rec["non_invertible_puncture_ratio"] >= 0.3
+    assert len(rec["coords"]) == 3
+

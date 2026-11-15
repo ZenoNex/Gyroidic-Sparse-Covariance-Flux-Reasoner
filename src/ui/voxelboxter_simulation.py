@@ -2223,7 +2223,7 @@ class PointerlessOctree:
         evaluates convex potential W(x) over K Gaussian mixture valleys, and
         displaces color along x + kappa * grad(W)(x) coupled to PrimeResonanceLadder.
         """
-        from image_extension import ConjugateColorTransport
+        from src.codec.image_extension import ConjugateColorTransport
         transport = ConjugateColorTransport()
         return transport.transport_colors(rgb_tensor, kappa=kappa, prime_ladder=prime_ladder)
 

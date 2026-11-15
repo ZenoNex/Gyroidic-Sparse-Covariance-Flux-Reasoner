@@ -25,6 +25,8 @@ This document serves as the formal bridge between the theoretical architecture o
   - **AURA_OUT Gating** (`auraout_gating`): Simulates warp-level predication. It calculates `PAS_h` based on polynomial harmonics, and suppresses (sets to zero) any tensor that fails the coherence threshold.
   - **TEMPOLOCK** (`tempolock`): Temporal prime gating. Uses a Legendre polynomial-based sieve instead of strict primes to organically gate operations across temporal intervals.222(`chordlock`): Phase resonance gating that gates structural solitons by their harmonic alignment.
 - `src/core/gluing_operator.py` and `src/core/archetype_engines.py`: Contains explicit scalar logic for `pas_lock = 3.0 / 11.0`, defining the topological tolerance bounds for resonance.
+- `src/core/global_pas_api.py`: `GLYPHLOCKHandshake` and `GlobalPASAPI` compute real `PAS_h` via `PhaseAlignmentInvariant` modulated by the 33-tori $\mathbb{Z}_3$ standing wave (`compute_ihc_bao_shell_modulation`) and real step-to-step `PAS_zeta` drift (with irreducible `harvest_honest_jitter` baseline, replacing earlier static `0.02` / `0.86` clamps).
+- `src/p2p/bonfire_consensus.py`: `ShamirThresholdSharing` over the Mersenne prime field $\mathbb{F}_{2^{521}-1}$ and `BonfireNomadicRing.distribute_threshold_shares` / `reconstruct_from_traffic_points` enable $(t, n)$ threshold secret recovery across isolated or portable traffic points (Freenet peers, Option-D flashdrive vaults, isolated substrate rooms).
 
 ## Phases VI & VII: Deterministic Closure (Sections 49-54)
 ### The Harmonic-Differential Bridge and The Listening Point

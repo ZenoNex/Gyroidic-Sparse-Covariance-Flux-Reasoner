@@ -2,7 +2,10 @@
 
 **Author**: Comprehensive Analysis of Gyroidic Sparse Covariance Flux Reasoner Documentation  
 **Date**: February 2026  
-**Status**: Archaeological Recovery & Advanced Extension Synthesis
+**Status**: Archaeological Recovery & Advanced Extension Synthesis (Moved from root to `02_math_physics_topology/`)
+
+> [!NOTE]
+> **Arbitration Status (November 2026)**: Several formalisms originally proposed here as unimplemented extensions are now implemented in `src/`: `MetaPolytopeMatrioshka` (`src/core/meta_polytope_matrioshka.py`), `SparseHigherOrderTensor` (`src/topology/`), `Polychoron600Cell` (`src/core/polychoron_600_cell.py`), `MinimaxPolynomialApproximation` (`src/core/chebyshev_minimax.py`), and `NonCommutativityCurvature` (`src/core/noncommutativity_curvature.py`). See [`MODULE_INVENTORY.md`](../01_architecture_core/MODULE_INVENTORY.md) for current bindings.
 
 This document presents advanced mathematical extensions and implementations that are **NOT explicitly endorsed** in the current exchange but are mathematically sound, computationally feasible, and tensor-shape-transition-coding sound based on comprehensive analysis of all documentation.
 

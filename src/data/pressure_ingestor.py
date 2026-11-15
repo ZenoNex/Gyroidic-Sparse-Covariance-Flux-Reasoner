@@ -703,20 +703,39 @@ result = verify()
         self,
         probe_tensor: torch.Tensor,
         background_manifold: torch.Tensor,
-        structural_wobble_limit: float = 0.075
+        structural_wobble_limit: float = 0.075,
+        probe_scale: float = 1.0,
+        probe_offset: float = 0.0,
+        background_scale: float = 1.0,
+        background_offset: float = 0.0,
+        dimensionless_zscore: bool = False,
     ) -> Dict[str, Any]:
         """
         Normalizes ingested physical telemetry against a Background Reference Manifold
-        (ambient instrument gain drift subtraction) and enforces the Epistemic Resolution
-        Check (Wobble-to-Noise Veto).
+        (with affine unit alignment and optional dimensionless z-scoring) and enforces
+        the Epistemic Resolution Check (Wobble-to-Noise Veto).
         """
-        diff = probe_tensor.float() - background_manifold.float().to(probe_tensor.device)
+        p_scale = probe_scale if abs(float(probe_scale)) > 1e-12 else 1.0
+        b_scale = background_scale if abs(float(background_scale)) > 1e-12 else 1.0
+        p_std = (probe_tensor.float() - float(probe_offset)) / float(p_scale)
+        bg_std = (background_manifold.float().to(p_std.device) - float(background_offset)) / float(b_scale)
+        if bg_std.shape != p_std.shape:
+            bg_std = bg_std.flatten()[:p_std.numel()]
+            if bg_std.numel() < p_std.numel():
+                bg_fill = float(bg_std.mean().item()) if bg_std.numel() > 0 else 0.0
+                bg_std = torch.nn.functional.pad(bg_std, (0, p_std.numel() - bg_std.numel()), value=bg_fill)
+            bg_std = bg_std.reshape(p_std.shape)
+        diff = p_std - bg_std
+        if dimensionless_zscore and bg_std.numel() > 1:
+            bg_sigma = float(torch.std(bg_std).item())
+            if bg_sigma > 1e-8:
+                diff = diff / bg_sigma
         sigma_probe = float(torch.std(diff).item()) if diff.numel() > 1 else 0.0
         signal_amp = float(torch.abs(diff.mean()).item())
         vetoed = sigma_probe > max(signal_amp, structural_wobble_limit)
         return {
             "normalized_pressure": torch.full_like(diff, float('nan')) if vetoed else diff,
-            "instrument_drift_removed": float(background_manifold.float().mean().item()),
+            "instrument_drift_removed": float(bg_std.mean().item()),
             "measurement_sigma": sigma_probe,
             "structural_wobble_limit": structural_wobble_limit,
             "epistemic_refusal_nan": bool(vetoed)

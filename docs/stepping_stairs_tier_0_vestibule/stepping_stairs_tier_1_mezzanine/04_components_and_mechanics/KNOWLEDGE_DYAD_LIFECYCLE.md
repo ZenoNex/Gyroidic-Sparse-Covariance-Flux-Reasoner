@@ -39,7 +39,7 @@ Image file (PNG, JPEG, WebP, ...)
 
 ### 2.1 The Multi-Basis Polynomial Spectrum
 
-Moving beyond single-basis representations, [`image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/image_extension.py) and [`src/ui/diegetic_visualizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_visualizer.py) provide multi-basis polynomial decomposition across canonical orthogonal families:
+Moving beyond single-basis representations, [`src/codec/image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/image_extension.py) and [`src/ui/diegetic_visualizer.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_visualizer.py) provide multi-basis polynomial decomposition across canonical orthogonal families:
 
 - **Chebyshev ($T_n$)**: Weight $w(x) = (1 - x^2)^{-1/2}$. Minimax equiripple error distribution across the frequency band. Optimal for perceptual hashing and edge-preserving texture frequency analysis.
 - **Legendre ($P_n$)**: Weight $w(x) = 1$. Flat $L^2$ uniform energy weighting. Unlike Chebyshev, which clusters evaluation nodes near boundary points ($\pm 1$), Legendre weights interior visual density equally, making it ideal for interior mass and volumetric contrast.
@@ -85,7 +85,7 @@ Rather than storing raster matrices or volumetric voxel cubes (which suffer from
 
 ```python
 # Ingestion via canonical ImageProcessor or direct visualizer extraction
-from image_extension import ImageProcessor
+from src.codec.image_extension import ImageProcessor
 from src.codec.vision_utilities import project_multimodal_fingerprint_to_96
 
 proc = ImageProcessor(device='cpu')
@@ -332,7 +332,8 @@ To inspect, explore, and navigate the expanding manifold of fossilized Knowledge
 ### 13.1 Idea-Expression Dichotomy & Transformative Fair Use in P2P Export
 When `DyadFossilizer.export_agent_smith()` packages fossilized dyads into a `soliton_smith.pt` payload for P2P broadcast over [`BonfireNomadicRing`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_network.py), it enforces the **Idea-Expression Dichotomy** (`17 U.S.C. Section 102(b)`), **Transformative Fair Use** (*Bartz v. Anthropic*, *Kadrey v. Meta*), and **Non-Memorization** principles:
 - Raw Euclidean meshes, pixel arrays, audio waveforms, and verbatim text strings (`text_description`, `raw_text`, `audio_bytes`, `image_bytes`) are permanently stripped.
-- Only compressed structural algebra—Poincaré hyperbolic coordinates, CRT residue tuples, Betti topological invariants ($\beta_0, \beta_1$), and prime-resonance ladder frequencies—is serialized and verified via `AgentSubstrateBridge.sanitize_and_verify_non_memorization`.
+- Only compressed structural algebra—Poincaré hyperbolic coordinates, CRT residue tuples, Betti topological invariants ($\beta_0, \beta_1$), Meliponini selectively punctured coordinates (`KnowledgeDyadFossilizer.apply_selective_puncture`, `~0.3333` non-invertible puncture ratio), and prime-resonance ladder frequencies—is serialized and verified via `AgentSubstrateBridge.sanitize_and_verify_non_memorization`.
+- Procedural fossil subgraphs exported via [`GyroidicGraphManager.export_closed_topology_shares`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py) follow the same selective-puncture and `AgentSubstrateBridge` non-memorization contract before distribution via `NonEulerShamirTopologySharing` over $\mathbb{F}_{M_{521}}$.
 
 ### 13.2 Vanellope Prosodic Cadence & Morphological Voice Dyads
 Acoustic and conversational dyads are further enriched by [`VanellopeFirstCausativeAgent`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py), which transmutes the `VANELLOPE Voice Trainer` subword trigram/bigram/skip-gram morphology (`encode_vanellope_morphology`), contrastive quadratic attention (`contrastive_quadratic_attention`), and hesitation/pause-cue prosody (`extract_prosodic_hesitation_cadence`) while projecting her causal impulse into the orthogonal complement of the ambient universe state ($\mathbf{c}_{\perp} \perp \mathbf{u}_{\text{universe}}$).

@@ -1074,7 +1074,7 @@ class HybridAI:
 
         # Attach TailSlayerImageGenerator (torchvision + PyOpenCL matrix_mix_breeding)
         try:
-            from image_extension import TailSlayerImageGenerator
+            from src.codec.image_extension import TailSlayerImageGenerator
             sov_engine = getattr(self.engine, 'sovereignty_engine', None) if self.engine else None
             self.tail_slayer_image_gen = getattr(self.engine, 'tail_slayer_image_gen', None) or TailSlayerImageGenerator(engine=sov_engine)
         except Exception:

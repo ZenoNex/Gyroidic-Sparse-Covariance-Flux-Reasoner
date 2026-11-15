@@ -99,6 +99,27 @@ def test_branch2_differential_telemetry_and_wobble_veto():
     )
     assert arb["wobble_veto_triggered"] is True
     assert arb["target_ontology"] == "TOPOLOGICAL_REFUSAL_NAN"
+    assert arb["unit_standard"] == "mbbl"
+
+    # Cross-standard alignment: Celsius vs Kelvin (offset 273.15, scale 1.0) + dimensionless_zscore
+    t_celsius = torch.tensor([25.0, 25.1, 24.9, 25.0])
+    bg_kelvin = torch.tensor([298.15, 298.20])
+    aligned = si.normalize_differential_telemetry(
+        t_celsius,
+        bg_kelvin,
+        structural_wobble_threshold=0.5,
+        background_offset=273.15,
+        dimensionless_zscore=False,
+    )
+    assert abs(aligned["differential_signal_mean"]) < 0.2
+    assert aligned["wobble_to_noise_veto"] is False
+
+    # Adaptive fixed-point scale for macro/micro measurement standards
+    from src.core.primitive_ops import FixedPointField
+    macro_fp = FixedPointField.from_adaptive_float(torch.tensor([1e6, -2e6]))
+    assert torch.allclose(macro_fp.forward(), torch.tensor([1e6, -2e6]), rtol=1e-4)
+    prod_fp = macro_fp.mul(FixedPointField.from_float(torch.tensor([2.0, 2.0])))
+    assert torch.allclose(prod_fp.forward(), torch.tensor([2e6, -4e6]), rtol=1e-3)
 
 
 def test_branch3_prime_stride_ufsc_sieve():

@@ -1,5 +1,8 @@
 # ResonanceLarynx Integration Summary
 
+> [!NOTE]
+> **Arbitration Note (November 2026)**: `ResonanceLarynx` is now also integrated with `LazarusSoftmax` (`src/data/knowledge_ingestor.py`), `probe_compute_feelers()` gating, `AutoeclecticResponderHead`, and `BackgroundLarynxCoherenceTrainer` (`src/ui/diegetic_backend.py`).
+
 ## [OK] Integration Verification Complete
 
 The ResonanceLarynx (synthetic larynx) has been successfully verified to be connected to all appropriate systems and is functioning correctly with code affordances.

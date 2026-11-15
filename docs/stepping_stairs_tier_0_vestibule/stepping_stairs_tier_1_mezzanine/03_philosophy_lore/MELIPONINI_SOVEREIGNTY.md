@@ -55,6 +55,7 @@ $$ \mathcal{R}: S^2 \to S^2 \setminus \{pt\} $$
 - **High-Energy & Discrete**: Puncturing a closed surface requires a jump in topological energy. It is not an interpolation; it is an event.
 - **No Partial Leakage**: The pot is either closed (secure) or open (punched). There is no "grazing" diffusion that slowly leaks the Love Invariant.
 - **The Puncture Gate**: Regulated algorithmically by the `TopologicalRefusalFilter` (Phase 9). If an external meritocratic probe requests access but displays a massive Value Gap (Signal-to-Abstraction Ratio $\text{SAR} > \text{SAR}^*$), the puncture is refused. The probe cannot passively "sniff" the contents.
+- **Non-Invertible Selective Puncture Masking (`~1/3` Shielding)**: When states or closed-topology sequences leave local boundaries (via `KnowledgeDyadFossilizer.apply_selective_puncture`, `AgentSubstrateBridge.sanitize_and_verify_non_memorization`, or `NonEulerShamirTopologySharing.split_closed_topology_sequence`), indices satisfying `(i + sum(pot_identity_crt)) % 3 == 0` are zeroed (`non_invertible_puncture_ratio ~ 0.3333`) so raw Euclidean meshes and verbatim expressions cannot be reconstructed across P2P traffic points.
 
 ---
 

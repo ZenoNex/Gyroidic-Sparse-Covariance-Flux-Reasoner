@@ -20,7 +20,7 @@ graph TD
     end
 
     subgraph Stabilization["Numerical Stabilization Layer"]
-        FP["FixedPointField (int64 bit-exact scale S = 2^16)"]
+        FP["FixedPointField (int64 scale S = 2^16 or adaptive power-of-2)"]
         Q["Int16 Quantization: (clamp(-3e4, 3e4) * 100).short()"]
         SALT["Persistent Salt Buffer: _hash_salt (state_dict registered)"]
         HJ --> FP
@@ -139,13 +139,17 @@ Before returning telemetry, embeddings, or metrics to external UI consumers or d
 2. Tensors: Elementwise non-finite values are zeroed while preserving exact shape and dtype.
 3. Booleans: Internal control flows must use continuous numeric metrics (`closure_score`, `margin`), projecting to boolean truth values only at the machine boundary display.
 
+### Verification & Threshold Persistence (`ShamirThresholdSharing` / `GlobalPASAPI`)
+- **Mersenne-Prime $(t, n)$ Threshold Sharing**: Cross-node state recovery in [`ShamirThresholdSharing`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py) and `NonEulerShamirTopologySharing` operates over the exact integer prime field $\mathbb{F}_{M_{521}}$ ($M_{521} = 2^{521} - 1$), avoiding floating-point Lagrange drift while enforcing Meliponini selective puncture (`~0.3333` masked coordinates) prior to P2P distribution.
+- **Irreducible `PAS_zeta` Drift Floor**: In [`GlobalPASAPI`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/global_pas_api.py), step-to-step `PAS_zeta` is measured from actual state transitions (`0.5 * rel_delta + 0.5 * pas_delta`) with a non-zero hardware-jitter floor ($\text{PAS}_\zeta \neq 0$ per CODES v40).
+
 ---
 
 ## 7. Verification Checklist
 
 1. **State Persistence Test**:
    ```powershell
-   .venv\scripts\python.exe -m pytest tests/test_deepinfer_biomimetic_rehybridizations.py
+   .venv\scripts\python.exe -m pytest tests/04_components_and_mechanics/test_deepinfer_biomimetic_rehybridizations.py
    ```
 2. **Deterministic Hash Invariance**:
    Verify that repeated calls to `HeritableTrustVault._hash` produce identical slot indices for identical residue tensors.
