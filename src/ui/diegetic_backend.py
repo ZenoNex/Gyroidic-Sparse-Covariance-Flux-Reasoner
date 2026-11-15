@@ -8586,79 +8586,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
             elif base_path == '/api/mindmap-data':
                 try:
-                    mindmap_tree = {
-                        "name": "Gyroidic Reasoner",
-                        "category": "Core Manifold",
-                        "details": "Non-Abelian minimal surface reasoning engine",
-                        "children": []
-                    }
-                    
-                    # 1. Resonance Cavity
-                    pas_val = getattr(ENGINE, 'last_pas', 0.2727) if ENGINE else 0.2727
-                    mindmap_tree["children"].append({
-                        "name": "Resonance Cavity",
-                        "category": "Spectral Physics",
-                        "details": f"Global resonance field. Active PAS: {pas_val:.4f}",
-                        "children": [
-                            {"name": "GlobalResonanceField", "category": "Substrate", "details": "Continuous resonance cavity"},
-                            {"name": "PhaseAlignment (PAS)", "category": "Metric", "details": "pas_lock = 3/11 target"},
-                            {"name": "LazarusSoftmax", "category": "Dissociative", "details": "Survives ego death via spectral projection"}
-                        ]
-                    })
-                    
-                    # 2. Knowledge Dyads
-                    dyad_children = [
-                        {"name": "Chebyshev Multibasis", "category": "Spectral", "details": "Orthogonal polynomial bases"},
-                        {"name": "Chromata Filaments", "category": "Flow", "details": "Continuous gradient vector field tracing"},
-                        {"name": "DyadFossilizer", "category": "Persistence", "details": "Poincaré disk fossil storage"}
-                    ]
-                    if ENGINE and hasattr(ENGINE, 'fossilizer') and ENGINE.fossilizer is not None:
-                        count = getattr(ENGINE.fossilizer, 'fossil_count', 0)
-                        dyad_children.append({"name": f"Active Fossils ({count})", "category": "Fossils", "details": f"{count} registered topological fossils"})
-                    mindmap_tree["children"].append({
-                        "name": "Knowledge Dyads (DAQUF)",
-                        "category": "Multimodal Anchors",
-                        "details": "Multimodal visual/acoustic and linguistic anchors",
-                        "children": dyad_children
-                    })
-                    
-                    # 3. Hardware & Silicon Sovereignty
-                    mindmap_tree["children"].append({
-                        "name": "Silicon Sovereignty (TailSlayer)",
-                        "category": "Hardware Layer",
-                        "details": "PyOpenCL dual-queue execution and honest jitter",
-                        "children": [
-                            {"name": "TailSlayer Queue A/B", "category": "PyOpenCL", "details": "First-to-finish non-commutative race"},
-                            {"name": "Hardware Jitter", "category": "Entropy", "details": "Silicon friction time-stall harvest"},
-                            {"name": "Compute Affordance", "category": "Governor", "details": "Silicon, thermal, and GPU typed gauges"}
-                        ]
-                    })
-                    
-                    # 4. Governance & Archetypes
-                    mindmap_tree["children"].append({
-                        "name": "Governance & Archetypes",
-                        "category": "TADC Subsystems",
-                        "details": "Four-tier cognitive governance framework",
-                        "children": [
-                            {"name": "Pomni (Interoception)", "category": "Uncertainty", "details": "Noradrenaline broadcasts"},
-                            {"name": "Gangle (Medium)", "category": "Oscillator", "details": "Bipolar mood phase transition"},
-                            {"name": "Zooble (Ultrafast)", "category": "Autonomy", "details": "Fast-reflex cognitive gating"},
-                            {"name": "Kinger (Slow)", "category": "Consolidation", "details": "Ombre sleep memory consolidation"}
-                        ]
-                    })
-                    
-                    # 5. Thermodynamics & Ledger
-                    mindmap_tree["children"].append({
-                        "name": "Carnot-Möbius Thermodynamics",
-                        "category": "Energy Balance",
-                        "details": "P_waste vs P_cool_max thermodynamic ledger",
-                        "children": [
-                            {"name": "CarnotMobiusLedger", "category": "Ledger", "details": "Thermal headroom monitor"},
-                            {"name": "ADMR Solver", "category": "Lubrication", "details": "Multiplicative remainder phase alignment"},
-                            {"name": "Parallel Sorting Entropy", "category": "Information", "details": "Gauge field circulation & Euler stiffness"}
-                        ]
-                    })
-                    
+                    mindmap_tree = build_live_mindmap_tree(ENGINE)
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')
@@ -8667,6 +8595,22 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     return
                 except Exception as e:
                     self.send_error(500, f"Error generating mindmap data: {e}")
+                    return
+
+            elif base_path == '/api/mindmap-expand':
+                try:
+                    qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                    node_name = (qs.get('node', [''])[0] or '').strip()
+                    category = (qs.get('category', [''])[0] or '').strip()
+                    subtree = build_live_mindmap_expansion(ENGINE, node_name=node_name, category=category)
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(subtree).encode('utf-8'))
+                    return
+                except Exception as e:
+                    self.send_error(500, f"Error expanding mindmap node: {e}")
                     return
             elif base_path.startswith('/api/bonfire/status') or base_path.startswith('/api/freenet/status'):
                 try:
@@ -10841,6 +10785,199 @@ def main():
             GovernanceManager.stop_searxng()
         except Exception:
             pass
+
+def build_live_mindmap_tree(engine: Optional[Any] = None, max_fossils: int = 12) -> Dict[str, Any]:
+    """
+    Build the live DaemonAton radial mind-map tree from the active engine:
+    streams Poincaré fossils from graph_manager/fossilizer, live archetype balances,
+    and HardwareMonitor compute affordance gauges.
+    """
+    pas_val = float(getattr(engine, 'last_pas', 0.2727)) if engine is not None else 0.2727
+
+    # 1. Live Poincaré Fossils
+    fossil_children: List[Dict[str, Any]] = []
+    gm = getattr(engine, 'graph_manager', None) if engine is not None else None
+    if gm is not None and getattr(gm, 'nodes', None):
+        for n in list(gm.nodes)[-max_fossils:]:
+            nid = getattr(n, 'node_id', None) or (n.get('node_id') if isinstance(n, dict) else 'fossil')
+            label = getattr(n, 'text', None) or (n.get('text') if isinstance(n, dict) else '') or str(nid)
+            chiral = getattr(n, 'chiral_score', 0.0) if not isinstance(n, dict) else n.get('chiral_score', 0.0)
+            pdt = getattr(n, 'public_domain_tags', []) if not isinstance(n, dict) else n.get('public_domain_tags', [])
+            px = getattr(n, 'px', 0.0) if not isinstance(n, dict) else n.get('px', 0.0)
+            py = getattr(n, 'py', 0.0) if not isinstance(n, dict) else n.get('py', 0.0)
+            px_f = float(px) if px is not None else 0.0
+            py_f = float(py) if py is not None else 0.0
+            fossil_children.append({
+                "name": str(label)[:42] or str(nid),
+                "category": "Poincaré Fossil",
+                "details": f"id={nid} | poincare=({px_f:.3f}, {py_f:.3f}) | chiral={float(chiral or 0.0):.3f} | tags={pdt[:4]}",
+                "node_id": str(nid),
+            })
+
+    fossilizer = getattr(engine, 'fossilizer', None) if engine is not None else None
+    fossil_count = len(getattr(fossilizer, 'fossil_bed', [])) if fossilizer is not None else len(fossil_children)
+    if not fossil_children:
+        fossil_children = [
+            {"name": "Chebyshev Multibasis", "category": "Spectral", "details": "Orthogonal polynomial bases"},
+            {"name": "Chromata Filaments", "category": "Flow", "details": "Continuous gradient vector field tracing"},
+            {"name": "DyadFossilizer", "category": "Persistence", "details": f"Poincaré disk storage ({fossil_count} bed entries)"},
+        ]
+
+    # 2. Live Compute Affordance Gauges
+    affordance_children: List[Dict[str, Any]] = []
+    try:
+        from src.core.hardware_monitor import HardwareMonitor
+        hm = HardwareMonitor.get_instance()
+        feelers = hm.probe_compute_feelers()
+        affordance_children = [
+            {
+                "name": f"Thermal Gauge ({feelers.get('local_thermal_gauge', 1.0):.2f})",
+                "category": "Compute Affordance",
+                "details": f"thermal_spike={feelers.get('thermal_spike_detected', False)} | t_rfc_stall={feelers.get('t_rfc_stall_detected', False)}",
+            },
+            {
+                "name": f"Diegetic Gauge ({feelers.get('diegetic_gauge', 1.0):.2f})",
+                "category": "Compute Affordance",
+                "details": f"memory_pressure={feelers.get('memory_pressure_detected', False)} | render_dist={feelers.get('recommended_procedural_render_dist', 450.0)}",
+            },
+        ]
+    except Exception:
+        affordance_children = [
+            {"name": "TailSlayer Queue A/B", "category": "PyOpenCL", "details": "First-to-finish non-commutative race"},
+            {"name": "Hardware Jitter", "category": "Entropy", "details": "Silicon friction time-stall harvest"},
+        ]
+
+    # 3. Live Archetype Balances
+    archetype_children: List[Dict[str, Any]] = []
+    orch = getattr(engine, 'orchestrator', None) if engine is not None else None
+    gov = getattr(orch, 'bio_governor', None) if orch is not None else getattr(engine, 'bio_governor', None)
+    bus = getattr(gov, 'neuromodulatory_bus', None) if gov is not None else None
+    if bus is not None and hasattr(bus, 'get_levels'):
+        try:
+            levels = bus.get_levels()
+            for k, v in list(levels.items())[:7]:
+                archetype_children.append({
+                    "name": f"{k}: {float(v):.3f}",
+                    "category": "Archetype Balance",
+                    "details": f"Live neuromodulatory balance for {k}",
+                })
+        except Exception:
+            pass
+    if not archetype_children:
+        archetype_children = [
+            {"name": "Pomni (Interoception)", "category": "Uncertainty", "details": "Noradrenaline broadcasts"},
+            {"name": "Gangle (Medium)", "category": "Oscillator", "details": "Bipolar mood phase transition"},
+            {"name": "Zooble (Ultrafast)", "category": "Autonomy", "details": "Fast-reflex cognitive gating"},
+            {"name": "Kinger (Slow)", "category": "Consolidation", "details": "Ombre sleep memory consolidation"},
+        ]
+
+    # 4. Thermodynamics & Carnot-Mobius Ledger
+    carnot = getattr(engine, 'carnot_ledger', None) if engine is not None else None
+    carnot_detail = "P_waste vs P_cool_max thermodynamic ledger"
+    if carnot is not None:
+        xi_val = getattr(carnot, 'xi_shear', 0.1)
+        carnot_detail = f"CarnotMobiusLedger active (xi_shear={float(xi_val):.3f})"
+
+    return {
+        "name": "Gyroidic Reasoner",
+        "category": "Core Manifold",
+        "details": f"Non-Abelian minimal surface engine | PAS={pas_val:.4f} | Fossils={fossil_count}",
+        "children": [
+            {
+                "name": f"Resonance Cavity (PAS {pas_val:.3f})",
+                "category": "Spectral Physics",
+                "details": f"Global resonance field. Active PAS: {pas_val:.4f} (lock target 3/11)",
+                "children": [
+                    {"name": "GlobalResonanceField", "category": "Substrate", "details": "Continuous resonance cavity"},
+                    {"name": "PhaseAlignment (PAS)", "category": "Metric", "details": f"Current PAS={pas_val:.4f} | pas_lock=3/11"},
+                    {"name": "LazarusSoftmax", "category": "Dissociative", "details": "Survives ego death via spectral projection"},
+                ],
+            },
+            {
+                "name": f"Knowledge Dyads ({len(fossil_children)} live)",
+                "category": "Poincaré Fossils",
+                "details": f"Live Poincaré fossils from DyadFossilizer / GyroidicGraphManager (bed={fossil_count})",
+                "children": fossil_children,
+            },
+            {
+                "name": "Silicon Sovereignty (TailSlayer)",
+                "category": "Hardware Layer",
+                "details": "PyOpenCL dual-queue execution, honest jitter, and live compute affordances",
+                "children": affordance_children,
+            },
+            {
+                "name": "Governance & Archetypes",
+                "category": "TADC Subsystems",
+                "details": "Live neuromodulatory & bio-archetypal balance",
+                "children": archetype_children,
+            },
+            {
+                "name": "Carnot-Möbius Thermodynamics",
+                "category": "Energy Balance",
+                "details": carnot_detail,
+                "children": [
+                    {"name": "CarnotMobiusLedger", "category": "Ledger", "details": carnot_detail},
+                    {"name": "ADMR Solver", "category": "Lubrication", "details": "Multiplicative remainder phase alignment"},
+                    {"name": "Closed Topology Sequences", "category": "Homology", "details": "Non-Euler Shamir (t, n) cycle shares"},
+                ],
+            },
+        ],
+    }
+
+
+def build_live_mindmap_expansion(engine: Optional[Any], node_name: str, category: str = "") -> Dict[str, Any]:
+    """
+    DaemonAton-style generative node expansion: given a clicked node name,
+    queries matching live Poincaré fossils, tags, and closed-topology cycles
+    to produce an expandable child sub-tree.
+    """
+    query_lc = (node_name or "Gyroidic").lower()
+    children: List[Dict[str, Any]] = []
+    gm = getattr(engine, 'graph_manager', None) if engine is not None else None
+    if gm is not None and getattr(gm, 'nodes', None):
+        for n in list(gm.nodes):
+            nid = str(getattr(n, 'node_id', '') or '')
+            txt = str(getattr(n, 'text', '') or '')
+            pdt = list(getattr(n, 'public_domain_tags', []) or [])
+            tags = list(getattr(n, 'tags', []) or [])
+            haystack = f"{nid} {txt} {' '.join(pdt)} {' '.join(tags)}".lower()
+            if any(tok in haystack for tok in query_lc.split()[:3]) or len(children) < 4:
+                children.append({
+                    "name": (txt[:38] or nid),
+                    "category": "Fossil Resonance",
+                    "details": f"id={nid} | tags={pdt[:4] or tags[:4]}",
+                    "node_id": nid,
+                })
+            if len(children) >= 8:
+                break
+
+        # Include closed-topology sequence neighbors if available
+        if hasattr(gm, 'query_procedural_graph'):
+            try:
+                proc = gm.query_procedural_graph(max_nodes=40)
+                for seq in proc.get("closed_topology_sequences", [])[:3]:
+                    children.append({
+                        "name": f"Cycle ({seq['cycle_len']} nodes)",
+                        "category": "Closed Topology",
+                        "details": f"nodes={seq['node_ids']} | perimeter={seq['perimeter']}",
+                    })
+            except Exception:
+                pass
+
+    if not children:
+        children = [
+            {"name": f"{node_name} :: CRT Residue", "category": "Structural Probe", "details": "Modular co-prime residue projection"},
+            {"name": f"{node_name} :: Betti-1 Cycle", "category": "Homology", "details": "Non-trivial closed hyper-ring H_1 != 0"},
+            {"name": f"{node_name} :: Selective Puncture", "category": "Meliponini", "details": "~1/3 non-invertible dimensional shield"},
+        ]
+
+    return {
+        "name": node_name or "Manifold Subtree",
+        "category": category or "Expanded Manifold",
+        "details": f"Live generative expansion for '{node_name}'",
+        "children": children,
+    }
+
 
 if __name__ == '__main__':
     main()

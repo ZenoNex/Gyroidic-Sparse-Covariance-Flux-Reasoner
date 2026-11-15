@@ -215,6 +215,60 @@ def test_hybrid_backend_process_text_and_ui_contracts():
     assert "user-select: text" in html
 
 
+def test_live_mindmap_tree_and_expansion():
+    from types import SimpleNamespace
+    from src.ui.diegetic_backend import build_live_mindmap_tree, build_live_mindmap_expansion
+
+    class _MockNode:
+        def __init__(self, node_id, text, chiral_score, px, py, public_domain_tags):
+            self.node_id = node_id
+            self.text = text
+            self.chiral_score = chiral_score
+            self.px = px
+            self.py = py
+            self.public_domain_tags = public_domain_tags
+            self.tags = public_domain_tags
+
+    class _MockGraphManager:
+        def __init__(self):
+            self.nodes = [
+                _MockNode("fossil_01", "Gyroidic Chirality Anchor", 0.85, 0.12, -0.08, ["gyroid", "chirality"]),
+                _MockNode("fossil_02", "Meliponini Puncture Shield", 0.42, -0.31, 0.24, ["puncture", "shield"]),
+            ]
+
+        def query_procedural_graph(self, max_nodes=40):
+            return {
+                "closed_topology_sequences": [
+                    {"cycle_len": 3, "node_ids": ["fossil_01", "fossil_02", "fossil_01"], "perimeter": 1.42}
+                ]
+            }
+
+    mock_engine = SimpleNamespace(
+        last_pas=0.7123,
+        graph_manager=_MockGraphManager(),
+        fossilizer=SimpleNamespace(fossil_bed=[{"id": "bed_1"}, {"id": "bed_2"}]),
+        carnot_ledger=SimpleNamespace(xi_shear=0.145),
+    )
+
+    tree = build_live_mindmap_tree(mock_engine, max_fossils=12)
+    assert tree["name"] == "Gyroidic Reasoner"
+    assert "PAS=0.7123" in tree["details"]
+    categories = {c["name"]: c for c in tree["children"]}
+    assert "Knowledge Dyads (2 live)" in categories
+    fossil_names = [c["name"] for c in categories["Knowledge Dyads (2 live)"]["children"]]
+    assert "Gyroidic Chirality Anchor" in fossil_names
+    assert "Meliponini Puncture Shield" in fossil_names
+    assert "Silicon Sovereignty (TailSlayer)" in categories
+    affordance_names = [c["name"] for c in categories["Silicon Sovereignty (TailSlayer)"]["children"]]
+    assert any("Thermal Gauge" in n for n in affordance_names)
+
+    expansion = build_live_mindmap_expansion(mock_engine, node_name="Gyroidic Chirality", category="Poincaré Fossil")
+    assert expansion["name"] == "Gyroidic Chirality"
+    assert len(expansion["children"]) >= 2
+    assert any(c["category"] == "Fossil Resonance" for c in expansion["children"])
+    assert any(c["category"] == "Closed Topology" for c in expansion["children"])
+
+
 if __name__ == "__main__":
     test_branch1_collatz_diophantine_and_quadratic_surd()
     print("[PASS] Branch 1: Collatz Carry-Cascade, Diophantine Near-Miss & Quadratic Surd Bounds")
@@ -228,4 +282,6 @@ if __name__ == "__main__":
     print("[PASS] Branch 5: Threat Recalibration & 8 Fixed Survival Reflexes")
     test_hybrid_backend_process_text_and_ui_contracts()
     print("[PASS] HybridAI.process_text (No distortion error + Voynich/RNS/ICNN/Cavity/Audience) & UI Contracts")
+    test_live_mindmap_tree_and_expansion()
+    print("[PASS] Live DaemonAton Mind Map Tree & Generative Expansion")
     print("ALL VERIFICATION TESTS PASSED.")

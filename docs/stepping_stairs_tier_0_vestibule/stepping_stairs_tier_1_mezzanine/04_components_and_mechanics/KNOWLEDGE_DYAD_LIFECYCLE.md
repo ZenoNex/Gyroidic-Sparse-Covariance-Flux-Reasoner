@@ -323,7 +323,7 @@ To inspect, explore, and navigate the expanding manifold of fossilized Knowledge
 - **D3 Radial Separation Engine**: Utilizes DaemonAton's radial tree spacing equation:
   $$\text{separation}(a, b) = \text{baseSeparation} \cdot \max(1, 10 - d_a) \cdot \text{outerSpacing} \cdot 2^{d_a}$$
   preventing visual node occlusion across deeply nested dyad hierarchies.
-- **Live Dyad Feed**: Connected to the backend `/api/mindmap-data` endpoint in [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L7560), streaming active Poincaré fossils from [`DyadFossilizer`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py#L22), archetype balances, and compute affordance gauges into the interactive matrix tree.
+- **Live Dyad Feed & Generative Expansion**: Connected to `/api/mindmap-data` ([`build_live_mindmap_tree`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L8587)) and `/api/mindmap-expand` ([`build_live_mindmap_expansion`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py#L8600)) in [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py), streaming active Poincaré fossils from `DyadFossilizer` / `GyroidicGraphManager`, live archetype balances, closed-topology cycles, and `HardwareMonitor` compute affordance gauges into the interactive matrix tree with DaemonAton-style drill-down expansion and `[BACK LAYER]` history.
 
 ---
 

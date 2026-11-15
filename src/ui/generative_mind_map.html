@@ -227,6 +227,7 @@
             </div>
         </div>
         <div class="controls">
+            <button id="btn-back" style="display:none;" title="Return to previous layer">[BACK LAYER]</button>
             <button id="btn-refresh" title="Reload live topology from backend">[REFRESH TOPO]</button>
             <button id="btn-reset-zoom" title="Reset View">[RESET ZOOM]</button>
             <a href="/" class="btn" title="Back to Diegetic Terminal">[TERMINAL]</a>
@@ -390,6 +391,9 @@
                 .text(d => d.data.name);
         }
 
+        const layerHistory = [];
+        let currentTreeData = null;
+
         function inspectNode(d) {
             const panel = document.getElementById("inspector-panel");
             const title = document.getElementById("inspect-title");
@@ -421,20 +425,63 @@
                 `;
             }
 
+            html += `
+                <div style="margin-top: 0.75rem;">
+                    <button id="btn-expand-node" style="width:100%;">[EXPAND / DRILL DOWN]</button>
+                </div>
+            `;
+
             content.innerHTML = html;
+            document.getElementById("btn-expand-node").addEventListener("click", () => expandNodeLayer(d.data));
         }
 
+        async function expandNodeLayer(nodeData) {
+            try {
+                const params = new URLSearchParams({
+                    node: nodeData.name || '',
+                    category: nodeData.category || '',
+                });
+                const response = await fetch(`/api/mindmap-expand?${params.toString()}`);
+                if (response.ok) {
+                    const expanded = await response.json();
+                    if (currentTreeData) {
+                        layerHistory.push(currentTreeData);
+                        document.getElementById("btn-back").style.display = "inline-block";
+                    }
+                    currentTreeData = expanded;
+                    renderMindMap(expanded);
+                }
+            } catch (e) {
+                console.log("[MINDMAP] Node expansion failed:", e);
+            }
+        }
+
+        document.getElementById("btn-back").addEventListener("click", () => {
+            if (layerHistory.length > 0) {
+                const prev = layerHistory.pop();
+                currentTreeData = prev;
+                renderMindMap(prev);
+                if (layerHistory.length === 0) {
+                    document.getElementById("btn-back").style.display = "none";
+                }
+            }
+        });
+
         async function fetchLiveTopology() {
+            layerHistory.length = 0;
+            document.getElementById("btn-back").style.display = "none";
             try {
                 const response = await fetch('/api/mindmap-data');
                 if (response.ok) {
                     const liveData = await response.json();
+                    currentTreeData = liveData;
                     renderMindMap(liveData);
                     return;
                 }
             } catch (e) {
                 console.log("[MINDMAP] Backend API unreachable, rendering canonical manifold topology.");
             }
+            currentTreeData = defaultTopology;
             renderMindMap(defaultTopology);
         }
 
