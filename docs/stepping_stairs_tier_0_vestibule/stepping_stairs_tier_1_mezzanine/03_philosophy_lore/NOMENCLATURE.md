@@ -106,6 +106,7 @@ The project rejects the "Optimization as Learning" metaphor in favor of **"Syste
 - **Orthogonal Initialization**: Bootstrapping via QR decomposition to ensure initial transversality (co-primality) of the functional basis.
 - **Hybrid Quantization**: The "Inter-Domain Contract" mechanism where continuous physical weights are snapped to **Saturated Levels** (via Straight-Through Estimator) to interface with the discrete symbolic regime.
 - **Fixed Structural Grid**: An immutable topological reference frame (e.g., for B-splines) that prevents "Teleological Leakage" by forbidding grid parameters from adapting to the data.
+- **Structural Memory vs. Flat Memoization**: The architecture is **not** opposed to memorization in all capacities—topological memory (fossilized `KnowledgeDyad`s, `MemoryPalace` cerumen pots, `ResonanceCavity` breather modes, `HeritableTrustVault`, and public-domain/structural-honesty tags) is foundational. What it opposes is **flat memoization**: caching raw scalar lookup tables or unpunctured/verbatim expressive text and Euclidean meshes for literal regurgitation without topological deformation, structural scarring, or Idea-Expression Dichotomy filtering at choice export boundaries (`AgentSubstrateBridge`).
 
 ### 9. Voynich Linguistics & Morphological Substrates
 - **Agglutinative Morpho-Unit**: Dense continuous symbolic lexical compound ($s \in \Sigma^*$) whose internal grammar is preserved via sub-pair polynomial residue phase alignment rather than BPE tokenization.
