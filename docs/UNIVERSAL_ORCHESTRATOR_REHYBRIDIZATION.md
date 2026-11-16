@@ -969,6 +969,20 @@ In [`src/core/birkhoff_projection.py`](file:///d:/programming/python/Gyroidic%20
    * **Frontend Timeout & Superseded-Abort Guard**: Updated [`src/ui/diegetic_terminal.html`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_terminal.html) to raise the graph fetch timeout from `8000` ms to `25000` ms, tag superseded overlapping aborts as `'SUPERSEDED'` so rapid procedural re-triggers do not emit `[FIELD LOAD NOTICE]: TIMEOUT`, and render `RETRY PROCEDURAL` when procedural mode is already active.
    * **Core-Orphaned Bridges**: Wired `ConformalLogPolarProjector` (`src/codec/conformal_log_polar.py`), `CainePrecisionGenerator` (`src/environment/caine_precision.py`), `create_mandelbulb_pipeline` (`src/augmentation/mandelbulb_pipeline.py`), `get_stable_hardware_fingerprint` (`src/safety/hardware_fingerprint.py`), `LocalDataLoader` (`src/data/local_data_loader.py`), `WebPPromptExtractor` (`src/data/webp_prompt_extractor.py`), and `TabbyClient` (`src/integrations/tabby_client.py`) into `UniversalOrchestrator.__init__`.
 
+---
+
+### Rehybridization Vector III: Closed-Form $O(N^2)$ Birkhoff Projection, Union-Find Percolation Graph & Remaining Island Bridges (November 2026)
+
+1. **Closed-Form $O(N^2)$ Direct Birkhoff Projection (`src/core/birkhoff_projection.py`)**:
+   * Replaced the `n > 32` iterative Sinkhorn-Knopp fallback in `DirectBirkhoffProjection` and `ObscuredBirkhoffManifold` with the exact closed-form $O(N^2)$ orthogonal projection onto the Birkhoff affine subspace $\{T : T\mathbf{1} = \mathbf{1},\; \mathbf{1}^\top T = \mathbf{1}^\top\}$, eliminating `Birkhoff dimension 256 too large for direct projection` fallbacks without $O(N^4)$ memory materialization.
+2. **Union-Find Percolation Graph & Unbounded Procedural Void Streaming (`src/topology/embedding_graph.py`, `src/ui/diegetic_terminal.html`, `hybrid_backend.py`)**:
+   * Unified `get_adjacency_list` and `get_adjacency_list_for_nodes` via `_build_edges_from_sim_matrix` using vectorized per-node `top_k_per_node` selection and Union-Find `PERCOLATION_BRIDGE` stitching (`PERCOLATION_2D_SQUARE`), preventing severed islands in both Default and Procedural modes.
+   * Added `manifold_centroid` and `nearest_anchor` telemetry to `query_procedural_graph`, unbounded camera exploration with non-wiping silent procedural streaming, and direct `/graph` handling in `hybrid_backend.py`.
+3. **Orchestrator & Training Bridges**:
+   * Wired `BettiRouter`, `HomologyPressure`, `BouligandWillmoreGasket`, `ChiralDriftStabilizer`, `SparsePCE`, `AgentContainmentInvariants`, `ConjugateColorTransport`, `RoguePredictorDefense`, `CALMCollapseDetector`, `GENIUSOperator`, `AdaptiveFractalPartitioner`, `BouligandMohrCoulombProjection`, and `StructuralEntanglementNet` into `UniversalOrchestrator.__init__` (`src/core/orchestrator.py`).
+   * Wired `GyroidicConstraintProjector`, `SparseCovariantOptimizer`, and `TopologicalPressureMonitor` into `TrainingManager.__init__` (`src/training/training_manager.py`).
+   * Replaced raw `torch.softmax` in 6 `ResonanceLarynx` autoregressive decoding loops (`knowledge_ingestor.py`, `economic_news_linker.py`, `open_science_ingestor.py`, `sovereign_ingestor.py`, `diegetic_backend.py`) with `LazarusSoftmax`.
+
 
 
 

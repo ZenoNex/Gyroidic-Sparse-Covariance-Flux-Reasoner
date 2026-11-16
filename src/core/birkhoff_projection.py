@@ -89,11 +89,10 @@ class DirectBirkhoffProjection(nn.Module):
         self.temperature = temperature
         self.stability_metric: float = 1.0
         
-        # Complexity Gate:
-        # N <= 32: Direct O(1) projection matrix
-        # N > 32: Iterative Fallback Protocol (Sinkhorn-Knopp)
+        # Complexity Gate (Closed-form O(N^2) Birkhoff affine projection for N > 32):
+        # Avoids O(N^4) projection matrix memory bottleneck AND avoids iterative fallback.
         if self.n > 32:
-            self.use_iterative = True
+            self.use_iterative = False
             self.register_buffer('P', torch.empty(0, device=device))
             self.register_buffer('p_offset', torch.empty(0, device=device))
         else:
@@ -145,8 +144,9 @@ class DirectBirkhoffProjection(nn.Module):
         T: [batch, n, n] or [batch, n*n] or [n, n]
         """
         orig_shape = T.shape
-        if getattr(self, 'use_iterative', False) or self.n > 32:
-            # Iterative Fallback Protocol (Sinkhorn-Knopp) for high dimensions N > 32
+        if self.n > 32:
+            # Closed-form O(N^2) orthogonal projection onto the Birkhoff affine subspace
+            # {T : T 1 = 1, 1^T T = 1^T} without O(N^4) matrix materialization or iterative fallback.
             if T.dim() == 2 and T.shape == (self.n, self.n):
                 T_3d = T.unsqueeze(0)
             elif T.dim() == 2 and T.shape[-1] == self.n * self.n:
@@ -158,21 +158,13 @@ class DirectBirkhoffProjection(nn.Module):
             else:
                 T_3d = T.view(-1, self.n, self.n)
 
-            # Log-domain Sinkhorn-Knopp for numerical stability
-            temp = max(0.01, float(self.temperature))
-            log_T = T_3d / temp
-            for _ in range(self.max_iterations):
-                log_T = log_T - torch.logsumexp(log_T, dim=-1, keepdim=True)
-                log_T = log_T - torch.logsumexp(log_T, dim=-2, keepdim=True)
-            T_ds = torch.exp(log_T)
-
-            # Stability-Aware Fossilization Metric:
-            row_err = (T_ds.sum(dim=-1) - 1.0).abs().max()
-            col_err = (T_ds.sum(dim=-2) - 1.0).abs().max()
-            max_dev = torch.max(row_err, col_err).item()
-            self.stability_metric = float(max(0.0, min(1.0, 1.0 - max_dev)))
-
-            return T_ds.view(orig_shape)
+            inv_n = 1.0 / float(self.n)
+            row_mean = T_3d.mean(dim=-1, keepdim=True)
+            col_mean = T_3d.mean(dim=-2, keepdim=True)
+            grand_mean = T_3d.mean(dim=(-2, -1), keepdim=True)
+            T_proj = T_3d + (inv_n - row_mean) + (inv_n - col_mean) + (grand_mean - inv_n)
+            self.stability_metric = 1.0
+            return T_proj.view(orig_shape)
 
         batch_size = orig_shape[0] if len(orig_shape) > 1 else 1
         T_vec = T.view(batch_size, -1)
@@ -207,19 +199,11 @@ class ObscuredBirkhoffManifold(nn.Module):
         self.register_buffer('o', torch.zeros(n, device=device))
         self.max_iterations = max_iterations
         
-        # Unicorn Synthesis: Use Direct Projection only for small dimensions to avoid OOM
-        # A 256x256 matrix requires a 65536x65536 projection matrix (16GB).
-        if n <= 32:
-            with _BIRKHOFF_CACHE_LOCK:
-                if n not in _BIRKHOFF_PROJECTOR_CACHE:
-                    _BIRKHOFF_PROJECTOR_CACHE[n] = DirectBirkhoffProjection(n, device=device).to(DEVICE)
-                self.direct_projector = _BIRKHOFF_PROJECTOR_CACHE[n]
-        else:
-            self.direct_projector = None
-            with _BIRKHOFF_CACHE_LOCK:
-                if n not in _BIRKHOFF_WARNED_DIMENSIONS:
-                    _BIRKHOFF_WARNED_DIMENSIONS.add(n)
-                    print(f" [CONFIG] Birkhoff dimension {n} too large for direct projection. Using iterative fallback.")
+        # Closed-form O(N^2) DirectBirkhoffProjection works for all dimensions without OOM.
+        with _BIRKHOFF_CACHE_LOCK:
+            if n not in _BIRKHOFF_PROJECTOR_CACHE:
+                _BIRKHOFF_PROJECTOR_CACHE[n] = DirectBirkhoffProjection(n, device=device).to(DEVICE)
+            self.direct_projector = _BIRKHOFF_PROJECTOR_CACHE[n]
     
     def update_obscurity_from_state(self, state: torch.Tensor):
         """Update delta_o based on proximity to obstruction center o."""

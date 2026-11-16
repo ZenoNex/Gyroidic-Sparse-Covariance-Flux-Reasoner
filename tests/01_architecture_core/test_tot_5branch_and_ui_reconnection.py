@@ -269,6 +269,117 @@ def test_live_mindmap_tree_and_expansion():
     assert any(c["category"] == "Closed Topology" for c in expansion["children"])
 
 
+def test_procedural_void_homing_and_centroid_contract():
+    from src.topology.embedding_graph import GyroidicGraphManager
+
+    gm = GyroidicGraphManager()
+    gm.nodes = [
+        {"node_id": "n1", "text": "Anchor One", "x": 10.0, "y": 20.0, "z": 30.0},
+        {"node_id": "n2", "text": "Anchor Two", "x": 30.0, "y": 40.0, "z": 50.0},
+    ]
+    # Query from far away in the procedural void
+    res = gm.query_procedural_graph(
+        camera_pos=(5000.0, 5000.0, 5000.0),
+        gaze_dir=(0.0, 0.0, 1.0),
+        render_distance=800.0,
+    )
+    assert res["procedural"] is True
+    assert res["nodes"] == []
+    assert res["manifold_centroid"] == [20.0, 30.0, 40.0]
+    assert res["nearest_anchor"] is not None
+    assert res["nearest_anchor"]["id"] == "n2"
+
+    term_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'diegetic_terminal.html')
+    with open(term_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert "btn-graph-home" in html
+    assert "hud-void-beacon" in html
+    assert "homeGraphCamera" in html
+    assert "installSpatialReferenceFrame" in html
+
+
+def test_graph_connectivity_no_severed_islands():
+    import torch
+    from src.topology.embedding_graph import GyroidicGraphManager, KnowledgeFossilNode
+
+    gm = GyroidicGraphManager(dim=8)
+    # Two orthogonal clusters (cosine sim = 0.0 < PHI_RECIPROCAL) plus one isolated node
+    s_a1 = torch.tensor([1.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    s_a2 = torch.tensor([0.9, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    s_b1 = torch.tensor([0.0, 0.0, 1.0, 0.1, 0.0, 0.0, 0.0, 0.0])
+    s_b2 = torch.tensor([0.0, 0.0, 0.9, 0.2, 0.0, 0.0, 0.0, 0.0])
+    s_c1 = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5])
+    gm.nodes = [
+        KnowledgeFossilNode("a1", s_a1, "A1", {}),
+        KnowledgeFossilNode("a2", s_a2, "A2", {}),
+        KnowledgeFossilNode("b1", s_b1, "B1", {}),
+        KnowledgeFossilNode("b2", s_b2, "B2", {}),
+        KnowledgeFossilNode("c1", s_c1, "C1", {}),
+    ]
+
+    def _is_single_component(node_ids, edges):
+        adj = {nid: set() for nid in node_ids}
+        for e in edges:
+            adj[e["source"]].add(e["target"])
+            adj[e["target"]].add(e["source"])
+        visited = set()
+        stack = [node_ids[0]]
+        while stack:
+            cur = stack.pop()
+            if cur in visited:
+                continue
+            visited.add(cur)
+            stack.extend(adj[cur] - visited)
+        return len(visited) == len(node_ids)
+
+    ids = [n.node_id for n in gm.nodes]
+    edges_default = gm.get_adjacency_list(top_k_per_node=6, max_edges=100)
+    assert _is_single_component(ids, edges_default), f"Default mode fragmented: {edges_default}"
+
+    edges_proc = gm.get_adjacency_list_for_nodes(gm.nodes, top_k_per_node=6, max_edges=100)
+    assert _is_single_component(ids, edges_proc), f"Procedural mode fragmented: {edges_proc}"
+
+
+def test_birkhoff_direct_256_and_orchestrator_bridges():
+    import torch
+    from src.core.birkhoff_projection import DirectBirkhoffProjection, ObscuredBirkhoffManifold
+    from src.core.orchestrator import UniversalOrchestrator
+
+    proj = DirectBirkhoffProjection(256)
+    assert proj.use_iterative is False
+    T = torch.randn(1, 256, 256)
+    out = proj(T)
+    assert out.shape == (1, 256, 256)
+    assert torch.allclose(out.sum(dim=-1), torch.ones(1, 256), atol=1e-4)
+    assert torch.allclose(out.sum(dim=-2), torch.ones(1, 256), atol=1e-4)
+
+    obs = ObscuredBirkhoffManifold(256)
+    assert obs.direct_projector is not None
+
+    orch = UniversalOrchestrator(dim=16)
+    for attr in [
+        "betti_router",
+        "homology_pressure",
+        "willmore_gasket",
+        "chiral_drift_stabilizer",
+        "sparse_pce",
+        "containment_invariants",
+        "conjugate_color_transport",
+        "rogue_predictor_defense",
+        "calm_collapse_detector",
+        "genius_operator",
+        "fractal_partitioner",
+        "bouligand_mc_projection",
+        "structural_entanglement_net",
+    ]:
+        assert hasattr(orch, attr), f"Missing wired attribute: {attr}"
+
+    from src.training.training_manager import TrainingManager
+    tm = TrainingManager(ai_system=None)
+    for attr in ["gyroid_projector", "sparse_covariant_optimizer", "topological_pressure_monitor"]:
+        assert hasattr(tm, attr), f"Missing TrainingManager attribute: {attr}"
+
+
 if __name__ == "__main__":
     test_branch1_collatz_diophantine_and_quadratic_surd()
     print("[PASS] Branch 1: Collatz Carry-Cascade, Diophantine Near-Miss & Quadratic Surd Bounds")

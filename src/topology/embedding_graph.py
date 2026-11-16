@@ -394,7 +394,152 @@ class GyroidicGraphManager:
             n.x, n.y, n.z = x, y, z
             n.px, n.py = px, py
 
-    def get_adjacency_list_for_nodes(self, target_nodes: List[Any], top_k_per_node: int = 6, max_edges: int = 1500) -> List[Dict[str, Any]]:
+    def _build_edges_from_sim_matrix(
+        self,
+        target_nodes: List[Any],
+        sim_matrix: torch.Tensor,
+        top_k_per_node: int = 6,
+        max_edges: int = 4000,
+        include_lcft_boost: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Shared vectorized edge builder for both global and procedural graphs.
+        1. Selects per-node top-K neighbors above edge_threshold BEFORE global capping
+           so dense clusters cannot starve outer nodes.
+        2. Bridges any isolated nodes AND disconnected components via Union-Find
+           sub-percolation tethers (PERCOLATION_2D_SQUARE = 0.592746).
+        """
+        num_nodes = len(target_nodes)
+        if num_nodes < 2:
+            return []
+
+        node_ids = [
+            str(getattr(n, "node_id", None) or (n.get("node_id") if isinstance(n, dict) else None) or i)
+            for i, n in enumerate(target_nodes)
+        ]
+
+        # Vectorized per-node top-K selection above edge_threshold (prevents dense cluster starvation)
+        k_sel = min(max(1, top_k_per_node) if top_k_per_node > 0 else num_nodes - 1, num_nodes - 1)
+        masked_sim = sim_matrix.clone()
+        masked_sim.fill_diagonal_(-2.0)
+        masked_sim = torch.where(masked_sim > self.edge_threshold, masked_sim, torch.full_like(masked_sim, -2.0))
+        top_vals, top_idx = torch.topk(masked_sim, k=k_sel, dim=1)
+
+        candidate_pairs = set()
+        for i in range(num_nodes):
+            for col in range(k_sel):
+                if top_vals[i, col].item() > self.edge_threshold:
+                    j = int(top_idx[i, col].item())
+                    a, b = (i, j) if i < j else (j, i)
+                    candidate_pairs.add((a, b))
+
+        def _compute_edge(i: int, j: int, force_type: Optional[str] = None, min_weight: float = 0.0) -> Dict[str, Any]:
+            sim = float(sim_matrix[i, j].item())
+            c_i = getattr(target_nodes[i], "chiral_score", 0.0)
+            c_j = getattr(target_nodes[j], "chiral_score", 0.0)
+            if isinstance(c_i, torch.Tensor): c_i = c_i.item()
+            if isinstance(c_j, torch.Tensor): c_j = c_j.item()
+            chiral_factor = math.exp(-abs(float(c_i) - float(c_j)))
+
+            tw_i = getattr(target_nodes[i], "tag_weights", {})
+            tw_j = getattr(target_nodes[j], "tag_weights", {})
+            if tw_i and tw_j:
+                shared_keys = set(tw_i) & set(tw_j)
+                overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
+                norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
+                norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
+                signed_cosine = overlap / (norm_i * norm_j)
+                tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
+            else:
+                tag_overlap_factor = 1.0
+
+            lcft_boost = 1.0
+            if include_lcft_boost:
+                m_i = getattr(target_nodes[i], "metrics", {}) or {}
+                m_j = getattr(target_nodes[j], "metrics", {}) or {}
+                is_scar_i = ("scar" in node_ids[i].lower() or "damage" in node_ids[i].lower()
+                             or m_i.get("type") in ["live_scarred", "live_damage"])
+                is_scar_j = ("scar" in node_ids[j].lower() or "damage" in node_ids[j].lower()
+                             or m_j.get("type") in ["live_scarred", "live_damage"])
+                if is_scar_i and is_scar_j:
+                    dist = torch.norm(target_nodes[i].state - target_nodes[j].state).item()
+                    lcft_boost = max(1.0, -2.0 * math.log(dist + 1e-4) / 10.0 + 1.5)
+
+            weight = max(min_weight, float(sim * chiral_factor * tag_overlap_factor * lcft_boost))
+            edge_type = force_type if force_type else ("RESONANCE" if weight > 0.8 else "PROXIMITY")
+            return {
+                "source": node_ids[i],
+                "target": node_ids[j],
+                "weight": weight,
+                "type": edge_type,
+            }
+
+        edges = [_compute_edge(i, j) for (i, j) in sorted(candidate_pairs)]
+
+        # Cap total edges while preserving per-node connectivity (keep at least 1 edge per connected node)
+        if max_edges > 0 and len(edges) > max_edges:
+            edges.sort(key=lambda x: x['weight'], reverse=True)
+            kept = []
+            seen_nodes = set()
+            deferred = []
+            for e in edges:
+                if e['source'] not in seen_nodes or e['target'] not in seen_nodes:
+                    kept.append(e)
+                    seen_nodes.add(e['source'])
+                    seen_nodes.add(e['target'])
+                else:
+                    deferred.append(e)
+            if len(kept) < max_edges:
+                kept.extend(deferred[:max_edges - len(kept)])
+            edges = kept
+
+        # Union-Find Percolation Bridge: rescue degree-0 nodes AND stitch disconnected islands
+        from src.core.invariants import PERCOLATION_2D_SQUARE
+        parent = list(range(num_nodes))
+
+        def find(x: int) -> int:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        def union(a: int, b: int):
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[rb] = ra
+
+        id_to_idx = {nid: idx for idx, nid in enumerate(node_ids)}
+        for e in edges:
+            ia = id_to_idx.get(e["source"])
+            ib = id_to_idx.get(e["target"])
+            if ia is not None and ib is not None:
+                union(ia, ib)
+
+        # Group nodes by connected component
+        comp_members: Dict[int, List[int]] = {}
+        for i in range(num_nodes):
+            comp_members.setdefault(find(i), []).append(i)
+
+        if len(comp_members) > 1:
+            # Anchor on the largest connected component and tether every smaller component to it
+            sorted_comps = sorted(comp_members.values(), key=len, reverse=True)
+            main_indices = torch.tensor(sorted_comps[0], dtype=torch.long)
+            for comp in sorted_comps[1:]:
+                comp_tensor = torch.tensor(comp, dtype=torch.long)
+                sub_sims = sim_matrix.index_select(0, comp_tensor).index_select(1, main_indices)
+                flat_best = int(torch.argmax(sub_sims).item())
+                r_c = flat_best // main_indices.numel()
+                c_m = flat_best % main_indices.numel()
+                src_i = int(comp_tensor[r_c].item())
+                dst_j = int(main_indices[c_m].item())
+                best_sim = float(sub_sims[r_c, c_m].item())
+                bridge_w = max(0.35, best_sim * PERCOLATION_2D_SQUARE)
+                edges.append(_compute_edge(src_i, dst_j, force_type="PERCOLATION_BRIDGE", min_weight=bridge_w))
+                main_indices = torch.cat([main_indices, comp_tensor])
+
+        return edges
+
+    def get_adjacency_list_for_nodes(self, target_nodes: List[Any], top_k_per_node: int = 6, max_edges: int = 4000) -> List[Dict[str, Any]]:
         """
         Fast local adjacency list computed only for a visible candidate subset of nodes.
         Avoids O(N^2) global scan during procedural camera view streaming.
@@ -412,64 +557,22 @@ class GyroidicGraphManager:
                     valid_nodes.append(n)
             if len(norm_states) < 2:
                 return []
-            target_nodes = valid_nodes
             states = torch.stack(norm_states)
             states_norm = states / (torch.norm(states, dim=1, keepdim=True) + 1e-8)
             sim_matrix = torch.mm(states_norm, states_norm.t())
         except Exception:
             return []
-            
-        edges = []
-        num_nodes = len(target_nodes)
-        mask = torch.triu(sim_matrix > self.edge_threshold, diagonal=1)
-        passing_coords = torch.nonzero(mask, as_tuple=False)
-        if passing_coords.shape[0] > max_edges * 3:
-            vals = sim_matrix[passing_coords[:, 0], passing_coords[:, 1]]
-            _, top_idx = torch.topk(vals, k=max_edges * 3)
-            passing_coords = passing_coords[top_idx]
-        passing_pairs = passing_coords.tolist()
-        for i, j in passing_pairs:
-            sim = sim_matrix[i, j].item()
-            c_i = getattr(target_nodes[i], "chiral_score", 0.0)
-            c_j = getattr(target_nodes[j], "chiral_score", 0.0)
-            if isinstance(c_i, torch.Tensor): c_i = c_i.item()
-            if isinstance(c_j, torch.Tensor): c_j = c_j.item()
-            chiral_factor = math.exp(-abs(c_i - c_j))
-            
-            tw_i = getattr(target_nodes[i], "tag_weights", {})
-            tw_j = getattr(target_nodes[j], "tag_weights", {})
-            if tw_i and tw_j:
-                shared_keys = set(tw_i) & set(tw_j)
-                overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
-                norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
-                norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
-                signed_cosine = overlap / (norm_i * norm_j)
-                tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
-            else:
-                tag_overlap_factor = 1.0
-                
-            weight = float(sim * chiral_factor * tag_overlap_factor)
-            nid_i = getattr(target_nodes[i], "node_id", str(i))
-            nid_j = getattr(target_nodes[j], "node_id", str(j))
-            edges.append({
-                "source": str(nid_i),
-                "target": str(nid_j),
-                "weight": weight,
-                "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
-            })
-                    
-        if edges and top_k_per_node > 0 and len(edges) > max_edges:
-            edges.sort(key=lambda x: x['weight'], reverse=True)
-            edges = edges[:max_edges]
-            
-        return edges
+
+        return self._build_edges_from_sim_matrix(
+            valid_nodes, sim_matrix, top_k_per_node=top_k_per_node, max_edges=max_edges, include_lcft_boost=False
+        )
 
     def query_procedural_graph(
         self,
         camera_pos: Tuple[float, float, float] = (0.0, 0.0, 800.0),
         gaze_dir: Tuple[float, float, float] = (0.0, 0.0, -1.0),
-        fov_deg: float = 65.0,
-        render_distance: float = 800.0,
+        fov_deg: float = 90.0,
+        render_distance: float = 1200.0,
         enable_shear_corridor: bool = True,
         enable_occlusion_culling: bool = True,
         max_nodes: int = 2500
@@ -521,6 +624,13 @@ class GyroidicGraphManager:
         culled_cone = 0
         saved_shear = 0
 
+        sum_x = 0.0
+        sum_y = 0.0
+        sum_z = 0.0
+        valid_count = 0
+        nearest_anchor = None
+        nearest_anchor_dist = float("inf")
+
         nodes_snapshot = list(self.nodes)
         for n in nodes_snapshot:
             nid = n.node_id if hasattr(n, "node_id") else (n.get("node_id") or n.get("id") or "")
@@ -532,9 +642,23 @@ class GyroidicGraphManager:
             else:
                 x, y, z = float(n.x or 0.0), float(n.y or 0.0), float(n.z or 0.0)
             
+            sum_x += x
+            sum_y += y
+            sum_z += z
+            valid_count += 1
+
             # Relative vector from camera
             dx, dy, dz = x - cx, y - cy, z - cz
             dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+            if dist < nearest_anchor_dist:
+                nearest_anchor_dist = dist
+                nearest_anchor = {
+                    "id": str(nid),
+                    "x": round(x, 2),
+                    "y": round(y, 2),
+                    "z": round(z, 2),
+                    "dist": round(dist, 2),
+                }
 
             # Shear plane distance
             d_shear = abs(x * sn_x + y * sn_y + z * sn_z)
@@ -669,9 +793,14 @@ class GyroidicGraphManager:
             ]
         else:
             visible_nodes = [it["node"] for it in candidates]
-            visible_edges = self.get_adjacency_list_for_nodes(visible_nodes, top_k_per_node=6, max_edges=1500)
+            visible_edges = self.get_adjacency_list_for_nodes(visible_nodes, top_k_per_node=6, max_edges=4000)
 
         closed_topology_sequences = self.extract_closed_topology_sequences(nodes_data, visible_edges)
+
+        manifold_centroid = (
+            [round(sum_x / valid_count, 2), round(sum_y / valid_count, 2), round(sum_z / valid_count, 2)]
+            if valid_count > 0 else [0.0, 0.0, 0.0]
+        )
 
         return {
             "nodes": nodes_data,
@@ -679,6 +808,8 @@ class GyroidicGraphManager:
             "closed_topology_sequences": closed_topology_sequences,
             "procedural": True,
             "total_nodes": len(self.nodes),
+            "manifold_centroid": manifold_centroid,
+            "nearest_anchor": nearest_anchor,
             "procedural_stats": {
                 "total_available": len(self.nodes),
                 "visible_count": len(nodes_data),
@@ -691,6 +822,8 @@ class GyroidicGraphManager:
                 "cone_fov_deg": fov_deg,
                 "feeler_throttle_active": feeler_throttle_active,
                 "compute_feelers": feeler_telemetry,
+                "manifold_centroid": manifold_centroid,
+                "nearest_anchor": nearest_anchor,
             }
         }
 
@@ -798,7 +931,7 @@ class GyroidicGraphManager:
         return exported
 
                 
-    def get_adjacency_list(self, top_k_per_node: int = 6, max_edges: int = 3500) -> List[Dict[str, Any]]:
+    def get_adjacency_list(self, top_k_per_node: int = 6, max_edges: int = 6000) -> List[Dict[str, Any]]:
         """
         Build an adjacency list where edges are weighted by:
         W = Sim(state_i, state_j) * exp(-abs(chiral_i - chiral_j))
@@ -820,120 +953,10 @@ class GyroidicGraphManager:
         except Exception as e:
             print(f"Error computing graph adjacency: {e}")
             return []
-        
-        edges = []
-        num_nodes = len(self.nodes)
-        mask = torch.triu(sim_matrix > self.edge_threshold, diagonal=1)
-        passing_coords = torch.nonzero(mask, as_tuple=False)
-        if passing_coords.shape[0] > max_edges * 3:
-            vals = sim_matrix[passing_coords[:, 0], passing_coords[:, 1]]
-            _, top_idx = torch.topk(vals, k=max_edges * 3)
-            passing_coords = passing_coords[top_idx]
-        passing_pairs = passing_coords.tolist()
-        
-        for i, j in passing_pairs:
-            sim = sim_matrix[i, j].item()
-            # Chiral Interference factor
-            c_i = self.nodes[i].chiral_score
-            c_j = self.nodes[j].chiral_score
-            
-            # Ensure scalars
-            if isinstance(c_i, torch.Tensor): c_i = c_i.item()
-            if isinstance(c_j, torch.Tensor): c_j = c_j.item()
-            
-            chiral_factor = math.exp(-abs(c_i - c_j))
 
-            # Tag overlap factor: shared high-weight tags indicate shared topological
-            # lineage (same friction type, archetype, alias) — they pull manifold
-            # distance closer. Uses the same key normalization as SuperposedTagStacker.
-            #
-            # SIGN AWARENESS: SuperposedTagStacker allows negative weights (feature
-            # subtraction / hyperbolic divergence). A negative * negative product is
-            # geometrically a divergence, not an attraction. We use max(overlap, 0)
-            # so only genuine positive co-activation increases edge affinity.
-            tw_i = self.nodes[i].tag_weights
-            tw_j = self.nodes[j].tag_weights
-            if tw_i and tw_j:
-                shared_keys = set(tw_i) & set(tw_j)
-                overlap = sum(tw_i[k] * tw_j[k] for k in shared_keys)
-                norm_i = math.sqrt(sum(v ** 2 for v in tw_i.values())) + 1e-8
-                norm_j = math.sqrt(sum(v ** 2 for v in tw_j.values())) + 1e-8
-                # clamp to [0, 1]: only positive co-activation amplifies affinity
-                signed_cosine = overlap / (norm_i * norm_j)
-                tag_overlap_factor = 1.0 + 0.3 * max(signed_cosine, 0.0)
-            else:
-                tag_overlap_factor = 1.0
-                
-            # LCFT Logarithmic Correlation for Neglecton Scars
-            is_scar_i = "scar" in self.nodes[i].node_id.lower() or "damage" in self.nodes[i].node_id.lower()
-            is_scar_i = is_scar_i or self.nodes[i].metrics.get('type') in ['live_scarred', 'live_damage']
-            is_scar_j = "scar" in self.nodes[j].node_id.lower() or "damage" in self.nodes[j].node_id.lower()
-            is_scar_j = is_scar_j or self.nodes[j].metrics.get('type') in ['live_scarred', 'live_damage']
-            
-            if is_scar_i and is_scar_j:
-                # Logarithmic Conformal Field Theory (LCFT) 2-point function for partner fields
-                dist = torch.norm(self.nodes[i].state - self.nodes[j].state).item()
-                # <psi(x) psi(y)> ~ -2 log|x-y| + C
-                # We map it to a multiplicative boost [1.0, 3.0] based on log distance
-                lcft_boost = max(1.0, -2.0 * math.log(dist + 1e-4) / 10.0 + 1.5)
-            else:
-                lcft_boost = 1.0
-
-            weight = float(sim * chiral_factor * tag_overlap_factor * lcft_boost)
-            
-            edges.append({
-                "source": str(self.nodes[i].node_id),
-                "target": str(self.nodes[j].node_id),
-                "weight": weight,
-                "type": "RESONANCE" if weight > 0.8 else "PROXIMITY"
-            })
-                    
-        # Prune dense hairballs (e.g. 62k edges down to top-k resonance links) to prevent browser lockups
-        if edges and top_k_per_node > 0 and len(edges) > max_edges:
-            node_edges = {}
-            for e in edges:
-                node_edges.setdefault(e['source'], []).append(e)
-                node_edges.setdefault(e['target'], []).append(e)
-            
-            pruned_pairs = set()
-            pruned_edges = []
-            for nid, elist in node_edges.items():
-                elist.sort(key=lambda x: x['weight'], reverse=True)
-                for edge in elist[:top_k_per_node]:
-                    pair = tuple(sorted([edge['source'], edge['target']]))
-                    if pair not in pruned_pairs:
-                        pruned_pairs.add(pair)
-                        pruned_edges.append(edge)
-            
-            if len(pruned_edges) > max_edges:
-                pruned_edges.sort(key=lambda x: x['weight'], reverse=True)
-                edges = pruned_edges[:max_edges]
-            else:
-                edges = pruned_edges
-
-        # Rescue far-out isolated substrate nodes (degree == 0) via sub-percolation tether (p_c = 0.592746)
-        if num_nodes > 1:
-            from src.core.invariants import PERCOLATION_2D_SQUARE
-            connected_ids = set()
-            for e in edges:
-                connected_ids.add(e["source"])
-                connected_ids.add(e["target"])
-            for i in range(num_nodes):
-                nid = str(self.nodes[i].node_id)
-                if nid not in connected_ids:
-                    row_sims = sim_matrix[i].clone()
-                    row_sims[i] = -1.0
-                    best_sim, best_j = torch.max(row_sims, dim=0)
-                    j_idx = int(best_j.item())
-                    bridge_weight = max(0.35, float(best_sim.item()) * PERCOLATION_2D_SQUARE)
-                    edges.append({
-                        "source": nid,
-                        "target": str(self.nodes[j_idx].node_id),
-                        "weight": bridge_weight,
-                        "type": "PERCOLATION_BRIDGE"
-                    })
-                    connected_ids.add(nid)
-
+        edges = self._build_edges_from_sim_matrix(
+            self.nodes, sim_matrix, top_k_per_node=top_k_per_node, max_edges=max_edges, include_lcft_boost=True
+        )
         self._cached_edges = edges
         self._edges_dirty = False
         return edges

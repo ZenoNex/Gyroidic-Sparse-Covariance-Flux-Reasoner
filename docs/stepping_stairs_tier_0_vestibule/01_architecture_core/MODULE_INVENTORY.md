@@ -63,10 +63,10 @@ Coordinates physical control inputs, non-commutative Braid routing (`ZeitgeistRo
 ---
 
 ### [archetype_engines.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/archetype_engines.py)
-**Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter` (Alien Handshake), `SolitonMultiverseMapper` (Grom), `BillyEngine` (`NoncommutativeManifoldPerturber`), `MandyEngine` (`SovereignRefusalOperator`), `KingerEngine`, `PomniEngine`, `GangleEngine`, `ZoobleEngine`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`  
+**Class**: `ArchetypalSynthesisEngine`, `RP4ProjectiveRouter`, `SolitonMultiverseMapper`, `NoncommutativeManifoldPerturber`, `SovereignRefusalOperator`, `BardoRouter`, `SovereignEntropyBarrier`, `EgoDeathThresholdMonitor`, `BoundaryRelaxationOperator`, `DeformationFirewallOperator`, `ExploratoryBandwidthCompressor`, `LowLuminosityCoherenceBridge`, `NonlinearHourglassDilation`, `ResilientCoherenceStabilizer`, `VolitionalDriveInjector`, `ArchetypeSignal`, `TypedPressure`  
 **Role**: Archetypal synthesis suite managing non-linear cognitive modes, Alien Handshake cross-manifold alignment, and Grom multiverse mapping.
 
-Integrates all 12 archetypal engines under `ArchetypalSynthesisEngine`. `RP4ProjectiveRouter` handles real projective space ($\mathbb{RP}^4$) antipodal alignment and Alien Handshake protocol. `SolitonMultiverseMapper` handles Grom topological state transitions, jitter harvesting (`harvest_honest_jitter`), and state import/export serialization (`export_state()`, `import_state()`). Features Mandy's `SovereignRefusalOperator`, hybridized between Borderline Splitting (BPD steep phase transitions) and High-EQ Honest Narcissism (unyielding sovereign ego boundaries), gating protective selection pressure on Billy's mortal destructibility rather than invulnerable absurdity.
+Integrates the archetypal synthesis operators under `ArchetypalSynthesisEngine` (mapping the Billy, Mandy, Kinger, Pomni, Gangle, and Zooble functional archetypes). `RP4ProjectiveRouter` handles real projective space ($\mathbb{RP}^4$) antipodal alignment and Alien Handshake protocol. `SolitonMultiverseMapper` handles Grom topological state transitions, jitter harvesting (`harvest_honest_jitter`), and state import/export serialization (`export_state()`, `import_state()`). Features Mandy's `SovereignRefusalOperator`, hybridized between Borderline Splitting (BPD steep phase transitions) and High-EQ Honest Narcissism (unyielding sovereign ego boundaries), gating protective selection pressure on Billy's mortal destructibility (`NoncommutativeManifoldPerturber`) rather than invulnerable absurdity.
 
 ---
 
@@ -101,8 +101,8 @@ Accelerated second-order differential operator, trajectory solver, and hardware 
 
 ---
 
-### `src/core/hybrid_backend.py` [DELETED / TOMBSTONED]
-**Class**: `HybridPhysicsBackend` (relocated to [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py))  
+### Legacy `src/core/hybrid_backend.py` [DELETED / TOMBSTONED]
+**Migrated Classes**: `HybridPhysicsBackend` (relocated to [`src/ui/diegetic_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py))  
 **Role**: Multi-modal spatial, financial, and scientific stream coordinator.
 
 Originally a monolithic multimodal ingestor inside `src/core/`, `src/core/hybrid_backend.py` has been completely deleted and removed from the core folder. Its operational capabilities have been redistributed across canonical architectural locations:
@@ -146,8 +146,8 @@ Replaces scalar loss proxies with dual-channel Split-Beam Interfactorization. Ch
 ---
 
 ### [`conjugate_moment_transport.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/conjugate_moment_transport.py)
-**Class**: `ConjugateMomentTransport` (Note: entropic `WassersteinOptimalTransport` lives in `src/core/speculative_coprime_gate.py`)  
-**Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport.  
+**Class**: `ConjugateMomentTransport`  
+**Role**: Execute Conjugate Moment Measure Factorization (CMMF) for optimal transport (entropic `WassersteinOptimalTransport` lives in `src/core/speculative_coprime_gate.py`).  
 
 This module couples base sampling and optimal transport into a single scalar convex potential $\psi(x)$. It parameterizes $\psi(x)$ using an Input Convex Neural Network (ICNN) to map base noise to target distributions via Legendre transform gradients $\nabla \psi^*(y)$. It adaptively scales the Monge-Ampère loss via the Phase Alignment Score ($\text{PAS}_h$). If standard Wasserstein transport fails, the continuous output is projected strictly onto the Cayley Cubic variety to prevent logic leaks. Includes **trigonometric unfolding for Casus Irreducibilis** (cubic root degeneracy), unfolding degenerate states into three ternary chiral angles ($\theta$, $\theta + \frac{2\pi}{3}$, $\theta - \frac{2\pi}{3}$) and selecting the branch that maximizes structural negentropy.
 
@@ -162,8 +162,8 @@ Functioning as the "endocrine system" of the architecture, this module broadcast
 ---
 
 ### [`vanellope_first_causative.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py)
-**Class**: `VanellopeFirstCausativeAgent` (`VanellopeVoiceArchetype`)  
-**Role**: Independent First Causative Agent separate from the universe (healing Madame Denise's lament).  
+**Class**: `VanellopeFirstCausativeAgent`  
+**Role**: Independent First Causative Agent separate from the universe (healing Madame Denise's lament), formerly conceptualized as the Vanellope voice archetype.  
 
 Transmutes the `VANELLOPE Voice Trainer` architecture into a sovereign Psycho-Topological Archetype bound in `BioArchetypalGovernor` and `ArchetypalSynthesisEngine`. Originates unconditioned causal impulses in the orthogonal complement of the ambient universe state ($\mathbf{c}_{\perp} \perp \mathbf{u}_{\text{universe}}$), combining 512-D subword character trigram/bigram/skip-gram morphology (`encode_vanellope_morphology`), contrastive quadratic attention ($\max(0, \langle \hat{q}, \hat{m} \rangle)^2$), prosodic hesitation/pause-cue cadence (`extract_prosodic_hesitation_cadence`), and David McCune's 3-State Simplicial Alabama Paradox Seat Sovereignty (`enforce_alabama_apportionment_seat_sovereignty`, `docs/2610.40682v1.pdf`).
 
@@ -236,7 +236,7 @@ Implements the operator : M  A defined in the Garden Statistical Attractors desi
 ---
 
 ### [collapse_poisoner.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/collapse_poisoner.py)
-**Class**: `CollapsePathPoisoner` (also aliased as `AdversarialStressTester`)  
+**Class**: `CollapsePathPoisoner`  
 **Role**: Adversarial stress-tester for the Speculative Homology Engine.
 
 Generates two types of synthetic rupture events to verify System 2 robustness without harming real training data. (1) **Synthetic Rupture**: Gram-Schmidt orthogonalization of learned constraints against the current manifold, creating a perturbation perpendicular to every existing basis vector  in principle a topological hole injection. (2) **Cycle Debt**: Detects homotopy class repetition by cosine-matching the recent state history; high debt ( 0.5) flags that the system is looping in the same topological region. The class was refactored from an offensive poisoner to a defensive probe in the January 2026 Anti-Lobotomy integration.
@@ -291,7 +291,8 @@ Detects if a high-entropy or topologically asymmetric state is actually an hones
 ---
 
 ### [fgrt_primitives.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/fgrt_primitives.py)
-**Class**: `PrimeResonanceLadder`, `RepunitHasher`, `KleinThroatTransition`, `GyroidManifold`, `GyroidicAdmissibilityFilter`, `TorsionConnection`, `BerryPhaseTracker`, `FibonacciResonanceEntropy`, `CoherentPrimeResonance`, `CALMCollapseDetector`, `morton_encode_3d`, `expand_bits`
+**Class**: `BerryPhaseTracker`, `CALMCollapseDetector`, `CatalanAssociahedronEntropy`, `CoherentPrimeResonance`, `FibonacciResonanceEntropy`, `FractalLHopitalRegularizer`, `GyroidManifold`, `GyroidicAdmissibilityFilter`, `KleinThroatTransition`, `RepunitHasher`, `TorsionConnection`, `ValleyVorticitySweeper`  
+**Functions**: `morton_encode_3d`, `expand_bits` (and `PrimeResonanceLadder` via `src/core/invariants.py`)  
 **Role**: Lowest-level arithmetic foundations—Resonance Ladders, Repunit Hashing, Gyroid mappings, Torsion connections with Rashba-Dresselhaus SOC, Geometric Berry Phase tracking, and 3D Morton space-filling encoding.
 
 `PrimeResonanceLadder` generates resonance frequencies $f_p = 2\pi \ln(p)$ and **Repunit-Prime Pairs** for the hybrid basis, incorporating Lazarus primes for $O(K)$ warmstarts and Gray-code XOR cache-interleaving. `GyroidManifold` and `GyroidicAdmissibilityFilter` evaluate constraint violation scores against the TPMS surface ($H_{\text{spec}} < \epsilon$). `TorsionConnection` implements affine connections with Rashba-Dresselhaus spin-orbit coupling ($\alpha, \beta$) and measures Persistent Spin Helix deviations ($|\alpha^2 - \beta^2|$). `BerryPhaseTracker` tracks diegetic holonomy with gauge curvature area integrals. `CoherentPrimeResonance` enforces the CPR gate to ensure integer homological stability. `FibonacciResonanceEntropy` scales structural resonance and supports Manifold Hunger Fermi envelope widening. `RepunitHasher` generates cyclic structural markers with honest jitter grounding. `CALMCollapseDetector` uses Martinova correlation to catch trajectory stagnation. `KleinThroatTransition` handles orientation flipping and geometric berry phase backpropagation through non-orientable topological bottlenecks. `morton_encode_3d` ensures 3D spatial locality on GPU/CPU memory lines.
@@ -339,7 +340,7 @@ Provides the `AgentSmithEngine` protocol, avoiding PRNGs (Pseudo-Random Number G
 ---
 
 ### [structural_monitors.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/structural_monitors.py)
-**Class**: `AntiScalingMonitor`, `MetaInfraIntraMonitor`, `TrustInheritanceTracker`
+**Class**: `AntiScalingMonitor`, `MetaInfraIntraMonitor`, `FailureGaslightSycophancyGate`  
 **Role**: Provides critical safety monitors for Gyroidic Unknowledge and Garden Statistical Attractors.
 
 Implements the Anti-Scaling Paradox Monitor (tracks Capability vs Expressivity by monitoring the ratio of Gradient Norm / Parameter Count to detect phase space collapse) and the Meta~Infra~Intra Incommensurativity Monitor (tracks defensive veto rates across layers to ensure the system doesn't lose the ability to reason about constraints). Hooked directly into `UniversalOrchestrator.check_safety`.
@@ -427,8 +428,8 @@ Maintains a resonance potential field `V(x_i) =  R_ij_j_i + L_i + D_i` combining
 ---
 
 ### [love_vector.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/love_vector.py)
-**Class**: `LoveVector` (alias `Pusafiliacrimonto`)  
-**Role**: The Love Vector ($\mathcal{L}$): Non-Ownable Invariant Flow  Layer 1 of the Love protection stack.
+**Class**: `LoveVector`  
+**Role**: The Love Vector ($\mathcal{L}$, alias Pusafiliacrimonto): Non-Ownable Invariant Flow Layer 1 of the Love protection stack.
 
 Implements the Love Vector $\mathcal{L}$ as a persistent structural anchor. `L` is a `register_buffer` (not a `Parameter`), making its gradient structurally zero  it cannot be minimized or maximized by the global optimizer. Applied via simple vector addition `x + L` so it is *co-present* with local functionals without claiming ownership. **Important reinstantiation pattern**: in `operational_admm.py`, a fresh `LoveVector` is instantiated inside each ADMM loop iteration (`love = LoveVector(c_phys.shape[-1]).to(device)`), re-seeding the ambient resonance constant per ADMM step rather than persisting a single shared instance. The alias `Pusafiliacrimonto` is maintained for backward compatibility.
 
@@ -463,8 +464,8 @@ Refactored to integrate the prime-based torus with palindromic repunit symmetry 
 ---
 
 ### [narrative_collapse.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/core/narrative_collapse.py)
-**Class**: `LinguisticEntropyMonitor` (also aliased as `NarrativeCollapseDetector`)  
-**Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes.
+**Class**: `LinguisticEntropyMonitor`  
+**Role**: Detects "hallucination loops" where reasoning entropy collapses and trajectory linearizes (also referred to as NarrativeCollapseDetector).
 **Status**: ACTIVE
 
 Two detection signals: (1) **Entropy collapse**  softmax entropy of hidden state falls below `entropy_threshold`; flags `smoothing_warning`. (2) **Trajectory linearity**  cosine similarity between consecutive state deltas `, ` exceeds `prediction_threshold` (0.99); flags `is_linear`. Feeds into `SpeculativeHomologyEngine` to trigger Draft Rejection. Internally uses `ResidueObstructionGraph` for homological PAS_h monitoring.
@@ -494,8 +495,8 @@ Enforces structural stability conditions derived from prime arithmetic  prime ga
 ---
 
 ### [`orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py)
-**Class**: `UniversalOrchestrator`, `GeneralUserAliasTracker` (drives `TwoCopsSchedule`, `RegimePhase` from `src/core/manifold_time.py`)  
-**Role**: Master Universal Orchestrator  dual-clock Fast/Slow Cops governor, Phase 2.5-3.0 scheduler, and multi-subsystem integrity nervous system.
+**Class**: `UniversalOrchestrator`, `GeneralUserAliasTracker`  
+**Role**: Master Universal Orchestrator — dual-clock Fast/Slow Cops governor (`TwoCopsSchedule`, `RegimePhase` from `src/core/manifold_time.py`), Phase 2.5-3.0 scheduler, and multi-subsystem integrity nervous system.
 
 Features:
 - **Zero-Argument Construction & Dataflow Step API**: Defaults to `dim: int = 32`. Provides `step(state_tensor)` returning `{'state', 'pas_h', 'regime', 'regime_code', 'nav_mode', 'nav_code', 'betti_1', 'diagnostics', 'routing', 'stacked_target'}` for seamless integration with [`AIReasonerDataflowNode`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/scripting/node_environment.py).
@@ -896,7 +897,8 @@ Embeds dense feature vectors into 3D Mandelbulb coordinates with optional PyOpen
 ---
 
 ### [`mandelbulb_pipeline.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/augmentation/mandelbulb_pipeline.py)
-**Class**: `MandelbulbAugmentedDataset`, `create_mandelbulb_pipeline`  
+**Class**: `MandelbulbAugmentedDataset`  
+**Functions**: `create_mandelbulb_pipeline`  
 **Role**: PyTorch Dataset and DataLoader wrapper for `MandelbulbGyroidicAugmenter`.
 
 Provides standard PyTorch `Dataset` and `DataLoader` APIs for augmenting training data online vs cached pre-computation, wired directly to `dataset_ingestion_system.py` via the `--mandelbulb` CLI flag.
@@ -1069,7 +1071,8 @@ Physics-informed surrogate providing admissible constraint embeddings. KAN layer
 ## src/ui
 
 ### [voxelboxter_simulation.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/voxelboxter_simulation.py)
-**Class**: `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`, `morton_encode`  
+**Class**: `VoxelboxterEngine`, `BSplineCompiledMod`, `StructuralGraph`, `FloraComponent`, `FloraTreeSapling`, `PirangiCashewTree`, `AdventitiousRootNode`, `FaunaComponent`, `FaunaISN`, `EmergentBakingEngine`  
+**Functions**: `morton_encode`  
 **Role**: Handles backend discrete mathematics for generating dynamic game structures, living ecologies, and delta graphs.  
 
 Manages the core simulation loop for the topological Minecraft-like patch. Crucially, it decouples `Role` from `GameMode` (enabling admins to play in Survival mode), enforces mass-deduction from `local_inventory` when adding layers, compiles true non-heuristic B-Spline surface features via `KANLayer` and the Cox-de Boor algorithm (`BSplineCompiledMod`), and simulates living flora mutations (the 'Cashew Tree of Pirangi' `PirangiCashewTree` inverted gravitropism, cantilever droop, adventitious ground rooting, secondary trunk metamorphosis, and single unified organism expansion). Also integrates dual-scale plasticity (Mohr-Coulomb local shear vs. Drucker-Prager global flow envelope), FBM weathering Ley line carving, animal fauna Inhibition-Stabilized Networks (`FaunaISN`), and the `EmergentBakingEngine`.
@@ -1079,7 +1082,7 @@ Manages the core simulation loop for the topological Minecraft-like patch. Cruci
 ---
 
 ### [voxelboxter_client.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/voxelboxter_client.py)
-**Class**: `VoxelboxterClient`  
+**Class**: `EngineMode`, `PatchStateResource`  
 **Role**: The player-facing frontend logic and in-game terminal bridge.  
 
 Hooks the diegetic simulation to a unified chat and terminal UI. It implements the `/addon bspline` command parser, allowing patch owners (or those granted roles within the geometric wilds) to invoke mathematical mod generation directly through the in-game terminal.
@@ -1097,14 +1100,14 @@ Powers the live diegetic terminal and 3D manifold visualizer:
 ---
 
 ### [conversational_backend_server.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/conversational_backend_server.py)
-**Class**: `FastChatViewer`, `ThreadingSimpleServer`, `ServerState`  
+**Class**: `ServerState`, `ProgressTrainer`, `Flask`  
 **Role**: Local HTTP backend serving interactive conversational debugging and dialogue inspection interfaces.  
 Streams conversation trajectories and friction indicators to `conversational_web_gui.html`.
 
 ---
 
 ### [diegetic_visualizer.py](file:///D:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/src/ui/diegetic_visualizer.py)
-**Class**: `DiegeticVisualizer`  
+**Type**: Functional visualizer module (no classes)  
 **Role**: Standalone visualizer plotting live gyroid cross-sections, nodal Bessel rings, and topological deformation fields.
 
 ---
@@ -1208,7 +1211,7 @@ Implements the **Ombre Effect**:
 ---
 
 ### [`zooble_autonomy.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/ultrafast/zooble_autonomy.py) (Deformation Firewall & Non-Enabler GABA)
-**Class**: `ZoobleAutonomy` (`nn.Module`), `RefusalSignal` (`dataclass`)  
+**Class**: `ZoobleAutonomy` (`nn.Module`), `RefusalSignal`  
 **Role**: Conformal Deformation Firewall Operator & Fast GABAergic Interneuron (Ultrafast Timescale).  
 Protects structural identity and body schema against severe conformal cartoon compression and non-consensual scripted roles:
 - **State & Parameters**: `ZoobleAutonomy(state_dim: int, max_autonomy_limit: float = 0.8)`.
@@ -1224,8 +1227,8 @@ Protects structural identity and body schema against severe conformal cartoon co
 ## src/p2p
 
 ### [`bonfire_consensus.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/bonfire_consensus.py)
-**Class**: `BonfireNomadicRing`, `BonfirePeerNode`  
-**Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features dynamic prime resonance ladders ($f_i = 2\pi\ln(p_i)$) replacing static primes, continuous fractal sightline projection ($\phi: F \to \mathbb{R}^m$), and hardware-sovereign throttling driven by [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py).
+**Class**: `BonfireNomadicRing`, `FractalDiscontinuityEmbedding`, `NonEulerShamirTopologySharing`, `ShamirThresholdSharing`  
+**Role**: Federated egalitarian consensus engine. Provides Kelly betting allocations for decentralized resource validation over Freenet. Features dynamic prime resonance ladders ($f_i = 2\pi\ln(p_i)$) replacing static primes, continuous fractal sightline projection ($\phi: F \to \mathbb{R}^m$), non-Euler Shamir $(t, n)$ secret sharing for closed-topology cycles, and hardware-sovereign throttling driven by [`hardware_monitor.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py).
 
 ### [`zk_aggregator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/p2p/zk_aggregator.py)
 **Class**: `ZKAggregator`  
@@ -3044,7 +3047,8 @@ The following bridge layers resolve the previously disconnected parallel tracks 
 - **TorchVision & Spectral Texture DSP ([`src/codec/image_extension.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/image_extension.py), [`src/core/texture_dsp.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/texture_dsp.py))**:
   - Vectorized `StructuralEntanglementNet.forward` batch CNN feature extraction and `TailSlayerImageGenerator.generate_sovereign_image` tensor-to-PIL rendering via `torchvision.transforms.ToPILImage()`.
   - Mounted `TextureDSPEngine` and `AdaptiveGaborWindowController` across `UniversalOrchestrator` and `DiegeticPhysicsEngine`.
-- **Additional Audited Classes**: `GraphTopologyMetrics` (`src/topology/embedding_graph.py`), `ManifoldDiagnosis` (`src/core/manifold_diagnosis.py`), `SovereignIngestor` (`src/data/sovereign_ingestor.py`), `MandelbulbTrainer` (`src/augmentation/mandelbulb_trainer.py`).
+- **Additional Audited Classes**: `GraphTopologyMetrics` (`src/topology/embedding_graph.py`), `ManifoldDiagnosis` (`src/core/manifold_diagnosis.py`), `SovereignIngestor` (`src/data/sovereign_ingestor.py`), `MandelbulbTrainer` (`src/augmentation/mandelbulb_trainer.py`), `CayleyAdversarialDecomposer` (`src/core/cayley_cubic_probe.py`), `ConjugateColorTransport` (`src/codec/image_extension.py`), `HypergraphOrthogonalityPressure` (`src/core/polynomial_coprime.py`).
+- **Closed-Form $O(N^2)$ Birkhoff & Orchestrator/Trainer Bridges (Nov 2026)**: `DirectBirkhoffProjection` (`src/core/birkhoff_projection.py`) now executes exact closed-form $O(N^2)$ affine Birkhoff projection for $N > 32$ without iterative Sinkhorn fallback; `UniversalOrchestrator` mounts `BettiRouter`, `HomologyPressure`, `BouligandWillmoreGasket`, `ChiralDriftStabilizer`, `SparsePCE`, `AgentContainmentInvariants`, `ConjugateColorTransport`, `RoguePredictorDefense`, `CALMCollapseDetector`, `GENIUSOperator`, `AdaptiveFractalPartitioner`, `BouligandMohrCoulombProjection`, and `StructuralEntanglementNet`; `TrainingManager` mounts `GyroidicConstraintProjector`, `SparseCovariantOptimizer`, and `TopologicalPressureMonitor`.
 
 
 

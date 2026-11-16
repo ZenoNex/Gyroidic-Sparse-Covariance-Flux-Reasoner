@@ -117,7 +117,9 @@ class EconomicAgentLinker:
                                 if ord(v) < logits.shape[-1]:
                                     logits[0, ord(v)] *= 0.4
 
-                        probs = torch.softmax(logits, dim=-1)
+                        from src.core.gluing_operator import LazarusSoftmax
+                        lazarus = LazarusSoftmax(dim=-1).to(logits.device)
+                        probs, _ = lazarus(logits, 0.0, 0.0)
                         char_idx = torch.multinomial(probs[0], 1).item()
                         char = chr(max(32, min(126, char_idx)))
 

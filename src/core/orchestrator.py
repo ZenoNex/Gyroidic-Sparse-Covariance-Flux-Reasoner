@@ -429,6 +429,38 @@ class UniversalOrchestrator(nn.Module):
         self.get_typed_affordance = get_typed_affordance
         self.get_affordance_telemetry = get_compute_affordance_telemetry
 
+        # 7.29 Topology, Optimization, Safety, Codec & P2P Bridges
+        from src.topology.betti_router import BettiRouter
+        from src.topology.homology_pressure import HomologyPressure
+        from src.optimization.ricci_flow_optimizer import BouligandWillmoreGasket
+        from src.optimization.operational_admm import ChiralDriftStabilizer
+        from src.safety.subversive_oracle import SparsePCE
+        from src.safety.red_teaming import AgentContainmentInvariants
+        from src.codec.image_extension import ConjugateColorTransport
+        from src.p2p.freenet_ws_client import RoguePredictorDefense
+
+        self.betti_router = BettiRouter(feature_dim=dim, num_sectors=min(8, max(2, dim // 8)))
+        self.homology_pressure = HomologyPressure()
+        self.willmore_gasket = BouligandWillmoreGasket(engine=getattr(self, 'silicon_engine', None))
+        self.chiral_drift_stabilizer = ChiralDriftStabilizer(zeta=0.5, tau=0.1, device=str(_device))
+        self.sparse_pce = SparsePCE(hidden_dim=dim)
+        self.containment_invariants = AgentContainmentInvariants
+        self.conjugate_color_transport = ConjugateColorTransport()
+        self.rogue_predictor_defense = RoguePredictorDefense()
+
+        # 7.30 Additional Canonical Bridges (FGRT Collapse, GENIUS, Fractal Partitioner, Bouligand MC, EntanglementNet)
+        from src.core.fgrt_primitives import CALMCollapseDetector
+        from src.core.carnot_mobius_ledger import GENIUSOperator
+        from src.core.non_ergodic_entropy import AdaptiveFractalPartitioner
+        from src.core.yield_criteria import BouligandMohrCoulombProjection
+        from src.codec.image_extension import StructuralEntanglementNet
+
+        self.calm_collapse_detector = CALMCollapseDetector()
+        self.genius_operator = GENIUSOperator()
+        self.fractal_partitioner = AdaptiveFractalPartitioner()
+        self.bouligand_mc_projection = BouligandMohrCoulombProjection()
+        self.structural_entanglement_net = StructuralEntanglementNet(output_dim=dim)
+
         # 7.29 Spectral Texture DSP Engine & Adaptive Gabor Window Controller (Signal & Kinematics Island Integration)
         try:
             from src.core.texture_dsp import TextureDSPEngine, AdaptiveGaborWindowController

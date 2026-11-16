@@ -2796,12 +2796,14 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
         # Delegate specific paths to DiegeticRequestHandler
         if (
             parsed_path.path in [
-                '/graph', '/health', '/api/minecraft/scan', '/conversational-gui',
+                '/health', '/api/minecraft/scan', '/conversational-gui',
                 '/wikipedia-trainer', '/api/index_size', '/api/splats/scan',
                 '/api/fs/drives', '/api/security/creator_status', '/api/security/status',
                 '/api/tags', '/api/state', '/api/madoc/info', '/benchmark_dashboard.html',
                 '/api/affordances', '/api/bulletin_board', '/api/progress',
-                '/api/hardware', '/api/gpus', '/api/scheduler', '/api/memory_systems'
+                '/api/hardware', '/api/gpus', '/api/scheduler', '/api/memory_systems',
+                '/api/compute/feelers', '/api/affordance/feelers',
+                '/mindmap', '/api/mindmap-data', '/api/mindmap-expand'
             ]
             or parsed_path.path.startswith('/api/freenet/')
             or parsed_path.path.startswith('/api/bonfire/')
@@ -2815,28 +2817,36 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             
         if parsed_path.path == '/':
             self._serve_terminal_interface()
-        elif parsed_path.path == '/api/graph':
+        elif parsed_path.path in ('/graph', '/api/graph'):
             if AI_SYSTEM and AI_SYSTEM.graph_manager:
                 try:
                     from urllib.parse import parse_qs
                     query = parse_qs(parsed_path.query)
+                    try:
+                        limit = int(query.get('limit', [1500])[0])
+                    except (ValueError, TypeError, IndexError):
+                        limit = 1500
+                    force_reload = query.get('force', ['false'])[0].lower() in ('true', '1')
+                    gm = AI_SYSTEM.graph_manager
+                    if force_reload or len(getattr(gm, 'nodes', [])) == 0:
+                        gm.load_fossils(
+                            limit=limit,
+                            scan_limit=min(max(500, limit * 2), 4000),
+                            use_snapshot=not force_reload,
+                        )
                     is_procedural = query.get('procedural', ['false'])[0].lower() in ('true', '1')
-                    if is_procedural and hasattr(AI_SYSTEM.graph_manager, 'query_procedural_graph'):
-                        try:
-                            limit = int(query.get('limit', [150])[0])
-                        except (ValueError, TypeError, IndexError):
-                            limit = 150
+                    if is_procedural and hasattr(gm, 'query_procedural_graph'):
                         cx = float(query.get('cam_x', [0.0])[0])
                         cy = float(query.get('cam_y', [0.0])[0])
                         cz = float(query.get('cam_z', [800.0])[0])
                         gx = float(query.get('gaze_x', [0.0])[0])
                         gy = float(query.get('gaze_y', [0.0])[0])
                         gz = float(query.get('gaze_z', [-1.0])[0])
-                        dist = float(query.get('dist', [800.0])[0])
-                        fov = float(query.get('fov', [65.0])[0])
+                        dist = float(query.get('dist', [1200.0])[0])
+                        fov = float(query.get('fov', [90.0])[0])
                         shear_on = query.get('shear', ['true'])[0].lower() in ('true', '1')
                         occl_on = query.get('occlusion', ['true'])[0].lower() in ('true', '1')
-                        graph_data = AI_SYSTEM.graph_manager.query_procedural_graph(
+                        graph_data = gm.query_procedural_graph(
                             camera_pos=(cx, cy, cz),
                             gaze_dir=(gx, gy, gz),
                             fov_deg=fov,
@@ -2845,16 +2855,15 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                             enable_occlusion_culling=occl_on,
                             max_nodes=limit or 2500
                         )
-                        graph_data["procedural_mode"] = True
-                        self._send_json(graph_data)
                     else:
-                        graph_json = AI_SYSTEM.graph_manager.export_graph_json()
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(graph_json.encode('utf-8'))
+                        graph_data = json.loads(gm.export_graph_json())
+                    f_inst = getattr(AI_SYSTEM, 'fossilizer', None)
+                    graph_data["total_index"] = len(getattr(f_inst, 'fossil_index', {})) if f_inst else len(getattr(gm, 'nodes', []))
+                    graph_data["cached"] = not force_reload
+                    graph_data["procedural_mode"] = is_procedural
+                    self._send_json(graph_data)
                 except Exception as e:
-                    self._send_json({'error': str(e)})
+                    self._send_json({'nodes': [], 'links': [], 'error': str(e)})
             else:
                 self._send_json({'nodes': [], 'links': []})
         elif parsed_path.path == '/favicon.ico':

@@ -28,6 +28,14 @@ class TrainingManager:
         self.log = []
         self.results = None
         self.metrics_history = []
+        from src.augmentation.mandelbulb_gyroidic_augmenter import (
+            GyroidicConstraintProjector,
+            SparseCovariantOptimizer,
+            TopologicalPressureMonitor,
+        )
+        self.gyroid_projector = GyroidicConstraintProjector()
+        self.sparse_covariant_optimizer = SparseCovariantOptimizer()
+        self.topological_pressure_monitor = TopologicalPressureMonitor()
         
     def start_training(self, epochs: int, learning_rate: float = 0.001, trainer_mode: str = "auto"):
         if self.is_training:
@@ -39,6 +47,14 @@ class TrainingManager:
         self.log = []
         self.results = None
         self.metrics_history = []
+        from src.augmentation.mandelbulb_gyroidic_augmenter import (
+            GyroidicConstraintProjector,
+            SparseCovariantOptimizer,
+            TopologicalPressureMonitor,
+        )
+        self.gyroid_projector = GyroidicConstraintProjector()
+        self.sparse_covariant_optimizer = SparseCovariantOptimizer()
+        self.topological_pressure_monitor = TopologicalPressureMonitor()
         
         self.log.append(f"[START] Starting training: {epochs} epochs (mode={trainer_mode})...")
         

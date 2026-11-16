@@ -1458,7 +1458,10 @@ class DiegeticPhysicsEngine(nn.Module):
                             if ord(v) < logits.shape[-1]:
                                 logits[0, ord(v)] *= 0.3
                     
-                    probs = torch.softmax(logits, dim=-1)
+                    from src.core.gluing_operator import LazarusSoftmax
+                    pas_val = float(getattr(self, 'last_pas', 0.0))
+                    lazarus = LazarusSoftmax(dim=-1).to(logits.device)
+                    probs, _ = lazarus(logits, pas_val, pas_val)
                     char_idx = torch.multinomial(probs[0], 1).item()
                     char = self._idx_to_char(char_idx)
                     dream_chars.append(char)
@@ -2713,7 +2716,10 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Numerical stability guard: ensure logits and probs contain no NaN/Inf
                 logits = torch.nan_to_num(logits, nan=0.0, posinf=40.0, neginf=-40.0)
                 logits = torch.clamp(logits, -40.0, 40.0)
-                probs = torch.softmax(logits, dim=-1)
+                from src.core.gluing_operator import LazarusSoftmax
+                pas_val = float(getattr(self, 'last_pas', 0.0))
+                lazarus = LazarusSoftmax(dim=-1).to(logits.device)
+                probs, _ = lazarus(logits, pas_val, pas_val)
                 probs = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0)
                 p_sum = probs[0].sum()
                 if p_sum <= 1e-8 or torch.isnan(p_sum) or torch.isinf(p_sum):
@@ -8129,9 +8135,9 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     return
             elif base_path.startswith('/graph'):
                 try:
-                    limit = int(query.get('limit', [150])[0])
+                    limit = int(query.get('limit', [1500])[0])
                 except (ValueError, TypeError, IndexError):
-                    limit = 150
+                    limit = 1500
 
                 force_reload = query.get('force', ['false'])[0].lower() in ('true', '1')
 
@@ -8153,14 +8159,15 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             ENGINE.graph_manager = graph_mgr
 
                     t_graph_start = time.time()
-                    # Serve cached graph structure if sufficient nodes exist, unless forced
+                    # Serve cached graph structure if sufficient nodes exist for requested limit, unless forced
                     current_node_count = len(getattr(graph_mgr, 'nodes', []))
-                    has_sufficient_nodes = current_node_count > 0
+                    loaded_snap = bool(getattr(graph_mgr, 'loaded_from_snapshot', False))
+                    has_sufficient_nodes = (current_node_count > 0) and (loaded_snap or current_node_count >= min(limit, 1500))
                     if force_reload or not has_sufficient_nodes:
-                        # Reload with specified limit and expanded scan window
+                        # Reload with specified limit and bounded scan window (guarded by 2.5s latency cap)
                         graph_mgr.load_fossils(
                             limit=limit,
-                            scan_limit=min(max(200, (limit * 2) if limit else 500), 1000),
+                            scan_limit=min(max(500, (limit * 2) if limit else 1000), 4000),
                             use_snapshot=not force_reload
                         )
 
@@ -8174,8 +8181,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                             gx = float(query.get('gaze_x', [0.0])[0])
                             gy = float(query.get('gaze_y', [0.0])[0])
                             gz = float(query.get('gaze_z', [-1.0])[0])
-                            dist = float(query.get('dist', [800.0])[0])
-                            fov = float(query.get('fov', [65.0])[0])
+                            dist = float(query.get('dist', [1200.0])[0])
+                            fov = float(query.get('fov', [90.0])[0])
                             shear_on = query.get('shear', ['true'])[0].lower() in ('true', '1')
                             occl_on = query.get('occlusion', ['true'])[0].lower() in ('true', '1')
 
