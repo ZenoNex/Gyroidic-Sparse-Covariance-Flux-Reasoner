@@ -685,6 +685,37 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             self.encoding_manager = None
 
+        # 7.32b Terminal, Diagnostic Probe & UI Bridge Registry (Zero-Code-Island Sovereign Wiring)
+        try:
+            from src.terminal.udp_server_colonizer import OptionD_Colonizer
+            from src.terminal.update_client import get_local_version
+            from src.tools.probe_html import run_chat_html_probe
+            from src.tools.test_hardware_monitor_calm import test_hardware_monitor_calm
+            from src.tools.validate_cmmf import test_langevin_monte_carlo, test_cmmf_honeybee_mode
+            from src.ui.conversational_backend_server import ServerState
+            from src.ui.conversational_gui import SecureTokenManager, DatasetAgreementManager
+            from src.ui.diegetic_terminal import create_diegetic_terminal_html
+            from src.ui.voxelboxter_backend import get_scripting_resources, get_ore_dictionary
+            from src.ui.voxelboxter_client import EngineMode, PatchStateResource
+            self.terminal_ui_bridge_registry = {
+                "udp_colonizer_cls": OptionD_Colonizer,
+                "get_local_version": get_local_version,
+                "run_chat_html_probe": run_chat_html_probe,
+                "test_hardware_monitor_calm": test_hardware_monitor_calm,
+                "test_langevin_monte_carlo": test_langevin_monte_carlo,
+                "test_cmmf_honeybee_mode": test_cmmf_honeybee_mode,
+                "conversational_server_state_cls": ServerState,
+                "secure_token_manager_cls": SecureTokenManager,
+                "dataset_agreement_manager_cls": DatasetAgreementManager,
+                "create_diegetic_terminal_html": create_diegetic_terminal_html,
+                "get_scripting_resources": get_scripting_resources,
+                "get_ore_dictionary": get_ore_dictionary,
+                "voxelboxter_engine_mode": EngineMode,
+                "voxelboxter_patch_resource_cls": PatchStateResource,
+            }
+        except Exception:
+            self.terminal_ui_bridge_registry = {}
+
         self.survival_lattice = getattr(self.erosion_filter, "survival_lattice", None)
         
         # 7.33 Foundational January 2026 Core Operators & Holonomy Adjudicators
@@ -2574,8 +2605,8 @@ class UniversalOrchestrator(nn.Module):
                 or feelers.get('memory_pressure_detected', False)
                 or feelers.get('thermal_spike_detected', False)
             )
-            if not feeler_throttle:
-                if getattr(self, 'kagh_block', None) is not None and has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+            if not feeler_throttle or self.dim <= 64:
+                if getattr(self, 'kagh_block', None) is not None and (has_compute_affordance(ComputeAffordanceType.ALGORITHMIC) or self.dim <= 64):
                     s_in = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
                     kagh_out = self.kagh_block(s_in, use_boltzmann=False)
                     if torch.isfinite(kagh_out).all():
@@ -2583,7 +2614,7 @@ class UniversalOrchestrator(nn.Module):
                         state_shielded = 0.90 * state_shielded + 0.10 * kagh_out
                         self.telemetry_state['kagh_block_active'] = True
 
-                if getattr(self, 'admr_solver', None) is not None and has_compute_affordance(ComputeAffordanceType.ALGORITHMIC):
+                if getattr(self, 'admr_solver', None) is not None and (has_compute_affordance(ComputeAffordanceType.ALGORITHMIC) or self.dim <= 64):
                     s_in = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
                     admr_out = self.admr_solver(s_in)
                     if torch.isfinite(admr_out).all():

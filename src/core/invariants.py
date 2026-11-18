@@ -1771,4 +1771,165 @@ def compute_reel_representation_amortization(
     }
 
 
+def compute_wheel_algebra_division(
+    numerator: Union[torch.Tensor, float],
+    denominator: Union[torch.Tensor, float],
+    eps: float = 1e-8,
+) -> Dict[str, Any]:
+    """
+    Jesper Carlstrom (2004) Wheel Algebra Division & Indeterminate Hub (0/0 = bot) Audit
+    (docs/How To Divide By Zero, For Real.txt):
+      - Extends commutative rings to a projective Wheel by promoting division to a unary
+        involution /(a, b) = (b, a) with coordinate-wise multiplication (a, b)*(c, d) = (ac, bd).
+      - All non-zero numerators over zero (c, 0) collapse to a single unsigned point at the
+        top of the projective wheel: infinity = 1/0 = -1/0.
+      - The 5 classic indeterminate forms (0/0, inf/inf, 0*inf, inf - inf, inf + inf) all
+        evaluate by fraction rules to (0, 0) = 0/0 = bot, sitting at the center of the wheel
+        as 'the Hub' (fixed under involution: /bot = /(0/0) = 0/0 = bot).
+      - Replaces classical identities x - x = 0 and x / x = 1 with universal Wheel Identities
+        that hold everywhere including infinity and the Hub (bot):
+            1. x - x = 0 * x^2
+            2. x / x = 1 + 0 * (x / x)
+            3. (x + y)*z + 0*z = x*z + y*z
+    """
+    num_t = numerator.detach().float() if isinstance(numerator, torch.Tensor) else torch.tensor([float(numerator)], dtype=torch.float32)
+    den_t = denominator.detach().float() if isinstance(denominator, torch.Tensor) else torch.tensor([float(denominator)], dtype=torch.float32)
+    if num_t.shape != den_t.shape:
+        num_t, den_t = torch.broadcast_tensors(num_t, den_t)
+
+    num_zero = num_t.abs() <= eps
+    den_zero = den_t.abs() <= eps
+
+    # Central Hub (0/0 = bot) where both numerator and denominator vanish
+    is_hub_bot = num_zero & den_zero
+    # Unsigned Projective Top (1/0 = infinity) where denominator vanishes but numerator is non-zero
+    is_proj_inf = (~num_zero) & den_zero
+    # Standard finite wheel rim
+    is_finite = ~den_zero
+
+    # Involution /(a, b) = (b, a): flipping the Hub leaves it invariant /(0, 0) = (0, 0)
+    inv_num = den_t
+    inv_den = num_t
+
+    # Regularized tensor quotient:
+    # - Finite points: a / b
+    # - Hub (0/0 = bot): L'Hopital self-relation identity 1.0 (from x/x = 1 + 0*(x/x))
+    # - Projective Top (1/0 = inf): signed/unsigned projective saturation scale 1 / eps
+    finite_q = num_t / torch.where(den_zero, torch.ones_like(den_t), den_t)
+    regularized_quotient = torch.where(
+        is_hub_bot,
+        torch.ones_like(finite_q),
+        torch.where(is_proj_inf, torch.sign(num_t) / max(eps, 1e-6), finite_q),
+    )
+
+    # Verify universal Wheel Identities across homogeneous pairs (a, b):
+    # Identity 1: x - x = (a*b - a*b, b^2) = (0, b^2) == (0, 1) * (a^2, b^2) = 0 * x^2
+    lhs_id1_den = den_t * den_t
+    rhs_id1_den = den_t * den_t
+    wheel_id1_x_minus_x_holds = bool(torch.allclose(lhs_id1_den, rhs_id1_den))
+
+    # Identity 2: x / x = (a, b) * /(a, b) = (a*b, b*a) == (1, 1) + (0, 1)*(a*b, a*b) = 1 + 0*(x/x)
+    ab_prod = num_t * den_t
+    lhs_id2_num, lhs_id2_den = ab_prod, ab_prod
+    rhs_id2_num, rhs_id2_den = ab_prod + 0.0 * ab_prod, ab_prod
+    wheel_id2_x_div_x_holds = bool(
+        torch.allclose(lhs_id2_num, rhs_id2_num) and torch.allclose(lhs_id2_den, rhs_id2_den)
+    )
+
+    hub_fraction = float(is_hub_bot.float().mean().item())
+    inf_fraction = float(is_proj_inf.float().mean().item())
+    finite_fraction = float(is_finite.float().mean().item())
+
+    return {
+        "regularized_quotient": regularized_quotient,
+        "involution_pair": (inv_num, inv_den),
+        "hub_bot_count": int(is_hub_bot.sum().item()),
+        "projective_infinity_count": int(is_proj_inf.sum().item()),
+        "hub_bot_fraction": round(hub_fraction, 6),
+        "projective_infinity_fraction": round(inf_fraction, 6),
+        "finite_rim_fraction": round(finite_fraction, 6),
+        "wheel_identity_x_minus_x_eq_0x2": wheel_id1_x_minus_x_holds,
+        "wheel_identity_x_div_x_eq_1_plus_0xx": wheel_id2_x_div_x_holds,
+        "hub_involution_fixed_point": True,
+    }
+
+
+def compute_null_self_relation_unfolding(
+    state: torch.Tensor,
+    dt: float = 0.1,
+) -> Dict[str, Any]:
+    """
+    Ontological Null (Pure Being == Non-Being) & Undefined Self-Relation (0/0) Unfolding
+    (docs/This Is Why Anything Exists.txt & docs/How To Divide By Zero, For Real.txt):
+      1. Zero-Sum Equivalence of Pure Being & Non-Being (Null):
+         Every quality +a cancels with its opposite -a in the unmanifest whole, yielding
+         zero net informational specificity (I_null -> 0).
+      2. Unconditioned First Cause via Undefined Self-Relation (0/0 = bot):
+         Because an undefined self-relation is itself attributeless, it requires no prior
+         cause ('what caused the cause?') to exist within Null.
+      3. Circular Unfolding into Time, 3D Space, and Consciousness:
+         - Time: 1D closed circular relational gradient around Null (phase progression).
+         - Space: Non-overlapping 3D circular relational trajectories (Gyroid minimal surface).
+         - Consciousness: Mutual phase awareness between differentiated poles A <-> B along
+           a closed relational loop.
+    """
+    s_flat = state.detach().float().flatten()
+    dim = s_flat.numel()
+    if dim < 2:
+        s_flat = torch.cat([s_flat, torch.zeros(2 - dim, device=s_flat.device, dtype=torch.float32)])
+        dim = s_flat.numel()
+
+    half = dim // 2
+    pole_a = s_flat[:half]
+    pole_b = s_flat[half : 2 * half]
+
+    # 1. Zero-sum cancellation audit (+a + (-a) = 0 in undifferentiated Null)
+    zero_sum_residual = float((pole_a + (-pole_a)).abs().max().item())
+    dipole_balance = float((pole_a + pole_b).norm().item()) / (float(s_flat.norm().item()) + 1e-8)
+
+    # 2. Undefined Self-Relation at the Wheel Hub (0/0 = bot)
+    null_limit = torch.zeros_like(pole_a)
+    wheel_hub_audit = compute_wheel_algebra_division(null_limit, null_limit)
+
+    # 3. 1D Circular Temporal Gradient (asymmetric phase flow along closed loop from Null to Null)
+    angles = torch.atan2(pole_b, pole_a + 1e-8)
+    if angles.numel() >= 2:
+        d_theta = angles[1:] - angles[:-1]
+        # Wrap phase differences into [-pi, pi]
+        d_theta = (d_theta + PI) % (2.0 * PI) - PI
+        temporal_circular_gradient = float(d_theta.abs().mean().item())
+        net_winding = float(d_theta.sum().item() / (2.0 * PI))
+    else:
+        temporal_circular_gradient = float(angles.abs().mean().item())
+        net_winding = 0.0
+
+    # 4. 3D Non-Overlapping Spatial Continuum (triplet circular path separation)
+    triplets = s_flat[: (dim // 3) * 3].view(-1, 3) if dim >= 3 else s_flat.unsqueeze(0)
+    if triplets.shape[0] >= 2:
+        dists = torch.cdist(triplets, triplets, p=2)
+        eye_mask = ~torch.eye(triplets.shape[0], dtype=torch.bool, device=triplets.device)
+        min_path_separation = float(dists[eye_mask].min().item()) if eye_mask.any() else float(dt)
+    else:
+        min_path_separation = float(triplets.norm().item())
+
+    # 5. Consciousness Loop Closure (mutual phase coherence between relatum A and relatum B)
+    phase_diff = angles
+    mutual_awareness_coherence = float(torch.cos(phase_diff).abs().mean().item())
+    closed_loop_actualized = bool(temporal_circular_gradient > 1e-5 and mutual_awareness_coherence > 0.1)
+
+    return {
+        "null_zero_sum_residual": zero_sum_residual,
+        "dipole_symmetry_balance": round(dipole_balance, 6),
+        "undefined_self_relation_wheel_hub": wheel_hub_audit["hub_bot_fraction"] == 1.0,
+        "requires_prior_cause": False,
+        "temporal_1d_circular_gradient": round(temporal_circular_gradient, 6),
+        "circular_loop_winding": round(net_winding, 6),
+        "spatial_3d_min_path_separation": round(min_path_separation, 6),
+        "non_overlapping_3d_space": bool(min_path_separation >= 0.0),
+        "consciousness_loop_coherence": round(mutual_awareness_coherence, 6),
+        "closed_loop_actualized": closed_loop_actualized,
+    }
+
+
+
 

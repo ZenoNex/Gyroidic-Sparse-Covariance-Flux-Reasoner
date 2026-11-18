@@ -288,6 +288,7 @@ def test_procedural_void_homing_and_centroid_contract():
     assert res["manifold_centroid"] == [20.0, 30.0, 40.0]
     assert res["nearest_anchor"] is not None
     assert res["nearest_anchor"]["id"] == "n2"
+    assert len(res["hub_waypoints"]) == 2
 
     term_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'diegetic_terminal.html')
     with open(term_path, 'r', encoding='utf-8') as f:
@@ -296,6 +297,8 @@ def test_procedural_void_homing_and_centroid_contract():
     assert "hud-void-beacon" in html
     assert "homeGraphCamera" in html
     assert "installSpatialReferenceFrame" in html
+    assert "graph-hub-select" in html
+    assert "cycleNextHub" in html
 
 
 def test_graph_connectivity_no_severed_islands():
@@ -378,6 +381,75 @@ def test_birkhoff_direct_256_and_orchestrator_bridges():
     tm = TrainingManager(ai_system=None)
     for attr in ["gyroid_projector", "sparse_covariant_optimizer", "topological_pressure_monitor"]:
         assert hasattr(tm, attr), f"Missing TrainingManager attribute: {attr}"
+
+
+def test_wheel_algebra_null_self_relation_and_vanellope_admr_shear():
+    import torch
+    from src.core.invariants import (
+        compute_wheel_algebra_division,
+        compute_null_self_relation_unfolding,
+    )
+    from src.governance.causative.vanellope_first_causative import VanellopeFirstCausativeAgent
+    from src.core.admr_solver import PolynomialADMRSolver
+    from src.core.ley_line_tracker import LeyLineTracker
+    from src.topology.embedding_graph import GyroidicGraphManager
+
+    # 1. Wheel Algebra (Carlstrom 2004, docs/How To Divide By Zero, For Real.txt)
+    num = torch.tensor([0.0, 1.0, -2.5, 4.0])
+    den = torch.tensor([0.0, 0.0, 0.0, 2.0])
+    wheel_res = compute_wheel_algebra_division(num, den)
+    assert wheel_res["hub_bot_count"] == 1
+    assert wheel_res["projective_infinity_count"] == 2
+    assert wheel_res["wheel_identity_x_minus_x_eq_0x2"] is True
+    assert wheel_res["wheel_identity_x_div_x_eq_1_plus_0xx"] is True
+    assert wheel_res["hub_involution_fixed_point"] is True
+    assert abs(float(wheel_res["regularized_quotient"][0].item()) - 1.0) < 1e-6
+    assert abs(float(wheel_res["regularized_quotient"][3].item()) - 2.0) < 1e-6
+
+    # 2. Ontological Null Self-Relation Unfolding (docs/This Is Why Anything Exists.txt)
+    state = torch.tensor([0.6, -0.4, 0.8, 0.3, -0.5, 0.7, 0.2, -0.9, 0.4, 0.5, -0.3, 0.6])
+    null_res = compute_null_self_relation_unfolding(state)
+    assert null_res["null_zero_sum_residual"] == 0.0
+    assert null_res["undefined_self_relation_wheel_hub"] is True
+    assert null_res["requires_prior_cause"] is False
+    assert null_res["non_overlapping_3d_space"] is True
+    assert null_res["closed_loop_actualized"] is True
+
+    # 3. Vanellope First Causative Agent grounding in Ontological Null & Wheel Hub
+    vanellope = VanellopeFirstCausativeAgent(state_dim=12)
+    u_state = torch.ones(12)
+    mutated, telemetry = vanellope(u_state, context_text="um... glitch spark!")
+    assert mutated.shape == u_state.shape
+    assert telemetry["is_independent_from_universe"] is True
+    assert telemetry["universe_orthogonality_cosine"] < 1e-4
+    assert "null_self_relation_first_cause" in telemetry
+    assert telemetry["null_self_relation_first_cause"]["requires_prior_cause"] is False
+    assert telemetry["null_self_relation_first_cause"]["wheel_identity_x_div_x_verified"] is True
+
+    # 4. PolynomialADMRSolver Wheel Multiplicative Remainders
+    admr = PolynomialADMRSolver(poly_config=None, state_dim=12)
+    admr_audit = admr.audit_wheel_multiplicative_remainders(state)
+    assert admr_audit["projected_state"].shape[-1] == 12
+    assert admr_audit["wheel_identity_x_minus_x_eq_0x2"] is True
+    assert admr_audit["wheel_identity_x_div_x_eq_1_plus_0xx"] is True
+
+    # 5. LeyLineTracker Secant & Shear Plane Wheel Transversality
+    tracker = LeyLineTracker(num_samples=4)
+    states_batch = torch.randn(4, 12)
+    pressures = torch.tensor([0.1, 0.9, 0.9, 0.2])
+    secant_audit = tracker.compute_secant_shear_wheel_transversality(states_batch, pressures, threshold=0.3)
+    assert secant_audit["wheel_identities_verified"] is True
+    assert secant_audit["active_shear_plane_count"] >= 1
+
+    # 6. GyroidicGraphManager Wheel Hub (0/0 = bot) Waypoint Role
+    coords = [
+        ("center_node", "Center", 0.0, 0.0, 0.0, 10.0),
+        ("rim_node_1", "Rim 1", 200.0, 0.0, 0.0, 200.0),
+        ("rim_node_2", "Rim 2", -200.0, 150.0, 0.0, 250.0),
+    ]
+    hubs = GyroidicGraphManager._compute_hub_waypoints(coords, [0.0, 0.0, 0.0])
+    assert any(h.get("hub_role") == "WHEEL_HUB_0_OVER_0" and h["id"] == "center_node" for h in hubs)
+
 
 
 if __name__ == "__main__":

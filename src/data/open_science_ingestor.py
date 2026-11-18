@@ -102,21 +102,23 @@ class OpenScienceIngestor:
                         if logits.dim() == 1:
                             logits = logits.unsqueeze(0)
 
-                        # Clean vocabulary filtering
-                        for idx in range(min(128, logits.shape[-1])):
-                            if idx < 32 or idx > 126:
+                        # Clean vocabulary filtering across full logit width
+                        prev_char = generated_chars[-1] if generated_chars else ' '
+                        for idx in range(logits.shape[-1]):
+                            if not (idx == 32 or (48 <= idx <= 57) or (65 <= idx <= 90) or (97 <= idx <= 122)):
+                                logits[0, idx] = -1e9
+                            elif idx == 32 and prev_char == ' ':
                                 logits[0, idx] = -1e9
 
                         # Syllable-coherent vowel modulation (Chern-Simons gasket acoustic rule)
-                        prev_char = generated_chars[-1] if generated_chars else ' '
                         if prev_char not in vowels and prev_char.isalpha():
                             for v in vowels:
                                 if ord(v) < logits.shape[-1]:
-                                    logits[0, ord(v)] *= 1.4
+                                    logits[0, ord(v)] += 1.8
                         elif prev_char in vowels:
                             for v in vowels:
                                 if ord(v) < logits.shape[-1]:
-                                    logits[0, ord(v)] *= 0.4
+                                    logits[0, ord(v)] -= 1.4
 
                         from src.core.gluing_operator import LazarusSoftmax
                         lazarus = LazarusSoftmax(dim=-1).to(logits.device)

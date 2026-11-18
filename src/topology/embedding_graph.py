@@ -4,6 +4,7 @@ import os
 import json
 import math
 import time
+import threading
 from typing import List, Dict, Any, Optional, Tuple
 
 class KnowledgeFossilNode:
@@ -74,6 +75,7 @@ class GyroidicGraphManager:
         self.loaded_from_snapshot = False
         self._cached_edges: Optional[List[Dict[str, Any]]] = None
         self._edges_dirty: bool = True
+        self._load_lock = threading.Lock()
         
     def get_valid_node_count(self) -> int:
         """Returns the number of actual nodes, excluding uncollapsed homological ghost cycles."""
@@ -92,6 +94,10 @@ class GyroidicGraphManager:
         Attempts to load from a unified snapshot first for maximum performance.
         If snapshot has fewer nodes than limit, continues scanning disk to fulfill limit.
         """
+        with self._load_lock:
+            return self._load_fossils_locked(limit=limit, scan_limit=scan_limit, use_snapshot=use_snapshot)
+
+    def _load_fossils_locked(self, limit: int = 150, scan_limit: int = 500, use_snapshot: bool = True):
         scan_limit = min(scan_limit, (limit * 2) if limit else 500)
         loaded_full_from_snapshot = False
         snapshot_path = os.path.join(self.data_dir, "neglecton_snapshot.pt")
@@ -100,10 +106,11 @@ class GyroidicGraphManager:
                 print(f"[GRAPH] Loading Neglecton from snapshot: {snapshot_path}")
                 data = torch.load(snapshot_path, map_location='cpu', weights_only=False)
                 self.load_memory_snapshot(data)
+                self._snapshot_node_count = len(self.nodes)
                 if len(self.nodes) > 0:
-                    loaded_full_from_snapshot = True
                     if limit and 0 < limit < len(self.nodes):
                         self.nodes = self.nodes[:limit]
+                    loaded_full_from_snapshot = (not limit) or (len(self.nodes) >= limit)
             except Exception as e:
                 print(f"[GRAPH] Snapshot corrupt or incompatible: {e}. Falling back to scan.")
 
@@ -127,13 +134,17 @@ class GyroidicGraphManager:
                 existing_states = torch.stack([n.state for n in self.nodes])
                 existing_norms = existing_states / (torch.norm(existing_states, dim=1, keepdim=True) + 1e-8)
                 existing_texts = [n.text for n in self.nodes]
+                existing_ids = {n.node_id for n in self.nodes}
             else:
                 existing_norms = torch.empty((0, self.dim))
                 existing_texts = []
+                existing_ids = set()
 
             scan_start_time = time.time()
             max_scan_time_sec = 2.5  # Strict latency guard: never hang server for minutes
             for f in files:
+                if f in existing_ids:
+                    continue
                 if len(self.nodes) >= limit: break
                 if time.time() - scan_start_time > max_scan_time_sec:
                     print(f"[GRAPH] Disk scan reached latency budget ({max_scan_time_sec}s). Loaded {len(self.nodes)} nodes total.")
@@ -141,6 +152,8 @@ class GyroidicGraphManager:
                 
                 try:
                     path = os.path.join(self.data_dir, f)
+                    if os.path.getsize(path) > 2_000_000:
+                        continue
                     data = torch.load(path, map_location='cpu', weights_only=False)
                     
                     # Extract embeddings. Fallback sequence: meta_state -> memory_state -> input_tensor
@@ -193,6 +206,7 @@ class GyroidicGraphManager:
                     print(f"Failed to load fossil {f}: {e}")
                     
         self.loaded_from_snapshot = loaded_full_from_snapshot
+        self._last_scan_limit = max(int(getattr(self, '_last_scan_limit', 0) or 0), int(limit or 0))
         # Invalidate edge cache so it is cleanly populated on next access
         self._cached_edges = None
         self._edges_dirty = True
@@ -312,34 +326,46 @@ class GyroidicGraphManager:
 
     def compute_3d_projection(self, state: torch.Tensor, scale: float = 600.0) -> Tuple[float, float, float]:
         """
-        Deterministic 3D harmonic projection of high-dimensional embedding onto 3D manifold.
-        Uses 3 orthogonal Fourier harmonic modes:
-            w_x = cos(2*pi*t/D)
-            w_y = sin(2*pi*t/D)
-            w_z = cos(4*pi*t/D) * sin(2*pi*t/D) (Gyroidic nodal surface cross-term)
+        Deterministic multi-harmonic 3D Gyroid projection with S^{D-1} volume
+        compensation (sqrt(dim) rescaling against concentration-of-measure
+        collapse) across prime-indexed harmonics weighted by PAS_h (~ 1/sqrt(k+1)).
         """
         try:
             device = state.device
-            dim = state.shape[0] if state.dim() > 0 else 1
+            s = state.float().flatten()
+            dim = s.shape[0] if s.dim() > 0 else 1
             if dim < 3:
                 return 0.0, 0.0, 0.0
+
+            s_norm = float(torch.norm(s).item())
+            if s_norm <= 1e-8 or not math.isfinite(s_norm):
+                return 0.0, 0.0, 0.0
+
+            # Compensate for concentration of measure on high-dim unit sphere S^{D-1}
+            s_unit = s * (math.sqrt(float(dim)) / s_norm)
+
             t = torch.arange(dim, dtype=torch.float32, device=device)
-            w_x = torch.cos(2.0 * math.pi * t / dim)
-            w_y = torch.sin(2.0 * math.pi * t / dim)
-            w_z = torch.cos(4.0 * math.pi * t / dim) * torch.sin(2.0 * math.pi * t / dim)
-            
+            w_x = torch.zeros_like(t)
+            w_y = torch.zeros_like(t)
+            w_z = torch.zeros_like(t)
+            for idx, p in enumerate((1.0, 2.0, 3.0, 5.0, 7.0, 11.0)):
+                weight = 1.0 / math.sqrt(idx + 1.0)
+                w_x = w_x + weight * torch.cos(2.0 * math.pi * p * t / dim)
+                w_y = w_y + weight * torch.sin(2.0 * math.pi * p * t / dim)
+                w_z = w_z + weight * torch.cos(2.0 * math.pi * (p + 1.0) * t / dim) * torch.sin(2.0 * math.pi * p * t / dim)
+
             w_x = w_x / (torch.norm(w_x) + 1e-8)
             w_y = w_y / (torch.norm(w_y) + 1e-8)
             w_z = w_z / (torch.norm(w_z) + 1e-8)
-            
-            s = state.float().flatten()[:dim]
-            x_raw = float(torch.dot(s, w_x).item())
-            y_raw = float(torch.dot(s, w_y).item())
-            z_raw = float(torch.dot(s, w_z).item())
-            
-            r = math.sqrt(x_raw*x_raw + y_raw*y_raw + z_raw*z_raw)
+
+            x_raw = float(torch.dot(s_unit, w_x).item())
+            y_raw = float(torch.dot(s_unit, w_y).item())
+            z_raw = float(torch.dot(s_unit, w_z).item())
+
+            r = math.sqrt(x_raw * x_raw + y_raw * y_raw + z_raw * z_raw)
             if r > 1e-6:
-                r_scaled = math.tanh(r / 2.0) * scale
+                shell = 0.25 + 0.75 * math.tanh(r / 1.35)
+                r_scaled = shell * scale
                 return (x_raw / r) * r_scaled, (y_raw / r) * r_scaled, (z_raw / r) * r_scaled
             return 0.0, 0.0, 0.0
         except Exception:
@@ -630,6 +656,7 @@ class GyroidicGraphManager:
         valid_count = 0
         nearest_anchor = None
         nearest_anchor_dist = float("inf")
+        all_coords = []
 
         nodes_snapshot = list(self.nodes)
         for n in nodes_snapshot:
@@ -639,8 +666,10 @@ class GyroidicGraphManager:
             self.ensure_node_coordinates(n)
             if isinstance(n, dict):
                 x, y, z = float(n.get("x", 0.0)), float(n.get("y", 0.0)), float(n.get("z", 0.0))
+                lbl = str(n.get("text", "") or n.get("label", "") or nid)[:32]
             else:
                 x, y, z = float(n.x or 0.0), float(n.y or 0.0), float(n.z or 0.0)
+                lbl = str(getattr(n, "text", "") or nid)[:32]
             
             sum_x += x
             sum_y += y
@@ -650,6 +679,7 @@ class GyroidicGraphManager:
             # Relative vector from camera
             dx, dy, dz = x - cx, y - cy, z - cz
             dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+            all_coords.append((str(nid), lbl, x, y, z, dist))
             if dist < nearest_anchor_dist:
                 nearest_anchor_dist = dist
                 nearest_anchor = {
@@ -801,6 +831,7 @@ class GyroidicGraphManager:
             [round(sum_x / valid_count, 2), round(sum_y / valid_count, 2), round(sum_z / valid_count, 2)]
             if valid_count > 0 else [0.0, 0.0, 0.0]
         )
+        hub_waypoints = self._compute_hub_waypoints(all_coords, manifold_centroid)
 
         return {
             "nodes": nodes_data,
@@ -810,6 +841,7 @@ class GyroidicGraphManager:
             "total_nodes": len(self.nodes),
             "manifold_centroid": manifold_centroid,
             "nearest_anchor": nearest_anchor,
+            "hub_waypoints": hub_waypoints,
             "procedural_stats": {
                 "total_available": len(self.nodes),
                 "visible_count": len(nodes_data),
@@ -824,6 +856,7 @@ class GyroidicGraphManager:
                 "compute_feelers": feeler_telemetry,
                 "manifold_centroid": manifold_centroid,
                 "nearest_anchor": nearest_anchor,
+                "hub_count": len(hub_waypoints),
             }
         }
 
@@ -851,12 +884,15 @@ class GyroidicGraphManager:
 
         seen_canonical = set()
         sequences: List[Dict[str, Any]] = []
+        dfs_steps = 0
+        max_dfs_steps = 4000
 
         for start in sorted(adj.keys()):
-            if len(sequences) >= max_sequences:
+            if len(sequences) >= max_sequences or dfs_steps >= max_dfs_steps:
                 break
             stack: List[Tuple[str, List[str]]] = [(start, [start])]
-            while stack and len(sequences) < max_sequences:
+            while stack and len(sequences) < max_sequences and dfs_steps < max_dfs_steps:
+                dfs_steps += 1
                 curr, path = stack.pop()
                 for nxt in adj.get(curr, []):
                     if nxt == start and len(path) >= 3:
@@ -970,11 +1006,17 @@ class GyroidicGraphManager:
         fossil_data = []
         nodes_snapshot = list(self.nodes)
         for n in nodes_snapshot:
+            self.ensure_node_coordinates(n)
             fossil_data.append({
                 "node_id": n.node_id,
                 "state": n.state.detach().cpu(), # The embedding seed
                 "text": n.text,
-                "metrics": n.metrics
+                "metrics": n.metrics,
+                "x": n.x,
+                "y": n.y,
+                "z": n.z,
+                "px": n.px,
+                "py": n.py,
             })
             
         return {
@@ -1017,9 +1059,86 @@ class GyroidicGraphManager:
                 text=node_data["text"],
                 metrics=node_data["metrics"]
             )
+            if node_data.get("x") is not None and node_data.get("y") is not None and node_data.get("z") is not None:
+                node.x = float(node_data["x"])
+                node.y = float(node_data["y"])
+                node.z = float(node_data["z"])
+            if node_data.get("px") is not None and node_data.get("py") is not None:
+                node.px = float(node_data["px"])
+                node.py = float(node_data["py"])
             self.nodes.append(node)
             
         print(f"[RECOVERY] Fossilized graph restored: {len(self.nodes)} nodes injected into the Neglecton.")
+
+    @staticmethod
+    def _compute_hub_waypoints(
+        all_coords: List[Tuple[str, str, float, float, float, float]],
+        manifold_centroid: List[float],
+        max_hubs: int = 128,
+    ) -> List[Dict[str, Any]]:
+        """
+        Farthest-point topological hub discovery (TC(X) multi-chart landmarks)
+        with a minimum spatial separation threshold so dense clusters do
+        not monopolize waypoint slots.
+        """
+        hub_waypoints: List[Dict[str, Any]] = []
+        if not all_coords:
+            return hub_waypoints
+
+        mx, my, mz = manifold_centroid
+        seed = max(all_coords, key=lambda c: (c[2] - mx) ** 2 + (c[3] - my) ** 2 + (c[4] - mz) ** 2)
+        seed_d2 = (seed[2] - mx) ** 2 + (seed[3] - my) ** 2 + (seed[4] - mz) ** 2
+        seed_dist = math.sqrt(seed_d2)
+        min_sep = max(1.0, min(42.0, 0.35 * seed_dist), 0.075 * seed_dist)
+        min_sep_sq = min_sep * min_sep
+
+        selected = [seed]
+        min_d2 = [
+            (c[2] - seed[2]) ** 2 + (c[3] - seed[3]) ** 2 + (c[4] - seed[4]) ** 2
+            for c in all_coords
+        ]
+        cap = min(max_hubs, len(all_coords))
+        while len(selected) < cap:
+            best_idx = max(range(len(all_coords)), key=lambda idx: min_d2[idx])
+            if min_d2[best_idx] < min_sep_sq:
+                break
+            nxt = all_coords[best_idx]
+            selected.append(nxt)
+            for idx, c in enumerate(all_coords):
+                d2 = (c[2] - nxt[2]) ** 2 + (c[3] - nxt[3]) ** 2 + (c[4] - nxt[4]) ** 2
+                if d2 < min_d2[idx]:
+                    min_d2[idx] = d2
+
+        # Identify the central Wheel Algebra Hub (0/0 = bot, Carlstrom 2004,
+        # docs/How To Divide By Zero, For Real.txt): the node closest to the
+        # manifold centroid / projective origin where undefined self-relation resides.
+        central_wheel_hub = min(
+            all_coords,
+            key=lambda c: (c[2] - mx) ** 2 + (c[3] - my) ** 2 + (c[4] - mz) ** 2,
+        )
+        central_hub_id = central_wheel_hub[0]
+
+        for idx_h, h in enumerate(selected):
+            hub_waypoints.append({
+                "id": h[0],
+                "label": h[1],
+                "x": round(h[2], 2),
+                "y": round(h[3], 2),
+                "z": round(h[4], 2),
+                "dist": round(h[5], 2),
+                "hub_role": "WHEEL_HUB_0_OVER_0" if h[0] == central_hub_id else ("PROJECTIVE_RIM_SEED" if idx_h == 0 else "TC_CHART_HUB"),
+            })
+        if all(w["id"] != central_hub_id for w in hub_waypoints) and len(hub_waypoints) < max_hubs:
+            hub_waypoints.insert(0, {
+                "id": central_wheel_hub[0],
+                "label": central_wheel_hub[1],
+                "x": round(central_wheel_hub[2], 2),
+                "y": round(central_wheel_hub[3], 2),
+                "z": round(central_wheel_hub[4], 2),
+                "dist": round(central_wheel_hub[5], 2),
+                "hub_role": "WHEEL_HUB_0_OVER_0",
+            })
+        return hub_waypoints
 
     def export_graph_json(self) -> str:
         """Export nodes and edges with Rich Metadata."""
@@ -1036,6 +1155,8 @@ class GyroidicGraphManager:
 
         nodes_data = []
         valid_node_ids = set()
+        all_coords = []
+        sum_x = sum_y = sum_z = 0.0
         nodes_snapshot = list(self.nodes)
         for n in nodes_snapshot:
             if "ghost" in n.node_id.lower() or "live_damage" in n.node_id.lower():
@@ -1045,7 +1166,12 @@ class GyroidicGraphManager:
             valid_node_ids.add(n.node_id)
             self.ensure_node_coordinates(n)
             px, py = n.px, n.py
-            x3, y3, z3 = n.x, n.y, n.z
+            x3, y3, z3 = float(n.x), float(n.y), float(n.z)
+            sum_x += x3
+            sum_y += y3
+            sum_z += z3
+            dist_origin = math.sqrt(x3 * x3 + y3 * y3 + (z3 - 500.0) ** 2)
+            all_coords.append((str(n.node_id), str(n.text[:32]), x3, y3, z3, dist_origin))
             nodes_data.append({
                 "id": str(n.node_id),
                 "label": str(n.text[:100]),
@@ -1066,8 +1192,19 @@ class GyroidicGraphManager:
                 "type": n.metrics.get("type", "fossil")
             })
 
+        n_cnt = len(all_coords)
+        manifold_centroid = (
+            [round(sum_x / n_cnt, 2), round(sum_y / n_cnt, 2), round(sum_z / n_cnt, 2)]
+            if n_cnt > 0 else [0.0, 0.0, 0.0]
+        )
+        hub_waypoints = self._compute_hub_waypoints(all_coords, manifold_centroid)
         valid_edges = [e for e in edges if e['source'] in valid_node_ids and e['target'] in valid_node_ids]
-        return json.dumps({"nodes": nodes_data, "links": valid_edges})
+        return json.dumps({
+            "nodes": nodes_data,
+            "links": valid_edges,
+            "manifold_centroid": manifold_centroid,
+            "hub_waypoints": hub_waypoints,
+        })
 
     def generate_mermaid_text(self) -> str:
         """

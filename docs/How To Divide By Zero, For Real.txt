@@ -1,0 +1,63 @@
+If you type 1 / 0 into a calculator, you'll get an error. In ordinary arithmetic, zero is the only number you can't divide by. But there's a way to divide by zero for real. Every number divided by zero gets an answer: zero divided by zero included. Now, if you use an old mechanical calculator, it divides by subtracting over and over counting the number of turns. If you give it 12 / 3, it takes three away four times and there's nothing left. So the answer is four. Give it 1 / 0, every turn takes away nothing. The one never gets used up and the machine never finishes.
+
+And that's why, essentially, 1 / 0 has no answer. No number of zeros ever adds up to one. And division by zero has a tripped up machines bigger than a calculator. The Navy cruiser USS Yorktown had a zero in its data where it didn't belong, and the software tried to divide by it. The ship's computer network crashed and the cruiser lost control of its propulsion.
+
+By the Navy's own accounts, the ship was dead in the water for more than two hours. Since dividing by zero head-on seems to fail, we can try to sneak up on it. Here's a number line laid out like a tape on the floor. Now we can't divide by zero, but we can divide by numbers. close to it,
+
+Plant a flag on each answer. 1 / 1 is 1.. 1 / a tenth is 10..
+
+Dividing by a hundredth gives a hundred. Dividing by a thousandth gives a thousand. The closer the number we're dividing by gets to zero, the farther out the flag goes and there's no last flag. Now, if we come from zero on the negative side, the flags run off the other end of the tape. So if we were doing 1 / 0 using this method or this intuition, dividing by zero would sort of have two answers: one at positive infinity and one at negative infinity. So that doesn't feel quite right.
+
+But let's give our tape one end instead of two. Stand it up as a ring or a wheel. Each number slides onto the ring along a straight line aimed at the ring's top. Zero stays where it was One and negative one land on the two sides. Numbers far from zero crowd towards the top And the two ends of the tape meet up there at a single point.
+
+And that point has no sign because both ends arrive at the same place. It's just infinity. The ring has just a single infinity. Here's what dividing by a number does to the ring: Turn the ring over top to bottom, One and negative one. stay put
+
+Two lands where half was A, half lands where two was Zero and the top trade places. If we add five to every number, every point on the ring moves except the top. Infinity plus five is still infinity. In the 1100s an Indian mathematician called a number divided by zero an infinite quantity. He wrote that adding to it or taking away from it changes nothing.
+
+Now the ring's one infinity also gives a steep line's slope somewhere to go. Remember: a line's slope is its rise divided by its run. Change in Y over change in X, if you like.
+
+If you take a straight line flat at first, a bead on the ring marks that number's slope. As the line goes up, the slope grows and the bead climbs right along the ring Straight up. the rise is one and the run is zero. So the slope is 1 over 0.. The bead is at the top.
+
+What we would think of as an undefined slope, A little past straight up its slope is a big negative number. The bead comes over the top down the left side, with no jump at all On the tape.
+
+That slope would have to leap from one end to the other. Now five expressions still have nowhere to go: 0 over 0, infinity over infinity. 0 * infinity. infinity - infinity and infinity + infinity.
+
+Take 0 * infinity. We're claiming 1 over 0 is infinity. So if multiplying undoes dividing, infinity * 0 should be 1.. But 2 over 0 is infinity too. So infinity * 0 should also be 2.. And no point on our ring can be 1 and 2 at the same time. 0 over 0 has the same problem. Every number * 0 is 0, so every number would check out. Infinity over infinity has it too. since infinity * any number except 0, should be infinity.
+
+So does infinity - infinity, since any number + infinity should be infinity. Infinity + infinity is the same. Undoing it means taking infinity away and on the ring any number - infinity is infinity. Each tile has more than one point that checks out. So no single point can be its answer. Every one of them falls through the middle of the ring and there's nothing in the middle to catch them. A computer chip has its own answers for these tiles. For tiles like these, most computers follow a standard.
+
+This is some JavaScript that you can use and try yourself. 1 / 0 gives infinity. -1 / 0 gives negative infinity. So this chip keeps the two ends.
+
+A number too big for the chip comes back as infinity too, and it keeps its sign. With only one infinity. that sign would be lost.
+
+0 / 0 gives not a number. Infinity minus infinity, 0 * infinity and infinity over infinity give the same result: Infinity plus infinity. well, that gives infinity, But not a number swallows anything you add to it or multiply by it. So not a number plus one is not a number, and not a number isn't even equal to itself.
+
+The chip also keeps two zeros. Negative zero and zero count as equal. but 1 over negative zero gives negative infinity. Now a ring like ours was on the table too. A 1996 paper on computer arithmetic says that a draft of the standard one had a mode with one infinity. But that mode was dropped to keep the standard simpler.
+
+But a leftover of it can still be found on Intel's 8087 chip from 1980.. But back on the ring, the five tiles still have nowhere to go. Let's build them a place. Let's start over with fractions. A fraction is a pair of numbers, top and a bottom. Here are two, 1/2 and 1/3.. To multiply them, we multiply the tops and we multiply the bottoms, That's 1/6.. To add them we cross, multiply That's 5/6.. To divide by a fraction we flip it over and multiply.
+
+Two fractions are the same when one is a scaled copy of the other. Doubling the top and doubling the bottom of 1/2 gives 2/4, and that's the same number. Scaling numbers can be anything except zero. There's one more rule: that the bottom can't be zero. So let's keep every other rule and drop that one.
+
+A fraction whose bottom isn't zero is just an ordinary number, same as always. 1/0,, 2/0, and -5/0, those are scaled copies of each other. So they're on a single point. And it's the point where the tapes two ends meet. It has no sign because -5/0 is just one of its copies.
+
+0/0 is different. Scaling it only ever gives 0/0 again. So it isn't a copy of any other fractions. It needs a point of its own.
+
+Let's put that point in the middle of the ring. Here's the new point, and its symbol is an upside-down T, sometimes called the bottom. And to keep that name apart from the bottom of a fraction we'll call the point the hub. Let's look at those five tiles again using nothing but fraction rules. Start with infinity plus infinity. Write each infinity as 1/0 and cross, multiply That's 0/0.. So the tile lands on the hub. 0 * infinity is 0/1 * 1/0.. Multiplying the tops and the bottoms gives 0/0 again.
+
+Infinity minus infinity and infinity over infinity come out the same way, And 0/0 is the hub itself. Every fraction can be flipped, 0/0 included. So now we can divide by anything. Flipping 0/0 gives 0/0.. So one over the hub is the hub. When the whole thing turns over, the hub stays exactly where it is. This picture is where the name comes from.
+
+It's called a wheel. Every point of the wheel is made of a pair of ordinary numbers. Every sum and every product is worked out by the fraction rules we already had. That's what makes this division by zero. real
+
+Fractions have been proposed, with any bottom, zero included and worked out as a general theory of wheels in a 2004 paper. Watch what the hub does to anything it touches. If we add the hub to any number, we get the hub. Same goes for multiplying.
+
+The hub is zero over zero. Adding it or multiplying by it spreads the zeros to the top and the bottom of the answer. Here's four rules from ordinary arithmetic.
+
+The first says: zero times anything is zero, but zero times infinity is in the hub. so that rule fails there. Zero times the hub is the hub. The second says: anything minus itself is zero, but infinity minus infinity is in the hub. So it's the hub, minus the hub.
+
+Third, one says: anything divided by itself is one. It already left zero out, though, and it also fails at infinity and at the hub. The last one says we can multiply out a bracket- basically the distributive law, but try it with one plus two times infinity. Well, that should be infinity. The two sides should match, but they don't.
+
+The rule only fails when the numbers outside the bracket is infinity. Now our wheel has new versions of two of these, and the rules hold for everything in it. X minus X is zero times X squared. X over X is one plus zero, X over X.
+
+Now those might feel strange, but they do now account for everything, And so one divided by zero is the top of our wheel. zero divided by zero is the hub, and in the wheel every division has an answer, And for ordinary numbers, as long as nothing is divided by zero, every old rule still applies.
+
+I really hope you enjoyed this exploration into a little-known field called wheel algebra. If you'd like to support my work and this channel, you can join me on Patreon or becoming a YouTube member by clicking the join button below. The other best way to support is simply by liking this video or sharing it to a friend, Or you can watch the next video. If you thought this division by zero stuff was interesting, what about the zeroth root? How would we even do that? You can check it out in this video on the screen. I'll see you in that one.

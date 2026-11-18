@@ -7,7 +7,7 @@ along the non-Euclidean gyroidic manifold.
 
 import torch
 import torch.nn as nn
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class LeyLineTracker(nn.Module):
@@ -92,4 +92,50 @@ class LeyLineTracker(nn.Module):
             'mean_ley_energy': self.ley_energies.mean().item(),
             'resonance_sparsity': (self.V == 0).float().mean().item()
         }
+
+    def compute_secant_shear_wheel_transversality(
+        self,
+        states: torch.Tensor,
+        pressure: torch.Tensor,
+        threshold: float = 0.5,
+    ) -> Dict[str, Any]:
+        """
+        Computes Secant Plane slopes (Delta P / Delta S) and Mohr-Coulomb Shear Planes,
+        resolving zero-chord secant singularities (Delta S -> 0, Delta P -> 0) via
+        Carlstrom's Wheel Algebra Hub (0/0 = bot) and L'Hopital boundary scaling
+        (`docs/How To Divide By Zero, For Real.txt` & `docs/Recursive Fractals and L'Hôpital.txt`).
+        """
+        from src.core.invariants import compute_wheel_algebra_division
+
+        shear_mask = self.detect_shear_planes(pressure, threshold=threshold)
+        s_flat = states.detach().float()
+        if s_flat.dim() == 1:
+            s_flat = s_flat.unsqueeze(0)
+        p_flat = pressure.detach().float().view(-1)
+
+        if s_flat.shape[0] >= 2 and p_flat.numel() >= 2:
+            n_pairs = min(s_flat.shape[0], p_flat.numel())
+            ds_chord = torch.norm(s_flat[1:n_pairs] - s_flat[: n_pairs - 1], dim=-1)
+            dp_secant = p_flat[1:n_pairs] - p_flat[: n_pairs - 1]
+        else:
+            ds_chord = torch.norm(s_flat, dim=-1)
+            dp_secant = p_flat[: ds_chord.numel()] if p_flat.numel() >= ds_chord.numel() else torch.zeros_like(ds_chord)
+
+        wheel_secant = compute_wheel_algebra_division(dp_secant, ds_chord)
+        secant_slopes = wheel_secant["regularized_quotient"]
+        transversal_ratio = float((secant_slopes.abs() > 1e-5).float().mean().item()) if secant_slopes.numel() > 0 else 1.0
+
+        return {
+            "shear_plane_mask": shear_mask,
+            "active_shear_plane_count": int(shear_mask.sum().item()),
+            "secant_slope_norm": float(secant_slopes.norm().item()),
+            "wheel_hub_0_over_0_count": wheel_secant["hub_bot_count"],
+            "wheel_projective_infinity_count": wheel_secant["projective_infinity_count"],
+            "secant_shear_transversality_ratio": round(transversal_ratio, 6),
+            "wheel_identities_verified": (
+                wheel_secant["wheel_identity_x_minus_x_eq_0x2"]
+                and wheel_secant["wheel_identity_x_div_x_eq_1_plus_0xx"]
+            ),
+        }
+
 

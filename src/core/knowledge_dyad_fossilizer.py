@@ -1067,6 +1067,9 @@ class DyadFossilizer:
                     continue
 
             filepath = os.path.join(self.storage_dir, f)
+            if not os.path.exists(filepath):
+                self._delete_fossil(f, save_index=True)
+                continue
             try:
                 data = torch.load(filepath, map_location='cpu', weights_only=False)
                 # Check both 'text_input' (new) and 'description' (legacy)

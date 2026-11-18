@@ -127,6 +127,13 @@ class ModularVirtualizationLayer(nn.Module):
         modular_residues = torch.remainder(integerized, modulus.long())
         return modular_residues.float()
 
+    def get_residues(self, tensor: torch.Tensor, anchor_sym: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """
+        Canonical residue accessor for Agent Smith P2P export, UniversalOrchestrator,
+        and DiegeticPhysicsEngine RNS virtualization.
+        """
+        return self.float_to_rns(tensor, anchor_sym=anchor_sym)
+
     def rns_to_float(self, residues: torch.Tensor) -> torch.Tensor:
         """
         Inverse projection from hybrid finite field back to float.

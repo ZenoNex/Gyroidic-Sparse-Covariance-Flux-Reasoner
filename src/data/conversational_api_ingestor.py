@@ -1059,6 +1059,8 @@ class SovereignConversationalIngestor:
         self.engine = engine # Access to DiegeticPhysicsEngine for proper ingestion
         
         self.sovereign = SovereignIngestor(repository_root=repository_root)
+        if engine is not None:
+            self.sovereign.bind_engine(engine)
         # Use local datasets folder within the repository
         local_datasets_path = os.path.join(repository_root, "datasets") if repository_root else "datasets"
         self.local_images = LocalDatasetIngestor(

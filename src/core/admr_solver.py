@@ -1046,4 +1046,50 @@ class PolynomialADMRSolver(nn.Module):
     # Alias for uniform MAML API naming across all surrogates
     adapt_online = meta_optimize_admm_step
 
+    def audit_wheel_multiplicative_remainders(
+        self,
+        states: torch.Tensor,
+        neighbor_states: Optional[torch.Tensor] = None,
+        adjacency_weight: Optional[torch.Tensor] = None,
+    ) -> Dict[str, Any]:
+        """
+        Audits ADMR's multiplicative remainder update S^{(n+1)} = Proj_Poly[S^{(n)} * sum(w_ik S_k)]
+        under Jesper Carlstrom's (2004) Wheel Algebra (`docs/How To Divide By Zero, For Real.txt`):
+          - Evaluates homogeneous pair multiplication (a, b) * (c, d) = (a*c, b*d) and unary
+            involution /(a, b) = (b, a) between current states S_i and neighbor consensus sum(w_ik S_k).
+          - Detects coordinates that enter the central Wheel Hub (0/0 = bot) or Projective Top
+            (1/0 = infinity), verifying that universal Wheel Identities x - x = 0 * x^2 and
+            x / x = 1 + 0 * (x / x) hold across the co-prime polynomial scaffold.
+        """
+        from src.core.invariants import compute_wheel_algebra_division
+
+        s_in = states.unsqueeze(0) if states.dim() == 1 else states
+        if neighbor_states is None:
+            n_in = s_in.unsqueeze(1)
+        elif neighbor_states.dim() == 2:
+            n_in = neighbor_states.unsqueeze(0)
+        else:
+            n_in = neighbor_states
+
+        if adjacency_weight is None:
+            w_in = torch.ones((s_in.shape[0], n_in.shape[1]), device=s_in.device, dtype=s_in.dtype)
+        elif adjacency_weight.dim() == 1:
+            w_in = adjacency_weight.unsqueeze(0)
+        else:
+            w_in = adjacency_weight
+
+        weighted_neighbors = torch.einsum("bn,bnd->bd", w_in, n_in)
+        wheel_audit = compute_wheel_algebra_division(s_in, weighted_neighbors)
+        projected = self.forward(s_in, n_in, w_in)
+        return {
+            "projected_state": projected,
+            "wheel_hub_bot_count": wheel_audit["hub_bot_count"],
+            "wheel_hub_bot_fraction": wheel_audit["hub_bot_fraction"],
+            "projective_infinity_count": wheel_audit["projective_infinity_count"],
+            "wheel_identity_x_minus_x_eq_0x2": wheel_audit["wheel_identity_x_minus_x_eq_0x2"],
+            "wheel_identity_x_div_x_eq_1_plus_0xx": wheel_audit["wheel_identity_x_div_x_eq_1_plus_0xx"],
+            "regularized_wheel_quotient_norm": float(wheel_audit["regularized_quotient"].norm().item()),
+        }
+
+
 

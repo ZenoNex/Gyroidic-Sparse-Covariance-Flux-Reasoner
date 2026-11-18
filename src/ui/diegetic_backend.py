@@ -553,6 +553,54 @@ class DiegeticPhysicsEngine(nn.Module):
         except Exception as lychrel_init_err:
             print(f"[ENGINE] Lychrel196SolitonEngine initialization notice: {lychrel_init_err}")
             self.lychrel_engine = None
+
+        # Pressure Ingestor for Affordance-Driven Constraint Forcing
+        try:
+            self.pressure_ingestor = PressureIngestor(device=str(self.device))
+            self.constraint_pressure_cache = {}
+        except Exception as pi_init_err:
+            print(f"[ENGINE] PressureIngestor initialization notice: {pi_init_err}")
+            self.pressure_ingestor = None
+            self.constraint_pressure_cache = {}
+
+        # Canonical Subsystem Mounts & Aliases (ADMR, MomentTransport, BulletinBoard, CRT, Collapse, Legibility)
+        self.valence_functional = self.valence_drive
+        self.last_pas = 0.61
+        self.last_pas_h = 0.61
+        self.prev_pas = 0.61
+        try:
+            from src.core.bulletin_board import BulletinBoard
+            self.bulletin_board = BulletinBoard(size=dim, device=self.device)
+        except Exception:
+            self.bulletin_board = None
+        try:
+            from src.core.admr_solver import PolynomialADMRSolver
+            self.admr_solver = PolynomialADMRSolver(poly_config=self.poly_config, state_dim=dim, device=self.device)
+        except Exception:
+            self.admr_solver = None
+        try:
+            from src.core.conjugate_moment_transport import ConjugateMomentTransport
+            self.moment_transport = ConjugateMomentTransport(dim=dim).to(self.device)
+        except Exception:
+            self.moment_transport = None
+        try:
+            from src.core.decoupled_polynomial_crt import DecoupledPolynomialCRT
+            self._decoupled_crt = DecoupledPolynomialCRT(poly_config=self.poly_config)
+        except Exception:
+            self._decoupled_crt = None
+        try:
+            from src.core.narrative_collapse import LinguisticEntropyMonitor
+            from src.core.legibility_audit import LegibilityTripwire
+            self.narrative_collapse = LinguisticEntropyMonitor()
+            self.legibility_tripwire = LegibilityTripwire(hidden_dim=dim).to(self.device)
+        except Exception:
+            self.narrative_collapse = None
+            self.legibility_tripwire = None
+        try:
+            from src.augmentation.mandelbulb_gyroidic_augmenter import MandelbulbGyroidicAugmenter
+            self.augmenter = MandelbulbGyroidicAugmenter()
+        except Exception:
+            self.augmenter = None
         
         # Budget CPU threads to prevent pegging 100% of cores during interactive generation
         from src.core.hardware_monitor import budget_cpu_threads
@@ -728,6 +776,7 @@ class DiegeticPhysicsEngine(nn.Module):
         # Gyroid Covariance Estimator: Tensor-based momentum tracking
         # Replaces scalar std() with proper gyroidic manifold covariance
         self.gyroid_cov = GyroidCovarianceEstimator(dim=dim, sample_size=16)
+        self.entropy_estimator = self.gyroid_cov
         
         # Speculative Coprime Chiral Gating (SCCCG): Legacy concept recovery
         # Uses Wasserstein optimal transport to pull structure out of convergence.
@@ -794,6 +843,7 @@ class DiegeticPhysicsEngine(nn.Module):
             memory_palace=self.memory_palace,
         )
         self.coprime_gate.fossilizer = self.fossilizer
+        self.dyad_fossilizer = self.fossilizer
 
         # 11b. Mount Remaining Sovereign Memory Systems (Systems 12-19)
         try:
@@ -964,6 +1014,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 email = self.config.get('open_science_email', 'default@example.com')
                 verbosity = self.config.get('open_science_ingestor_verbosity', 'normal')
                 self.open_science_ingestor = OpenScienceIngestor(cache_dir=cache_dir, email=email, verbosity=verbosity)
+                self.open_science_ingestor.bind_engine(self)
                 print(" Open Science Ingestor initialized in engine.")
             except Exception as e:
                 self.open_science_ingestor = None
@@ -1042,6 +1093,16 @@ class DiegeticPhysicsEngine(nn.Module):
         from src.core.investor_news_ingestor import InvestorNewsIngestor
         self.bonfire = BonfireNetwork(node_id="engine_node", local_url="http://localhost:8080")
         self.investor_ingestor = InvestorNewsIngestor(state_dim=dim, engine=self, larynx=self.larynx)
+        try:
+            from src.data.economic_news_linker import EconomicAgentLinker
+            self.economic_linker = EconomicAgentLinker(larynx=self.larynx, engine=self)
+        except Exception:
+            self.economic_linker = None
+        try:
+            from src.data.conversational_api_ingestor import ConversationalAPIIngestor
+            self.conversational_ingestor = ConversationalAPIIngestor(device=self.device)
+        except Exception:
+            self.conversational_ingestor = None
         if hasattr(self, 'calm'):
             self.investor_ingestor.set_maml_adapter(self.calm)
         
@@ -1448,20 +1509,21 @@ class DiegeticPhysicsEngine(nn.Module):
                     vowels = set("aeiouyAEIOUY")
                     prev_char = dream_chars[-1] if dream_chars else ' '
                     if prev_char.isalpha() and prev_char not in vowels:
-                        # Consonant just occurred, boost vowels to form a syllable
-                        for v in vowels:
+                        # Consonant just occurred, boost vowels additively in log-space to form a syllable
+                        for v in "aeiou":
                             if ord(v) < logits.shape[-1]:
-                                logits[0, ord(v)] *= 1.5
+                                logits[0, ord(v)] += 2.4
                     elif prev_char in vowels:
-                        # Vowel just occurred, suppress vowels to encourage consonant transitions
+                        # Vowel just occurred, suppress consecutive vowels additively in log-space
                         for v in vowels:
                             if ord(v) < logits.shape[-1]:
-                                logits[0, ord(v)] *= 0.3
+                                logits[0, ord(v)] -= 1.8
                     
                     from src.core.gluing_operator import LazarusSoftmax
-                    pas_val = float(getattr(self, 'last_pas', 0.0))
+                    pas_val = float(getattr(self, 'last_pas_h', getattr(self, 'last_pas', 0.5)))
+                    prev_pas_val = float(getattr(self, 'prev_pas', pas_val))
                     lazarus = LazarusSoftmax(dim=-1).to(logits.device)
-                    probs, _ = lazarus(logits, pas_val, pas_val)
+                    probs, _ = lazarus(logits, pas_val, prev_pas_val)
                     char_idx = torch.multinomial(probs[0], 1).item()
                     char = self._idx_to_char(char_idx)
                     dream_chars.append(char)
@@ -1500,13 +1562,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Store the topological memory as a winding number (often from minecraft_ingestor payloads)
                 # The Love Invariant ($L$) resting in the null-space survives this lock.
                 try:
-                    neglecton_path = os.path.join(ENCODING_DIR, "neglecton_snapshot.pt")
+                    neglecton_anchor_path = os.path.join(ENCODING_DIR, "neglecton_dream_anchor.pt")
                     torch.save({
                         "seed_state": seed_state.detach().cpu(),
                         "braid_word": braid_word,
                         "timestamp": int(time.time())
-                    }, neglecton_path)
-                    print(f"[NEGLECTON] Anchored confabulated topological memory to {neglecton_path}")
+                    }, neglecton_anchor_path)
+                    print(f"[NEGLECTON] Anchored confabulated topological memory to {neglecton_anchor_path}")
                 except Exception as e:
                     print(f"[NEGLECTON] Failed to anchor: {e}")
             else:
@@ -1535,8 +1597,19 @@ class DiegeticPhysicsEngine(nn.Module):
         expected_residues = getattr(self, '_last_est_residues', None)
         if isinstance(expected_residues, torch.Tensor):
             expected_residues = expected_residues.detach()
+        introspection_dir = None
+        if getattr(self, 'introspection', None) is not None:
+            try:
+                intro_res = self.introspection(input_tensor)
+                if isinstance(intro_res, dict) and 'moral' in intro_res:
+                    introspection_dir = intro_res['moral']
+                    if introspection_dir.shape[-1] != self.dim:
+                        introspection_dir = F.pad(introspection_dir, (0, max(0, self.dim - introspection_dir.shape[-1])))[..., :self.dim]
+            except Exception:
+                introspection_dir = None
         cavity_out = self.cavity(
             input_tensor.unsqueeze(1),
+            introspection_directions=introspection_dir,
             expected_residues=expected_residues,
             multimodal_excitation=collision_residues,
             braid_word=braid_word,
@@ -2048,6 +2121,29 @@ class DiegeticPhysicsEngine(nn.Module):
             "elapsed_sec": 0.0
         }))
 
+    def get_topological_state(self) -> List[float]:
+        if hasattr(self, "meta_state") and isinstance(self.meta_state, torch.Tensor):
+            return self.meta_state.detach().cpu().flatten().tolist()
+        return [0.1 * i for i in range(8)]
+
+    def force_ingest_state(self, state: torch.Tensor, label: str = "", tags: Optional[List[str]] = None) -> Dict[str, Any]:
+        with torch.no_grad():
+            s = state.detach().to(self.device).float().view(1, -1)
+            if s.shape[-1] < self.dim:
+                s = F.pad(s, (0, self.dim - s.shape[-1]))
+            elif s.shape[-1] > self.dim:
+                s = s[:, :self.dim]
+            self.meta_state = 0.85 * self.meta_state + 0.15 * s
+            if getattr(self, "memory_palace", None) is not None:
+                try:
+                    self.memory_palace.plant_room(
+                        center=s.squeeze(0),
+                        metadata={"label": label, "tags": tags or []}
+                    )
+                except Exception:
+                    pass
+        return {"status": "ingested", "label": label}
+
     def get_manifold_state(self) -> Dict[str, Any]:
         """
         Extracts the full manifold 'Soul' for fossilization.
@@ -2461,7 +2557,7 @@ class DiegeticPhysicsEngine(nn.Module):
         temperature = 1.0 + (0.5 if quantum_state else 0.0)
         if matrioshka_level >= 3: temperature *= 0.7 # Focus under deep quantization
 
-        # 1b. Interoceptive Modulation via Pomni Uncertainty & Reluctant Resilience
+        # 1b. Interoceptive Modulation via Pomni Uncertainty & Vanellope First-Causative Agent
         if hasattr(self, 'archetypal_governor') and self.archetypal_governor is not None:
             bio_gov = getattr(self.archetypal_governor, 'bio_governor', None)
             if bio_gov is not None and hasattr(bio_gov, 'pomni') and hasattr(bio_gov, 'bus'):
@@ -2475,6 +2571,14 @@ class DiegeticPhysicsEngine(nn.Module):
                         parasitic_drag=0.1,
                         valence_hunger=v_hunger
                     )
+                    if hasattr(bio_gov, 'vanellope') and bio_gov.vanellope is not None:
+                        van_out = bio_gov.vanellope(
+                            universe_state=seed_state,
+                            dialogue_text=text_input,
+                            bus=bio_gov.bus
+                        )
+                        if isinstance(van_out, dict) and 'modulated_state' in van_out:
+                            seed_state = 0.90 * seed_state + 0.10 * van_out['modulated_state'].view_as(seed_state)
                     norad = float(bio_gov.bus.read('noradrenaline', default=0.0))
                     if norad > 0.6:
                         temperature *= max(0.6, 1.0 - 0.25 * (norad - 0.6))
@@ -2505,6 +2609,19 @@ class DiegeticPhysicsEngine(nn.Module):
         if hasattr(self, 'audience_mapper') and self.audience_mapper is not None:
             with torch.no_grad():
                 audience_guidance = self.audience_mapper(current_state)
+                if hasattr(self, '_temporal_trainer') and self._temporal_trainer is not None:
+                    try:
+                        next_emb, _, _ = self._temporal_trainer.predict_next_concept(current_state)
+                        if isinstance(next_emb, torch.Tensor) and next_emb.numel() > 0:
+                            ne = next_emb.detach().to(self.device).view(1, -1)
+                            if ne.shape[-1] < self.dim:
+                                ne = F.pad(ne, (0, self.dim - ne.shape[-1]))
+                            elif ne.shape[-1] > self.dim:
+                                ne = ne[:, :self.dim]
+                            proj_next = self.audience_mapper.project_concept(ne)
+                            audience_guidance = 0.85 * audience_guidance + 0.15 * proj_next.view_as(audience_guidance)
+                    except Exception:
+                        pass
 
         if fingerprint and 'L' in fingerprint:
             # Inject fingerprint residue into starting state
@@ -2522,7 +2639,7 @@ class DiegeticPhysicsEngine(nn.Module):
         if video_dyad_b64:
             current_state = current_state * 1.05 
 
-        # --- REHYBRIDIZE ISOLATED FORWARDS: Voynich, Cavity, RNS, & Moment Transport ---
+        # --- REHYBRIDIZE ISOLATED FORWARDS: Voynich, Cavity, Breather, RNS, & Moment Transport ---
         # 1. Voynich Linguistic Morphology & Continuous Honesty
         if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
             try:
@@ -2537,15 +2654,28 @@ class DiegeticPhysicsEngine(nn.Module):
             except Exception as v_err:
                 pass
 
-        # 2. Resonance Cavity Acoustic Modes & Breathers
+        # 2. Resonance Cavity Acoustic Modes, Query Retrieval & Breather Solitons
         if hasattr(self, 'cavity') and self.cavity is not None:
             try:
                 with torch.no_grad():
-                    cav_out = self.cavity(current_state)
-                    if isinstance(cav_out, dict) and 'filtered_state' in cav_out:
-                        current_state = 0.90 * current_state + 0.10 * cav_out['filtered_state']
-                    elif isinstance(cav_out, torch.Tensor):
-                        current_state = 0.90 * current_state + 0.10 * cav_out
+                    cav_in = current_state.unsqueeze(1) if current_state.dim() == 2 else current_state
+                    cav_out = self.cavity(cav_in)
+                    if isinstance(cav_out, dict) and 'memory_state' in cav_out:
+                        mem_mean = cav_out['memory_state'].mean(dim=1).view_as(current_state)
+                        current_state = 0.90 * current_state + 0.06 * mem_mean
+                    q_out = self.cavity.query(current_state, top_k=3)
+                    if isinstance(q_out, dict) and 'modes' in q_out:
+                        top_m = q_out['modes'].mean(dim=1).view_as(current_state)
+                        current_state = current_state + 0.04 * top_m
+                    if getattr(self, 'breather_mode', None) is not None:
+                        br_out = self.breather_mode(current_state)
+                        if isinstance(br_out, torch.Tensor) and br_out.shape == current_state.shape:
+                            current_state = current_state + 0.03 * torch.tanh(br_out)
+                    if hasattr(self, 'spectral_corrector') and hasattr(self.spectral_corrector, 'project_to_acoustic_resonance'):
+                        t_steps = torch.linspace(0.0, 1.0, current_state.shape[-1], device=self.device)
+                        ac_sig = self.spectral_corrector.project_to_acoustic_resonance(current_state, t_steps)
+                        if isinstance(ac_sig, torch.Tensor) and ac_sig.shape == current_state.shape:
+                            current_state = current_state + 0.02 * torch.tanh(ac_sig)
             except Exception as cav_err:
                 pass
 
@@ -2560,12 +2690,21 @@ class DiegeticPhysicsEngine(nn.Module):
             except Exception as rns_err:
                 pass
 
-        # 4. Input Convex Neural Network (ICNN / Moment Transport) Regularization
+        # 4. Input Convex Neural Network (ICNN / Moment Transport) & Cayley Surface Regularization
         if hasattr(self, 'moment_transport') and self.moment_transport is not None:
             try:
                 with torch.no_grad():
-                    t_pot = self.moment_transport(current_state)
-                    current_state = current_state - 0.015 * torch.tanh(t_pot) * current_state
+                    psi_pot = self.moment_transport.icnn(current_state)
+                    cayley_proj = self.moment_transport.project_to_cayley_surface(current_state)
+                    current_state = 0.94 * current_state + 0.06 * cayley_proj - 0.015 * torch.tanh(psi_pot) * current_state
+            except Exception:
+                pass
+
+        # 4c. Adaptive Skeleton Harness PAL Colour-Subcarrier Multiplexing
+        if hasattr(self, 'skeleton_harness') and self.skeleton_harness is not None and hasattr(self.skeleton_harness, 'modulate_larynx_attention_morton_stream'):
+            try:
+                with torch.no_grad():
+                    self.skeleton_harness.modulate_larynx_attention_morton_stream(skeleton_tensor=current_state)
             except Exception:
                 pass
 
@@ -2650,6 +2789,7 @@ class DiegeticPhysicsEngine(nn.Module):
             print(f"[LARYNX] Honest gibberish / pathological garble detected ({garble_reason}). Throttling max generation length from {old_len} to {dynamic_max_len} steps to preserve thermal affordance.", flush=True)
 
         gen_start_time = time.time()
+        vowels = "aeiouAEIOU"
         self._generation_progress = {
             "is_generating": True,
             "step": 0,
@@ -2662,145 +2802,209 @@ class DiegeticPhysicsEngine(nn.Module):
         print(f"[LARYNX GENERATION] Commencing autoregression (target={dynamic_max_len} tokens, regime={getattr(self, 'current_regime', 'unknown')})...", flush=True)
 
         cached_v_flat = None
+        cached_v_pas = 0.5
         
-        with torch.no_grad():
-            for i in range(dynamic_max_len): # Dynamically expanded limit
-                iter_temp = temperature * (1.0 + 0.002 * i) 
-                
-                # Coherent Legibility: Apply Spectral Coherence Repair periodically or on clustering
-                if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
-                    should_repair = (i % 8 == 0)
-                    if not should_repair and hasattr(self.spectral_corrector, 'detect_consonant_clustering'):
-                        should_repair = self.spectral_corrector.detect_consonant_clustering("".join(dream_chars[-10:]))
-                    if should_repair:
-                        recent_text = "".join(dream_chars[-20:])
-                        current_state = self.spectral_corrector.adaptive_coherence_correction(
-                            current_state, output_text=recent_text
-                        )
+        try:
+            with torch.no_grad():
+                for i in range(dynamic_max_len): # Dynamically expanded limit
+                    iter_temp = temperature * (1.0 + 0.002 * i) 
+                    
+                    # Coherent Legibility: Apply Spectral Coherence Repair periodically or on clustering
+                    if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
+                        should_repair = (i % 8 == 0)
+                        if not should_repair and hasattr(self.spectral_corrector, 'detect_consonant_clustering'):
+                            should_repair = self.spectral_corrector.detect_consonant_clustering("".join(dream_chars[-10:]))
+                        if should_repair:
+                            recent_text = "".join(dream_chars[-20:])
+                            current_state = self.spectral_corrector.adaptive_coherence_correction(
+                                current_state, output_text=recent_text
+                            )
 
-                logits, conf = self.larynx(current_state, temperature=iter_temp)
+                    logits, conf = self.larynx(current_state, temperature=iter_temp)
 
-                # Connect Voynich Phoneme Logits (Anti-consonant-clustering / Anti-vowel-starvation)
-                if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
-                    try:
-                        if i % 4 == 0 or cached_v_flat is None:
-                            v_res = self.voynich_linguist(current_state)
-                            v_phonemes = v_res[0] if isinstance(v_res, tuple) else v_res
-                            if v_phonemes is not None:
-                                cached_v_flat = v_phonemes.flatten()
-                        if cached_v_flat is not None:
-                            min_sz = min(logits.shape[-1], cached_v_flat.shape[-1])
-                            logits[0, :min_sz] += 0.12 * cached_v_flat[:min_sz]
-                    except Exception:
-                        pass
-                
-                # Apply Echo Suppression with Coherent Legibility
-                # Penalize characters that were in the prompt to reduce rote echoing
-                if input_chars:
-                    for char in input_chars:
-                        if ord(char) < logits.shape[-1]:
-                            # Instead of a static flat penalty, scale it by coherence
-                            logits[0, ord(char)] *= (suppression_factor + (1.0 - conf.item()) * 0.5)
-
-                # Apply Vowel Boosting with Coherent Legibility Awareness
-                prev_char = dream_chars[-1] if dream_chars else ' '
-                if prev_char.isalpha() and prev_char not in vowels:
-                    for v in vowels:
-                        if ord(v) < logits.shape[-1]:
-                            logits[0, ord(v)] *= vowel_boost_factor
-                elif prev_char in vowels:
-                    for v in vowels:
-                        if ord(v) < logits.shape[-1]:
-                            logits[0, ord(v)] *= 0.3 # Suppress consecutive vowels
-
-                # Numerical stability guard: ensure logits and probs contain no NaN/Inf
-                logits = torch.nan_to_num(logits, nan=0.0, posinf=40.0, neginf=-40.0)
-                logits = torch.clamp(logits, -40.0, 40.0)
-                from src.core.gluing_operator import LazarusSoftmax
-                pas_val = float(getattr(self, 'last_pas', 0.0))
-                lazarus = LazarusSoftmax(dim=-1).to(logits.device)
-                probs, _ = lazarus(logits, pas_val, pas_val)
-                probs = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0)
-                p_sum = probs[0].sum()
-                if p_sum <= 1e-8 or torch.isnan(p_sum) or torch.isinf(p_sum):
-                    probs = torch.ones_like(probs) / probs.shape[-1]
-                else:
-                    probs = probs / p_sum
-
-                try:
-                    char_idx = torch.multinomial(probs[0], 1).item()
-                except Exception:
-                    char_idx = int(torch.argmax(probs[0]).item())
-                char = self._idx_to_char(char_idx)
-                dream_chars.append(char)
-                
-                energy_sum += torch.norm(current_state).item()
-                conf_val = conf.item() if isinstance(conf, torch.Tensor) and not torch.isnan(conf).any() else 0.5
-                conf_sum += conf_val
-                
-                if len(dream_chars) >= 40 and char in ('.', '!', '?'):
-                    break
-                if len(dream_chars) >= 60 and char == '\n':
-                    break
-                # Anti-repetition brake: avoid runaway repeating sequences
-                if len(dream_chars) >= 4 and dream_chars[-1] == dream_chars[-2] == dream_chars[-3] == dream_chars[-4]:
-                    break
-                # Clause completion brake near target length
-                if len(dream_chars) >= 90 and char in (',', ';', ' ') and i >= dynamic_max_len - 25:
-                    break
-                
-                # Feedback from own state using projection weight modulated by Cavity overtones
-                feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
-                if hasattr(self, 'cavity') and hasattr(self.cavity, 'M') and self.cavity.M is not None:
-                    feedback = 0.88 * feedback + 0.12 * torch.sin(self.cavity.M.mean() * feedback)
-                if audience_guidance is not None:
-                    current_state = 0.85 * current_state + 0.1 * feedback + 0.05 * audience_guidance + 0.02 * self._harvest_honest_jitter(current_state.shape)
-                else:
-                    current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
-                current_state = torch.nan_to_num(current_state, nan=0.0, posinf=10.0, neginf=-10.0)
-                current_state = torch.clamp(current_state, -10.0, 10.0)
-
-                # Live progress heartbeat to stdout and progress tracker every 15 chars
-                if (i + 1) % 15 == 0 or i == dynamic_max_len - 1:
-                    pct = ((i + 1) / dynamic_max_len) * 100
-                    elapsed = time.time() - gen_start_time
-                    recent_snippet = "".join(dream_chars[-20:]).replace('\n', ' ')
-                    print(f"[LARYNX GENERATION] Step {i+1}/{dynamic_max_len} ({pct:.1f}%) | chars={len(dream_chars)} | conf={conf.item():.2f} | recent='{recent_snippet}'", flush=True)
-                    self._generation_progress = {
-                        "is_generating": True,
-                        "step": i + 1,
-                        "total": dynamic_max_len,
-                        "percent": round(pct, 1),
-                        "chars": len(dream_chars),
-                        "recent": "".join(dream_chars[-30:]),
-                        "elapsed_sec": round(elapsed, 2)
-                    }
-
-                # Yield CPU time slice periodically so GIL and server threads don't starve
-                if (i + 1) % 10 == 0:
-                    time.sleep(0.001)
-
-                # Restless 500ms thermal guard check
-                step_elapsed_ms = (time.time() - gen_start_time) * 1000.0 / max(1, i + 1)
-                if step_elapsed_ms > 500.0:
-                    from src.core.hardware_monitor import enforce_500ms_restless_thermal_guard
-                    enforce_500ms_restless_thermal_guard(
-                        execution_ms=step_elapsed_ms,
-                        silicon_engine=getattr(self, 'sovereignty_engine', None),
-                        cooldown_sleep_sec=0.01
+                    # Clean Vocabulary & Voynich-Preserving Five-Gate Filter:
+                    # Mask out CP437 control codes (0..31) and unmapped/emoji slots outside self.allowed_chars,
+                    # while preserving both English lexical tokens and Voynich/Greek/topological glyphs in self.allowed_chars.
+                    prev_c = dream_chars[-1] if dream_chars else ' '
+                    prev2_c = dream_chars[-2] if len(dream_chars) >= 2 else ' '
+                    prev_is_punct = (not prev_c.isalnum()) and (prev_c not in (' ', '\n'))
+                    two_consonants = (
+                        prev_c.isalpha() and (prev_c.lower() not in "aeiou")
+                        and prev2_c.isalpha() and (prev2_c.lower() not in "aeiou")
                     )
+                    word_len = 0
+                    for _dc in reversed(dream_chars):
+                        if _dc in (' ', '\n'):
+                            break
+                        word_len += 1
 
-        total_gen_time = time.time() - gen_start_time
-        self._generation_progress = {
-            "is_generating": False,
-            "step": len(dream_chars),
-            "total": dynamic_max_len,
-            "percent": 100.0,
-            "chars": len(dream_chars),
-            "recent": "".join(dream_chars[-30:]),
-            "elapsed_sec": round(total_gen_time, 2)
-        }
-        print(f"[LARYNX GENERATION] Completed in {total_gen_time:.2f}s ({len(dream_chars)} tokens generated).", flush=True)
+                    for idx in range(logits.shape[-1]):
+                        if idx < 32:
+                            if idx not in (10, 32):
+                                logits[0, idx] = -1e9
+                        elif idx == 127:
+                            logits[0, idx] = -1e9
+                        elif idx < 128:
+                            ch_ascii = chr(idx)
+                            if ch_ascii not in self.allowed_chars:
+                                logits[0, idx] = -1e9
+                            elif prev_c in (' ', '\n') and ch_ascii in (' ', '\n', '.', ',', '!', '?', ';', ':'):
+                                logits[0, idx] = -1e9
+                            elif prev_is_punct and ch_ascii in ".,!?;:":
+                                logits[0, idx] = -1e9
+                            elif prev_c.isalpha() and ch_ascii.isupper() and word_len >= 2:
+                                logits[0, idx] -= 4.5
+                        else:
+                            if idx - 128 >= len(self.idx_to_unicode):
+                                logits[0, idx] = -1e9
+                            else:
+                                ch_uni = self.idx_to_unicode[idx - 128]
+                                if ch_uni not in self.allowed_chars:
+                                    logits[0, idx] = -1e9
+
+                    # Connect Voynich Phoneme Logits & VoynichExemptionToken across ASCII and Voynich/Topological Glyph Slots
+                    if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
+                        try:
+                            if i % 4 == 0 or cached_v_flat is None:
+                                v_res = self.voynich_linguist(current_state)
+                                if isinstance(v_res, tuple):
+                                    v_phonemes = v_res[0]
+                                    if len(v_res) >= 3 and v_res[2] is not None:
+                                        cached_v_pas = float(v_res[2].mean().item()) if isinstance(v_res[2], torch.Tensor) else float(v_res[2])
+                                else:
+                                    v_phonemes = v_res
+                                if v_phonemes is not None:
+                                    cached_v_flat = v_phonemes.flatten()
+                            if cached_v_flat is not None and cached_v_flat.numel() > 0:
+                                num_v = cached_v_flat.numel()
+                                idx_arange = torch.arange(logits.shape[-1], device=logits.device)
+                                tiled_v = cached_v_flat[idx_arange % num_v]
+                                logits[0] = logits[0] + 0.18 * tiled_v
+                                # Boost Voynich/Greek/topological glyph slots (128..128+len(idx_to_unicode)) proportionally to PAS_s
+                                uni_end = min(logits.shape[-1], 128 + len(self.idx_to_unicode))
+                                if uni_end > 128:
+                                    logits[0, 128:uni_end] += (0.35 + 0.45 * cached_v_pas) * torch.abs(tiled_v[128:uni_end])
+                        except Exception:
+                            pass
+                    
+                    # Apply Echo Suppression with Coherent Legibility (additive log-space penalty)
+                    if input_chars:
+                        for char in input_chars:
+                            if ord(char) < logits.shape[-1] and char not in "aeiou ":
+                                logits[0, ord(char)] -= (0.35 + (1.0 - conf.item()) * 0.25)
+
+                    # Apply Vowel Boosting & Syllable Cadence in log-space
+                    prev_char = dream_chars[-1] if dream_chars else ' '
+                    if two_consonants:
+                        for v in "aeiou":
+                            logits[0, ord(v)] += 4.2
+                        for c_idx in range(ord('a'), ord('z') + 1):
+                            if chr(c_idx) not in "aeiou":
+                                logits[0, c_idx] -= 3.0
+                    elif prev_char.isalpha() and prev_char.lower() not in "aeiou":
+                        for v in "aeiou":
+                            if ord(v) < logits.shape[-1]:
+                                logits[0, ord(v)] += 2.2
+                    elif prev_char.lower() in "aeiou":
+                        for v in vowels:
+                            if ord(v) < logits.shape[-1]:
+                                logits[0, ord(v)] -= 1.8  # Suppress consecutive vowels in log-space
+
+                    if word_len >= 6:
+                        logits[0, ord(' ')] += 1.8 + 0.6 * (word_len - 6)
+                        if word_len >= 7 and len(dream_chars) >= 30:
+                            logits[0, ord('.')] += 1.0
+                            logits[0, ord(',')] += 0.7
+
+                    # Numerical stability guard: ensure logits and probs contain no NaN/Inf
+                    logits = torch.nan_to_num(logits, nan=0.0, posinf=40.0, neginf=-40.0)
+                    logits = torch.clamp(logits, -40.0, 40.0)
+                    from src.core.gluing_operator import LazarusSoftmax
+                    pas_val = float(getattr(self, 'last_pas', 0.0))
+                    lazarus = LazarusSoftmax(dim=-1).to(logits.device)
+                    probs, _ = lazarus(logits, pas_val, pas_val)
+                    probs = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0)
+                    p_sum = probs[0].sum()
+                    if p_sum <= 1e-8 or torch.isnan(p_sum) or torch.isinf(p_sum):
+                        probs = torch.ones_like(probs) / probs.shape[-1]
+                    else:
+                        probs = probs / p_sum
+
+                    try:
+                        char_idx = torch.multinomial(probs[0], 1).item()
+                    except Exception:
+                        char_idx = int(torch.argmax(probs[0]).item())
+                    char = self._idx_to_char(char_idx)
+                    dream_chars.append(char)
+                    
+                    energy_sum += torch.norm(current_state).item()
+                    conf_val = conf.item() if isinstance(conf, torch.Tensor) and not torch.isnan(conf).any() else 0.5
+                    conf_sum += conf_val
+
+                    # Live progress update on step 1, every 5 steps, and on final step
+                    if i == 0 or (i + 1) % 5 == 0 or i == dynamic_max_len - 1:
+                        pct = ((i + 1) / dynamic_max_len) * 100
+                        elapsed = time.time() - gen_start_time
+                        recent_snippet = "".join(dream_chars[-24:]).replace('\n', ' ')
+                        self._generation_progress = {
+                            "is_generating": True,
+                            "step": i + 1,
+                            "total": dynamic_max_len,
+                            "percent": round(pct, 1),
+                            "chars": len(dream_chars),
+                            "recent": "".join(dream_chars[-30:]),
+                            "elapsed_sec": round(elapsed, 2)
+                        }
+                        if (i + 1) % 15 == 0 or i == dynamic_max_len - 1:
+                            print(f"[LARYNX GENERATION] Step {i+1}/{dynamic_max_len} ({pct:.1f}%) | chars={len(dream_chars)} | conf={conf_val:.2f} | recent='{recent_snippet}'", flush=True)
+                    
+                    if len(dream_chars) >= 55 and char in ('.', '!', '?'):
+                        break
+                    if len(dream_chars) >= 75 and char == '\n':
+                        break
+                    # Anti-repetition brake: avoid runaway repeating sequences
+                    if len(dream_chars) >= 4 and dream_chars[-1] == dream_chars[-2] == dream_chars[-3] == dream_chars[-4]:
+                        break
+                    # Clause completion brake near target length
+                    if len(dream_chars) >= 95 and char in (',', ';', ' ') and i >= dynamic_max_len - 25:
+                        break
+                    
+                    # Feedback from own state using projection weight modulated by Cavity overtones
+                    feedback = torch.tanh(self.larynx.proj.weight[char_idx].unsqueeze(0))
+                    if hasattr(self, 'cavity') and hasattr(self.cavity, 'M') and self.cavity.M is not None:
+                        feedback = 0.88 * feedback + 0.12 * torch.sin(self.cavity.M.mean() * feedback)
+                    if audience_guidance is not None:
+                        current_state = 0.85 * current_state + 0.1 * feedback + 0.05 * audience_guidance + 0.02 * self._harvest_honest_jitter(current_state.shape)
+                    else:
+                        current_state = 0.9 * current_state + 0.1 * feedback + 0.02 * self._harvest_honest_jitter(current_state.shape)
+                    current_state = torch.nan_to_num(current_state, nan=0.0, posinf=10.0, neginf=-10.0)
+                    current_state = torch.clamp(current_state, -10.0, 10.0)
+
+                    # Yield CPU time slice periodically so GIL and server threads don't starve
+                    if (i + 1) % 10 == 0:
+                        time.sleep(0.001)
+
+                    # Restless 500ms thermal guard check
+                    step_elapsed_ms = (time.time() - gen_start_time) * 1000.0 / max(1, i + 1)
+                    if step_elapsed_ms > 500.0:
+                        from src.core.hardware_monitor import enforce_500ms_restless_thermal_guard
+                        enforce_500ms_restless_thermal_guard(
+                            execution_ms=step_elapsed_ms,
+                            silicon_engine=getattr(self, 'sovereignty_engine', None),
+                            cooldown_sleep_sec=0.01
+                        )
+        finally:
+            total_gen_time = time.time() - gen_start_time
+            self._generation_progress = {
+                "is_generating": False,
+                "step": len(dream_chars),
+                "total": dynamic_max_len,
+                "percent": 100.0,
+                "chars": len(dream_chars),
+                "recent": "".join(dream_chars[-30:]),
+                "elapsed_sec": round(total_gen_time, 2)
+            }
+            print(f"[LARYNX GENERATION] Completed in {total_gen_time:.2f}s ({len(dream_chars)} tokens generated).", flush=True)
 
         avg_energy = energy_sum / max(1, len(dream_chars))
         avg_conf = conf_sum / max(1, len(dream_chars))
@@ -3234,9 +3438,11 @@ class DiegeticPhysicsEngine(nn.Module):
                     
                     # Track Phase Alignment Shift for Lazarus Transition
                     pas_h = torch.norm(ent).item()
-                    if not hasattr(self, 'last_pas_h'): self.last_pas_h = pas_h
+                    if not hasattr(self, 'last_pas_h'):
+                        self.last_pas_h = pas_h
                     delta_pas_h = abs(pas_h - self.last_pas_h)
                     self.last_pas_h = pas_h
+                    self.last_pas = pas_h
                     
                     if delta_pas_h > 0.5:
                         print(f"!!! LAZARUS TRANSITION DETECTED: delta_pas_h={delta_pas_h:.4f}")
@@ -3486,6 +3692,8 @@ class DiegeticPhysicsEngine(nn.Module):
         # =============================================
         with torch.no_grad():
             pas_h_live = self._compute_pas_h(self.meta_state)
+            self.last_pas = pas_h_live
+            self.last_pas_h = pas_h_live
 
         # =============================================
         # 6. EARLY EXIT FOR NON-GENERATIVE TASKS
@@ -4340,6 +4548,13 @@ class DiegeticPhysicsEngine(nn.Module):
                 print(f"  Matrioshka evolution loop failed: {_caq_err}")
 
         print(" Starting text generation with fully repaired state...")
+        # Re-align Larynx mimicry to the post-repair seed_state so autoregression starts on the repaired manifold trajectory
+        try:
+            clean_target = text_input[7:].strip() if text_input.upper().startswith("PROMPT:") else text_input.strip()
+            if len(clean_target) >= 2:
+                self._train_mimicry(seed_state.detach(), clean_target)
+        except Exception:
+            pass
         
         # Initialize response_text to prevent UnboundLocalError in case of catastrophic failure
         response_text = ""
@@ -5097,17 +5312,18 @@ class DiegeticPhysicsEngine(nn.Module):
         # Prevents 'million years' latency on restart by saving all nodes to a single binary file.
         if self.graph_manager and self.graph_manager.nodes:
             try:
-                snapshot_data = self.graph_manager.get_memory_snapshot()
-                
-                def _cpu_detach_recursive(obj):
-                    if isinstance(obj, torch.Tensor): return obj.detach().cpu()
-                    if isinstance(obj, dict): return {k: _cpu_detach_recursive(v) for k, v in obj.items()}
-                    if isinstance(obj, list): return [_cpu_detach_recursive(v) for v in obj]
-                    return obj
-                snapshot_data = _cpu_detach_recursive(snapshot_data)
-
                 snapshot_path = os.path.join(self.graph_manager.data_dir, "neglecton_snapshot.pt")
-                torch.save(snapshot_data, snapshot_path)
+                prev_cnt = int(getattr(self.graph_manager, "_snapshot_node_count", 0) or 0)
+                if len(self.graph_manager.nodes) >= prev_cnt and len(self.graph_manager.nodes) >= 100:
+                    snapshot_data = self.graph_manager.get_memory_snapshot()
+                    def _cpu_detach_recursive(obj):
+                        if isinstance(obj, torch.Tensor): return obj.detach().cpu()
+                        if isinstance(obj, dict): return {k: _cpu_detach_recursive(v) for k, v in obj.items()}
+                        if isinstance(obj, list): return [_cpu_detach_recursive(v) for v in obj]
+                        return obj
+                    snapshot_data = _cpu_detach_recursive(snapshot_data)
+                    torch.save(snapshot_data, snapshot_path)
+                    self.graph_manager._snapshot_node_count = len(self.graph_manager.nodes)
             except Exception as e:
                 print(f"[GRAPH] Failed to save Neglecton snapshot: {e}")
 
@@ -6023,6 +6239,10 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Force constraint pressure ingestion
             try:
+                if getattr(self, 'pressure_ingestor', None) is None:
+                    self.pressure_ingestor = PressureIngestor(device=str(self.device))
+                if not hasattr(self, 'constraint_pressure_cache') or self.constraint_pressure_cache is None:
+                    self.constraint_pressure_cache = {}
                 pressure_report = self.pressure_ingestor.force_pressure_ingestion(sources)
                 self.last_pressure_report = pressure_report
                 
@@ -6249,14 +6469,22 @@ class DiegeticPhysicsEngine(nn.Module):
                     'temporal_weight': 0.7,
                     'association_potential': 0.8
                 })
+
+        # Structural / imperative / API-dense utterances when no explicit question marker is present
+        if not patterns:
+            tokens = [t.strip(".,:;!?()[]{}\"'") for t in text.split() if len(t.strip(".,:;!?()[]{}\"'")) >= 3]
+            if len(tokens) >= 2:
+                patterns.append({
+                    'type': 'structural_discourse',
+                    'tokens': tokens[:8],
+                    'temporal_weight': min(0.85, 0.35 + 0.05 * len(tokens)),
+                    'association_potential': 0.65
+                })
         
         return patterns
     
     def _attempt_api_content_extraction(self, text: str, api_pressure: float) -> Dict[str, Any]:
-        """Attempt to extract content from APIs based on text content."""
-        
-        # For now, simulate API extraction (in real implementation, this would call actual APIs)
-        # This is where you'd integrate with Wikipedia API, search APIs, etc.
+        """Attempt to extract content from APIs or salient lexical anchors based on text content."""
         
         api_indicators = ['wikipedia', 'search', 'information', 'data', 'content']
         
@@ -6270,6 +6498,17 @@ class DiegeticPhysicsEngine(nn.Module):
                     'extraction_method': 'simulated_api_call',
                     'api_pressure_used': api_pressure
                 }
+
+        salient = [w.strip(".,:;!?()[]{}\"'") for w in text.split() if len(w.strip(".,:;!?()[]{}\"'")) >= 4]
+        if salient and api_pressure > 0.08:
+            return {
+                'success': True,
+                'source': 'lexical_salience_extractor',
+                'content': " ".join(salient[:12]),
+                'content_length': len(text),
+                'extraction_method': 'salient_token_projection',
+                'api_pressure_used': api_pressure
+            }
 
         return {
             'success': False,
@@ -6290,7 +6529,7 @@ class DiegeticPhysicsEngine(nn.Module):
             # Process through existing association learning
             result = self._handle_association_learning(association_text, None, self.meta_state)
             
-            if "learned" in result.lower():
+            if any(k in result.lower() for k in ("learned", "fossilized", "resonating", "obstruction", "manifold scanned")):
                 associations_created = 1
                 print(f" Created temporal association from API content")
             
@@ -6942,6 +7181,11 @@ class DiegeticPhysicsEngine(nn.Module):
             ingest_cmd = f"INGEST_DYAD: {source_desc} <-> {target_desc}"
             fossil_log = self._handle_dyad_ingestion(ingest_cmd, fingerprint, seed_state)
             print(f"[ASSOCIATE] Auto-fossilized paired association. {fossil_log}")
+            try:
+                if target_desc and len(target_desc) >= 2:
+                    self._train_mimicry(seed_state.detach(), target_desc)
+            except Exception:
+                pass
 
             # Synchronize into GardenOrchestrator and MemoryPalace
             if hasattr(self, 'garden_orchestrator') and self.garden_orchestrator is not None:
@@ -7738,9 +7982,9 @@ class DiegeticPhysicsEngine(nn.Module):
                     
             # 3. Meta-Polytope Matrioshka
             # Project current cavity state
-            if self.cavity.short_term_memory:
-                 # Use last memory state
-                 input_state = self.cavity.short_term_memory[-1]
+            if hasattr(self.cavity, 'M') and self.cavity.M is not None:
+                 # Use active resonant mode state from cavity.M
+                 input_state = self.cavity.M[0, -1].unsqueeze(0)
                  if input_state.shape[-1] != self.dim: # Pad/Cut
                      # Ensure input_state is 1D for padding
                      input_state_flat = input_state.flatten()
@@ -8161,8 +8405,10 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     t_graph_start = time.time()
                     # Serve cached graph structure if sufficient nodes exist for requested limit, unless forced
                     current_node_count = len(getattr(graph_mgr, 'nodes', []))
-                    loaded_snap = bool(getattr(graph_mgr, 'loaded_from_snapshot', False))
-                    has_sufficient_nodes = (current_node_count > 0) and (loaded_snap or current_node_count >= min(limit, 1500))
+                    last_scan_lim = int(getattr(graph_mgr, '_last_scan_limit', 0) or 0)
+                    has_sufficient_nodes = (current_node_count > 0) and (
+                        last_scan_lim >= limit or current_node_count >= min(limit, 1500)
+                    )
                     if force_reload or not has_sufficient_nodes:
                         # Reload with specified limit and bounded scan window (guarded by 2.5s latency cap)
                         graph_mgr.load_fossils(

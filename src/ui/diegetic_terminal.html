@@ -1356,6 +1356,14 @@
                     <button id="btn-graph-home" onclick="homeGraphCamera()"
                         style="background: rgba(0, 255, 65, 0.12); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Fly camera back to Manifold Centroid / Origin (Hotkey: H)">HOME [H]</button>
 
+                    <select id="graph-hub-select" onchange="jumpToHub(this.selectedIndex - 1)"
+                        style="background: #111; border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 3px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.68rem; max-width: 150px;" title="Jump to any discovered manifold hub">
+                        <option value="">HUBS (0)</option>
+                    </select>
+
+                    <button id="btn-graph-next-hub" onclick="cycleNextHub()"
+                        style="background: rgba(255, 0, 242, 0.12); border: 1px solid var(--terminal-magenta); color: var(--terminal-magenta); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Cycle to next distant topological hub">NEXT HUB</button>
+
                     <button id="btn-graph-zoom-in" onclick="zoomGraph(1.4)"
                         style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #ccc; padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; transition: all 0.2s;" title="Zoom In">[+]</button>
 
@@ -2743,6 +2751,8 @@
                     }
                     initialized = true;
                 }
+            setTimeout(() => refreshSidebarTelemetry(), 400);
+            setInterval(() => refreshSidebarTelemetry(), 10000);
 
                 tab.addEventListener("click", () => {
                     const newTab = tab.dataset.tab;
@@ -3219,11 +3229,83 @@
             }
             const distOffset = 420;
             const newPos = { x: target.x, y: target.y + 80, z: target.z + distOffset };
+            if (proceduralUpdateTimer) {
+                clearTimeout(proceduralUpdateTimer);
+                proceduralUpdateTimer = null;
+            }
+            if (window._cameraLandRefreshTimer) {
+                clearTimeout(window._cameraLandRefreshTimer);
+                window._cameraLandRefreshTimer = null;
+            }
+            window._isCameraFlyingUntil = Date.now() + 650;
             window.Graph.cameraPosition(newPos, target, 450);
             if (window.Graph.controls() && window.Graph.controls().target) {
                 window.Graph.controls().target.set(target.x, target.y, target.z);
             }
-            setTimeout(() => refreshGraph(false), 480);
+            window._cameraLandRefreshTimer = setTimeout(() => {
+                window._isCameraFlyingUntil = 0;
+                refreshGraph(false, true);
+            }, 480);
+        }
+
+        window._hubCycleIdx = -1;
+        function updateHubWaypointsDropdown(data) {
+            const sel = document.getElementById('graph-hub-select');
+            if (!sel || !data || !Array.isArray(data.hub_waypoints)) return;
+            const hubs = data.hub_waypoints;
+            const prevIdx = sel.selectedIndex;
+            sel.innerHTML = `<option value="">HUBS (${hubs.length})</option>`;
+            hubs.forEach((h, i) => {
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                const lbl = (h.label || h.id || 'hub').substring(0, 18);
+                opt.text = `#${i + 1} ${lbl} (${Math.round(h.dist || 0)}u)`;
+                sel.appendChild(opt);
+            });
+            if (prevIdx > 0 && prevIdx <= hubs.length) sel.selectedIndex = prevIdx;
+        }
+
+        function jumpToHub(idx) {
+            if (!window.Graph || !graphDataGlobal || !Array.isArray(graphDataGlobal.hub_waypoints)) return;
+            const hubs = graphDataGlobal.hub_waypoints;
+            if (idx < 0 || idx >= hubs.length) return;
+            window._hubCycleIdx = idx;
+            const h = hubs[idx];
+            const cachedPos = (typeof graphNodePositions !== 'undefined' && graphNodePositions.has(h.id))
+                ? graphNodePositions.get(h.id)
+                : null;
+            const target = cachedPos
+                ? { x: cachedPos.x || 0, y: cachedPos.y || 0, z: cachedPos.z || 0 }
+                : { x: h.x || 0, y: h.y || 0, z: h.z || 0 };
+            const newPos = { x: target.x, y: target.y + 70, z: target.z + 320 };
+            if (proceduralUpdateTimer) {
+                clearTimeout(proceduralUpdateTimer);
+                proceduralUpdateTimer = null;
+            }
+            if (window._cameraLandRefreshTimer) {
+                clearTimeout(window._cameraLandRefreshTimer);
+                window._cameraLandRefreshTimer = null;
+            }
+            window._isCameraFlyingUntil = Date.now() + 680;
+            window.Graph.cameraPosition(newPos, target, 500);
+            if (window.Graph.controls() && window.Graph.controls().target) {
+                window.Graph.controls().target.set(target.x, target.y, target.z);
+            }
+            const sel = document.getElementById('graph-hub-select');
+            if (sel && sel.selectedIndex !== idx + 1) sel.selectedIndex = idx + 1;
+            window._cameraLandRefreshTimer = setTimeout(() => {
+                window._isCameraFlyingUntil = 0;
+                refreshGraph(false, true);
+            }, 520);
+        }
+
+        function cycleNextHub() {
+            if (!graphDataGlobal || !Array.isArray(graphDataGlobal.hub_waypoints) || graphDataGlobal.hub_waypoints.length === 0) {
+                refreshGraph(false, true);
+                return;
+            }
+            window._hubCycleIdx = (window._hubCycleIdx + 1) % graphDataGlobal.hub_waypoints.length;
+            jumpToHub(window._hubCycleIdx);
         }
 
         function updateProceduralHudTelemetry(data = null) {
@@ -3547,6 +3629,7 @@
                     if (hudTot) hudTot.innerText = data.total_nodes || (data.nodes || []).length;
                     if (hudHor && rDistEl) hudHor.innerText = rDistEl.value;
                     updateProceduralHudTelemetry(data);
+                    updateHubWaypointsDropdown(data);
                 }
 
                 // Build GraphData object
@@ -3775,6 +3858,9 @@
                         if (controls.addEventListener) {
                             controls.addEventListener('change', () => {
                                 updateProceduralHudTelemetry();
+                                if (Date.now() < (window._isCameraFlyingUntil || 0)) {
+                                    return;
+                                }
                                 if (graphProceduralLoad && window.Graph && window.Graph.camera) {
                                     const cam = window.Graph.camera();
                                     if (cam && cam.position) {
@@ -4586,25 +4672,32 @@
                 chatFeed.appendChild(progressEl);
                 if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
 
-                window._progressPollTimer = setInterval(async () => {
+                const pollProgressOnce = async () => {
                     if (window._isPollingProgress) return;
                     window._isPollingProgress = true;
                     try {
                         const pRes = await fetch(`${state.backend_url}/api/progress`);
                         if (pRes.ok) {
                             const pData = await pRes.json();
-                            if (pData.progress && pData.progress.is_generating) {
+                            if (pData.progress) {
                                 const p = pData.progress;
                                 const snippet = p.recent ? p.recent.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-                                progressEl.innerHTML = `<span style="font-weight: bold; color: #39ff14;">[LARYNX GENERATING]</span> Step ${p.step}/${p.total} (${p.percent}%) &bull; ${p.elapsed_sec}s &bull; <span style="opacity: 0.85;">"${snippet}"</span>`;
-                                if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
+                                if (p.is_generating) {
+                                    progressEl.innerHTML = `<span style="font-weight: bold; color: #39ff14;">[LARYNX GENERATING]</span> Step ${p.step}/${p.total} (${p.percent}%) &bull; ${p.elapsed_sec}s &bull; <span style="opacity: 0.85;">"${snippet}"</span>`;
+                                    if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
+                                } else if (p.step > 0 && snippet) {
+                                    progressEl.innerHTML = `<span style="font-weight: bold; color: #00ffcc;">[LARYNX COMPLETE &mdash; SEALING TOPOLOGY]</span> Step ${p.step}/${p.total} (${p.percent}%) &bull; ${p.elapsed_sec}s &bull; <span style="opacity: 0.85;">"${snippet}"</span>`;
+                                    if (autoscrollEnabled) chatFeed.scrollTop = chatFeed.scrollHeight;
+                                }
                             }
                         }
                     } catch (_) {}
                     finally {
                         window._isPollingProgress = false;
                     }
-                }, 1200);
+                };
+                setTimeout(pollProgressOnce, 150);
+                window._progressPollTimer = setInterval(pollProgressOnce, 450);
             }
 
             try {
@@ -4851,6 +4944,10 @@
                     // Pulsate ribbon based on resonance
                     ribbon.style.opacity = 0.5 + (diag.manifold_voice_resonance * 0.5);
                 }
+                if (diag.brainspace_connection !== undefined) {
+                    const resEl = document.getElementById('resonance-score');
+                    if (resEl) resEl.innerText = Number(diag.brainspace_connection).toFixed(3);
+                }
                 if (diag.ley_line_anisotropy !== undefined) {
                     document.getElementById('ley-line').innerText = diag.ley_line_anisotropy.toFixed(4);
                 }
@@ -4892,6 +4989,37 @@
                     gooBtn.classList.remove('active');
                 }
             }
+        }
+
+        async function refreshSidebarTelemetry() {
+            try {
+                const resp = await fetch(`${state.backend_url}/api/status`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const mt = data.manifold_telemetry;
+                if (!mt) return;
+                const setTxt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && val !== undefined && val !== null) el.innerText = val;
+                };
+                setTxt('field-status', mt.field_status || 'ONLINE');
+                setTxt('beta-0', Number(mt.betti_0 ?? 1).toFixed(4));
+                setTxt('beta-1', Number(mt.betti_1 ?? 0).toFixed(4));
+                setTxt('pressure', Number(mt.pressure ?? 0).toFixed(4));
+                setTxt('coherence', Number(mt.coherence ?? 0).toFixed(3));
+                setTxt('honest-jitter', Number(mt.honest_jitter ?? 0).toFixed(4));
+                setTxt('substream-entropy', Number(mt.substream_entropy ?? 0).toFixed(4));
+                setTxt('voice-resonance', Number(mt.manifold_voice_resonance ?? 0).toFixed(4));
+                setTxt('resonance-score', Number(mt.brainspace_connection ?? 0).toFixed(3));
+                setTxt('ley-line', Number(mt.ley_line_anisotropy ?? 0).toFixed(4));
+                setTxt('moebius-twist', Number(mt.moebius_twist ?? 0).toFixed(1));
+                if (mt.calm_diagnostics) {
+                    setTxt('calm-abort', Number(mt.calm_diagnostics.abort_score ?? 0).toFixed(4));
+                    setTxt('calm-rho', Number(mt.calm_diagnostics.rho_factor ?? 1).toFixed(4));
+                    setTxt('calm-step', Number(mt.calm_diagnostics.step_factor ?? 1).toFixed(4));
+                    setTxt('calm-status', mt.calm_diagnostics.trajectory_status || 'STABLE');
+                }
+            } catch (e) {}
         }
 
         let autoscrollEnabled = true;

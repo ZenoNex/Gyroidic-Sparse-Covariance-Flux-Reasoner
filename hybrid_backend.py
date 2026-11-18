@@ -2828,7 +2828,8 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                         limit = 1500
                     force_reload = query.get('force', ['false'])[0].lower() in ('true', '1')
                     gm = AI_SYSTEM.graph_manager
-                    if force_reload or len(getattr(gm, 'nodes', [])) == 0:
+                    last_scan_lim = int(getattr(gm, '_last_scan_limit', 0) or 0)
+                    if force_reload or len(getattr(gm, 'nodes', [])) == 0 or last_scan_lim < limit:
                         gm.load_fossils(
                             limit=limit,
                             scan_limit=min(max(500, limit * 2), 4000),
@@ -2912,6 +2913,53 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             if AI_SYSTEM and hasattr(AI_SYSTEM, 'engine') and AI_SYSTEM.engine:
                 if hasattr(AI_SYSTEM.engine, 'valence_drive') and AI_SYSTEM.engine.valence_drive:
                     status_data['valence'] = AI_SYSTEM.engine.valence_drive.get_metrics()
+
+            # Live Left-Sidebar Manifold Telemetry
+            try:
+                gm_inst = getattr(AI_SYSTEM, 'graph_manager', None) if AI_SYSTEM else None
+                eng_inst = getattr(AI_SYSTEM, 'engine', None) if AI_SYSTEM else None
+                gm_nodes = list(getattr(gm_inst, 'nodes', []) or []) if gm_inst else []
+                gm_edges = getattr(gm_inst, '_cached_edges', None) or []
+                n_cnt = len(gm_nodes)
+                e_cnt = len(gm_edges)
+                entropies = [float(getattr(n, 'spectral_entropy', 0.0) or 0.0) for n in gm_nodes]
+                chirals = [float(getattr(n, 'chiral_score', 0.0) or 0.0) for n in gm_nodes]
+                mean_ent = (sum(entropies) / len(entropies)) if entropies else 0.0
+                mean_chi = (sum(chirals) / len(chirals)) if chirals else 0.0
+
+                from src.core.honest_jitter import harvest_honest_jitter
+                hj = float(harvest_honest_jitter())
+
+                dmg = float(status_data['active_fingerprint']['damage'])
+                betti_0 = max(1, len(gm_nodes) - min(len(gm_nodes) - 1, e_cnt)) if n_cnt > 0 else 1
+                betti_1 = max(0, e_cnt - n_cnt + betti_0) if n_cnt > 0 else 0
+
+                last_diag = getattr(AI_SYSTEM, 'last_diagnostics', None) or {}
+                calm_diag = last_diag.get('calm_diagnostics') or {
+                    'abort_score': float(getattr(eng_inst, 'last_abort_score', 0.0) or 0.0) if eng_inst else 0.0,
+                    'rho_factor': float(getattr(eng_inst, 'last_rho_factor', 1.0) or 1.0) if eng_inst else 1.0,
+                    'step_factor': float(getattr(eng_inst, 'last_step_factor', 1.0) or 1.0) if eng_inst else 1.0,
+                    'trajectory_status': 'STABLE' if dmg < 1.0 else 'STRAINED',
+                }
+                coh = float(last_diag.get('coherence', max(0.0, min(1.0, 1.0 - 0.1 * dmg))))
+                status_data['manifold_telemetry'] = {
+                    'field_status': 'ONLINE' if n_cnt > 0 else 'SCANNING',
+                    'betti_0': float(last_diag.get('betti_0', betti_0)),
+                    'betti_1': float(last_diag.get('betti_1', betti_1)),
+                    'pressure': float(last_diag.get('pressure', dmg)),
+                    'coherence': coh,
+                    'honest_jitter': hj,
+                    'substream_entropy': float(last_diag.get('substream_entropy', mean_ent)),
+                    'calm_diagnostics': calm_diag,
+                    'manifold_voice_resonance': float(last_diag.get('manifold_voice_resonance', coh)),
+                    'brainspace_connection': float(last_diag.get('brainspace_connection', min(1.0, n_cnt / 100.0))),
+                    'ley_line_anisotropy': float(last_diag.get('ley_line_anisotropy', abs(mean_chi))),
+                    'moebius_twist': float(last_diag.get('moebius_twist', mean_chi)),
+                    'graph_node_count': n_cnt,
+                    'graph_edge_count': e_cnt,
+                }
+            except Exception:
+                pass
             self._send_json(status_data)
         elif parsed_path.path == '/api/affordances':
             try:

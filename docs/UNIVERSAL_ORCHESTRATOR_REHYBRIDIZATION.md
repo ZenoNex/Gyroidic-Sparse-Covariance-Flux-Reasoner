@@ -983,6 +983,21 @@ In [`src/core/birkhoff_projection.py`](file:///d:/programming/python/Gyroidic%20
    * Wired `GyroidicConstraintProjector`, `SparseCovariantOptimizer`, and `TopologicalPressureMonitor` into `TrainingManager.__init__` (`src/training/training_manager.py`).
    * Replaced raw `torch.softmax` in 6 `ResonanceLarynx` autoregressive decoding loops (`knowledge_ingestor.py`, `economic_news_linker.py`, `open_science_ingestor.py`, `sovereign_ingestor.py`, `diegetic_backend.py`) with `LazarusSoftmax`.
 
+---
+
+### Rehybridization Vector IV: Wheel Algebra ($\bot = 0/0$), Ontological Null First Cause, Unified Multiplication/Secant/Shear Taxonomy, and 215/215 Zero-Code-Island Reachability (November 2026)
+
+1. **Ontological Null Self-Relation ($\mathcal{N}$) & First Cause (`VanellopeFirstCausativeAgent`)**:
+   * Implemented `compute_null_self_relation_unfolding` in [`src/core/invariants.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) and `VanellopeFirstCausativeAgent.compute_null_first_cause_unfolding` in [`src/governance/causative/vanellope_first_causative.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/governance/causative/vanellope_first_causative.py) (`docs/This Is Why Anything Exists.txt`).
+   * Models pure nothingness ($\mathcal{N}$) lacking an external halting rule or boundary, whose self-relation ($\mathcal{N} \mapsto \{\mathcal{N}\}$) unfolds the first distinct boundary ($1 = \{0\}$), the duality of inclusion/exclusion ($2 = \{0, 1\}$), and the prime combinatorial ladder $\mathcal{P} = \{2, 3, 5, 7, 11, 13, \dots\}$.
+2. **Carlstrom (2004) Wheel Algebra Totalized Division (`/x`) & Central Wheel Hub ($\bot = 0/0$)**:
+   * Implemented `compute_wheel_algebra_division` in [`src/core/invariants.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py) (`docs/How To Divide By Zero, For Real.txt`), separating directional projective infinity ($\infty = /0 = 1/0$) from the central stationary Wheel Hub ($\bot = 0/0 = 0 \cdot \infty$) and enforcing the universal Wheel identities $x - x = 0 \cdot x^2$ and $x/x = 1 + 0 \cdot (x/x)$.
+   * Upgraded `OperationalAdmmPrimitive.audit_wheel_multiplicative_remainders` ([`src/core/admr_solver.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/admr_solver.py)), `LeyLineTracker.compute_secant_shear_wheel_transversality` ([`src/core/ley_line_tracker.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/ley_line_tracker.py)), and `GyroidicGraphManager._compute_hub_waypoints` / `get_procedural_window` ([`src/topology/embedding_graph.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py)) to tag `WHEEL_HUB_0_OVER_0` and preserve all discovered percolation/centrality hubs in procedural S4 graph windows.
+3. **215 / 215 Zero-Code-Island Reachability**:
+   * Wrapped top-level execution in [`src/tools/probe_html.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/tools/probe_html.py) inside `run_chat_html_probe` and wired the terminal, diagnostic probe, and UI bridge registry (`terminal_ui_bridge_registry`) in [`src/core/orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py).
+   * Verified via `scratch/find_code_islands.py`: **215 / 215 Python modules in `src/` are connected (0 code islands)**.
+
+
 
 
 

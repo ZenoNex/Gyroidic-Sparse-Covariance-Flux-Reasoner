@@ -218,16 +218,21 @@ class ArXivSovereignIngestor:
                         if logits.dim() == 3:
                             logits = logits.squeeze(1)
 
-                        # Syllable-coherent vowel modulation (Layer 6 DIEGETIC_INTEGRATION)
+                        # Clean vocabulary filtering & Syllable-coherent vowel modulation (Layer 6 DIEGETIC_INTEGRATION)
                         prev_char = generated_chars[-1] if generated_chars else ' '
+                        for idx in range(logits.shape[-1]):
+                            if not (idx == 32 or (48 <= idx <= 57) or (65 <= idx <= 90) or (97 <= idx <= 122)):
+                                logits[0, idx] = -1e9
+                            elif idx == 32 and prev_char == ' ':
+                                logits[0, idx] = -1e9
                         if prev_char.isalpha() and prev_char not in vowels:
                             for v in vowels:
                                 if ord(v) < logits.shape[-1]:
-                                    logits[0, ord(v)] *= 1.4
+                                    logits[0, ord(v)] += 1.8
                         elif prev_char in vowels:
                             for v in vowels:
                                 if ord(v) < logits.shape[-1]:
-                                    logits[0, ord(v)] *= 0.4
+                                    logits[0, ord(v)] -= 1.4
 
                         lazarus = LazarusSoftmax(dim=-1).to(logits.device)
                         probs, _ = lazarus(logits, 0.0, 0.0)
@@ -1162,6 +1167,11 @@ class ArXivSovereignIngestor:
                             t = r.get("title", "Unknown Web Title")
                             s = r.get("content") or r.get("snippet") or ""
                             if u:
+                                if u.startswith("http:///") or u.startswith("https:///"):
+                                    u = "/" + u.split(":///", 1)[1].lstrip("/")
+                                if u.startswith("/"):
+                                    from urllib.parse import urljoin
+                                    u = urljoin(configured_url.rstrip("/") + "/", u.lstrip("/"))
                                 web_results.append({'url': u, 'title': t, 'content': None, 'snippet': s})
                         source_label = "SearXNG"
                 elif response:
@@ -1237,6 +1247,17 @@ class ArXivSovereignIngestor:
         with a urllib SSL context fallback so SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING]')
         on endpoints like /persuasion-its-components-principles-and-techniques.html never crashes ingestion.
         """
+        if not target_url:
+            return None
+        if target_url.startswith("http:///") or target_url.startswith("https:///"):
+            base_searx = os.environ.get("SEARXNG_URL", "http://127.0.0.1:8888").rstrip("/")
+            target_url = f"{base_searx}/{target_url.split(':///', 1)[1].lstrip('/')}"
+        elif target_url.startswith("/"):
+            base_searx = os.environ.get("SEARXNG_URL", "http://127.0.0.1:8888").rstrip("/")
+            target_url = f"{base_searx}/{target_url.lstrip('/')}"
+        parsed_check = urlparse(target_url)
+        if not parsed_check.scheme or not parsed_check.netloc:
+            return None
         if not hasattr(self, "_tls_session") or self._tls_session is None:
             self._tls_session = create_tls_resilient_session()
         headers = {
