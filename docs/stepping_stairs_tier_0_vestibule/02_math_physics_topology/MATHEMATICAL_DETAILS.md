@@ -1861,6 +1861,14 @@ $$
 \delta(t - t_{\text{thought}}) = \lim_{a \to 0} \frac{1}{a\sqrt{\pi}} e^{-(t/a)^2}
 $$
 
+**Canonical Implementation (`compute_gaussian_mollifier_projection` in [`src/core/invariants.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/invariants.py))**:
+- **Dirac Spectrum Constant on $\mathbb{RP}^4$**: Anchored to $\beta_{\text{coh}} = 6\cos(\pi / 23) \approx 5.944122$ (`DIRAC_SPECTRUM_BETA_COH`).
+- **Adaptive Mollifier Bandwidth $a > 0$**: Derived from the natural log of the signal scale and inversely anchored to $\beta_{\text{coh}}$:
+  $$a = \max\!\left(0.05,\; \frac{\ln(\text{scale} + e)}{\beta_{\text{coh}}}\right), \qquad \delta_a(u) = \frac{1}{a\sqrt{\pi}} e^{-(u/a)^2}$$
+  guaranteeing unit $L^1$ weak-$*$ integral ($\int_{-\infty}^{\infty} \delta_a(t)\,dt = 1$) while smoothing singular Sobolev $H^{-s}$ spikes above $0.7\,\sigma$.
+- **Natural Log Topological Rotation in $\text{SO}(n)$**: Pairs of temporal chunks and feature axes are rotated into logic space by $\theta = \beta_{\text{coh}} \ln(\text{scale} + 1.0)$.
+- **Cross-System Integration**: Active across [`VideoDyadParser._apply_topological_rotation`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/video_dyad_parser.py), [`GluingOperator.apply_gaussian_mollifier_spike_protection`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/gluing_operator.py) (bridging the $R_{00} = -1$ Klein throat reflection with the $\text{SO}(n)$ Dirac spike rotation), [`MetaPolytopeMatrioshka.project_direction`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/meta_polytope_matrioshka.py) (the Reversible Black Hole triad), and [`ResidueFusion.forward`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/knowledge_dyad_fossilizer.py).
+
 The **Natural Log Topological Rotation** ensures that this spike is rotated into the correct logic-space without causing a global system rupture. The system learns the association not as a static mapping, but as a **Transversal Intersection** between the video-stream and the symbolic-lattice.
 
 ### 45.3 Commutativity Gating

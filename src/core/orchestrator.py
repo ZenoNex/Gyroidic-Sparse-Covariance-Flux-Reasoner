@@ -1994,6 +1994,9 @@ class UniversalOrchestrator(nn.Module):
                         # Critical shell boundary hit: execute Matrioshka shell escape
                         print(f"[ORCHESTRATOR] Critical Matrioshka boundary hit (level={boundary_state.level}/{boundary_state.max_level}). Executing shell escape rotation.", flush=True)
                         state_sync = self.gluer(state_sync)
+                        if hasattr(self.gluer, 'apply_gaussian_mollifier_spike_protection'):
+                            state_sync = self.gluer.apply_gaussian_mollifier_spike_protection(state_sync)
+                            self.telemetry_state['gaussian_mollifier'] = dict(getattr(self.gluer, 'last_mollifier_diagnostics', {}))
                 except Exception as caq_err:
                     print(f"[ORCHESTRATOR] CAQ step fallback: {caq_err}", flush=True)
 
@@ -3916,6 +3919,7 @@ class UniversalOrchestrator(nn.Module):
                 "substream_entropy": parsed['substream_entropy'].item() if torch.is_tensor(parsed.get('substream_entropy')) else float(parsed.get('substream_entropy', 0.0)),
                 "honest_jitter": parsed['honest_jitter'].item() if torch.is_tensor(parsed.get('honest_jitter')) else float(parsed.get('honest_jitter', 0.0)),
                 "audio_harmonics": aud.detach().cpu() if aud is not None else torch.zeros(32),
+                "gaussian_mollifier": parsed.get('gaussian_mollifier', {}),
                 "local_affordance": {
                     "silicon_gauge": float(silicon_aff.gauge),
                     "thermal_gauge": float(thermal_aff.gauge),

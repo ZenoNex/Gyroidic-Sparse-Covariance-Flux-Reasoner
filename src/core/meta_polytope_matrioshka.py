@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from src.safety.red_teaming import TopologicalRefusalError
 from src.topology.homology_pressure import HomologyPressure
-from src.core.invariants import get_prime_ladder
+from src.core.invariants import get_prime_ladder, DIRAC_SPECTRUM_BETA_COH, compute_gaussian_mollifier_projection
 from src.core.honest_jitter import harvest_honest_jitter
 
 
@@ -371,8 +371,17 @@ class MetaPolytopeMatrioshka(nn.Module):
         
         if is_outward.any():
             correction = inner_product * normal_normalized
-            # print(f"[BOULIGAND_MATRIOSHKA] Outward boundary crossing projected onto tangent cone (normal norm: {norm_val.item():.4f})", flush=True)
             direction_proj = torch.where(is_outward, direction - correction, direction)
+            # Reversible Black Hole (SYSTEM_ARCHITECTURE.md 9.5):
+            # When crossing energy or directional spike is singular, apply Gaussian Mollifier
+            # Projection anchored by Dirac Spectrum Constant beta_coh ~ 5.944122
+            if boundary_state.crossing_energy > 0.5 or direction_proj.abs().max().item() > 2.5:
+                mollified_res = compute_gaussian_mollifier_projection(
+                    signal=direction_proj,
+                    scale=max(1e-4, float(boundary_state.crossing_energy)),
+                    beta_coh=DIRAC_SPECTRUM_BETA_COH,
+                )
+                direction_proj = 0.7 * direction_proj + 0.3 * mollified_res["projected_state"]
             return direction_proj
             
         return direction

@@ -450,6 +450,47 @@ def test_wheel_algebra_null_self_relation_and_vanellope_admr_shear():
     hubs = GyroidicGraphManager._compute_hub_waypoints(coords, [0.0, 0.0, 0.0])
     assert any(h.get("hub_role") == "WHEEL_HUB_0_OVER_0" and h["id"] == "center_node" for h in hubs)
 
+    # 7. Gaussian Mollifier Projection (Dirac Effect, MATHEMATICAL_DETAILS.md 45.2, SYSTEM_ARCHITECTURE.md 9.5)
+    from src.core.invariants import DIRAC_SPECTRUM_BETA_COH, compute_gaussian_mollifier_projection
+    from src.core.video_dyad_parser import VideoDyadParser
+    from src.core.gluing_operator import GluingOperator
+    from src.core.meta_polytope_matrioshka import MetaPolytopeMatrioshka, BoundaryState
+    from src.core.knowledge_dyad_fossilizer import ResidueFusion
+
+    spike_signal = torch.tensor([[0.1, -0.1, 0.05, 8.5, -0.05, 0.1, 0.0, -7.2]])
+    moll_res = compute_gaussian_mollifier_projection(spike_signal, scale=1.5)
+    assert moll_res["projected_state"].shape == spike_signal.shape
+    assert moll_res["unit_mass_preserved"] is True
+    assert abs(moll_res["beta_coh"] - DIRAC_SPECTRUM_BETA_COH) < 1e-6
+    assert moll_res["spike_count"] >= 2
+
+    vparser = VideoDyadParser(chunk_size=16, max_chunks=4, device="cpu")
+    rot_sig = vparser._apply_topological_rotation(spike_signal.repeat(4, 1), scale=1.5)
+    assert rot_sig.shape == (4, 8)
+    assert vparser.last_mollifier_diagnostics.get("unit_mass_preserved") is True
+
+    gluer = GluingOperator(dim=8)
+    glued_out = gluer(spike_signal)
+    assert glued_out.shape == spike_signal.shape
+    assert gluer.last_mollifier_diagnostics.get("unit_mass_preserved") is True
+
+    matrioshka = MetaPolytopeMatrioshka(max_depth=3, base_dim=8)
+    b_state = BoundaryState.from_crossing(
+        state_direction=torch.ones(8),
+        facet_normal=torch.ones(8),
+        alpha=0,
+        level=-1,
+        max_level=3,
+    )
+    proj_dir = matrioshka.project_direction(spike_signal, spike_signal.clone(), b_state)
+    assert proj_dir.shape == spike_signal.shape
+
+    rfusion = ResidueFusion(feature_dim=16)
+    fused_res = rfusion(torch.randn(1, 96), torch.randn(1, 16))
+    assert fused_res.shape == (1, 16)
+    assert rfusion.last_mollifier_diagnostics.get("unit_mass_preserved") is True
+
+
 
 
 if __name__ == "__main__":

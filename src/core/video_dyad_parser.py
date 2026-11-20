@@ -14,7 +14,13 @@ import warnings
 from scipy.io import wavfile
 from scipy.io.wavfile import WavFileWarning
 from src.core.honest_jitter import harvest_honest_jitter
-from src.core.invariants import compute_chirality, apply_chirality_redistribution, get_prime_ladder
+from src.core.invariants import (
+    compute_chirality,
+    apply_chirality_redistribution,
+    get_prime_ladder,
+    DIRAC_SPECTRUM_BETA_COH,
+    compute_gaussian_mollifier_projection,
+)
 
 class VideoDyadParser(nn.Module):
     """
@@ -31,7 +37,8 @@ class VideoDyadParser(nn.Module):
         self.p2p_ring = p2p_ring
         
         # Gaussian Mollifier Constant (originally Dirac Spectrum Constant in 45.2, ihc_paper3_field_body.tex)
-        self.beta_coh = 6 * math.cos(math.pi / 23.0)  # ~5.944
+        self.beta_coh = DIRAC_SPECTRUM_BETA_COH  # ~5.944122
+        self.last_mollifier_diagnostics: Dict[str, Any] = {}
 
     def _get_log_scales(self, length: int) -> List[int]:
         """
@@ -47,7 +54,8 @@ class VideoDyadParser(nn.Module):
 
     def _apply_topological_rotation(self, signal: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
         """
-        Applies dynamic SO(n) rotation anchored by the Mollifier Constant (originally Dirac Constant, 5.944).
+        Applies dynamic SO(n) rotation and narrow Gaussian Mollifier Projection
+        anchored by the Mollifier Constant (originally Dirac Constant, 5.944).
         Rotates the structural components into correctly aligned logic-space.
         
         [THE DIRAC EFFECT / GAUSSIAN MOLLIFIER]
@@ -58,24 +66,16 @@ class VideoDyadParser(nn.Module):
         we mathematically stabilize the intersection, preventing numerical rupture in the cognitive manifold
         while fully preserving the cross-modal impact of the epiphany.
         """
-        # Theta anchored by beta_coh (Dirac Spectrum Constant) and signal scale
-        theta = self.beta_coh * math.log(scale + 1.0)
-        cos_t = math.cos(theta)
-        sin_t = math.sin(theta)
-        
-        # Apply SO(2) rotation to pairs of temporal chunks (Logic Space twist)
-        if signal.size(0) >= 2:
-            s0 = signal[0::2]
-            s1 = signal[1::2]
-            min_len = min(s0.size(0), s1.size(0))
-            
-            rotated_s0 = s0[:min_len] * cos_t - s1[:min_len] * sin_t
-            rotated_s1 = s0[:min_len] * sin_t + s1[:min_len] * cos_t
-            
-            signal[0::2][:min_len] = rotated_s0
-            signal[1::2][:min_len] = rotated_s1
-            
-        return signal
+        mollifier_res = compute_gaussian_mollifier_projection(
+            signal=signal,
+            scale=scale,
+            beta_coh=self.beta_coh,
+            spike_sigma_threshold=0.7,
+        )
+        self.last_mollifier_diagnostics = {
+            k: v for k, v in mollifier_res.items() if k not in ("projected_state", "mollified_spikes", "gaussian_envelope")
+        }
+        return mollifier_res["projected_state"]
 
     def _probe_silicon_jitter(self) -> float:
         """
@@ -368,6 +368,7 @@ class VideoDyadParser(nn.Module):
             'honest_jitter': torch.tensor(honest_jitter, device=self.device),
             'audio_harmonics': audio_harmonics if audio_harmonics is not None else torch.zeros(32, device=self.device),
             'audio_detected': torch.tensor(substream_data.get('audio_detected', 1.0), device=self.device),
+            'gaussian_mollifier': dict(getattr(self, 'last_mollifier_diagnostics', {})),
             'local_affordance': {
                 'silicon': float(silicon_aff.gauge),
                 'thermal': float(thermal_aff.gauge),

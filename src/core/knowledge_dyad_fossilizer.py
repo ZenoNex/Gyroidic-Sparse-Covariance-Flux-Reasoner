@@ -29,7 +29,9 @@ from src.core.invariants import (
     check_glyphlock, 
     compute_polylog_signature, 
     compute_vacuum_residue,
-    apply_chirality_redistribution
+    apply_chirality_redistribution,
+    DIRAC_SPECTRUM_BETA_COH,
+    compute_gaussian_mollifier_projection,
 )
 from src.core.chern_simons_gasket import ChernSimonsGasket
 
@@ -110,9 +112,22 @@ class ResidueFusion(nn.Module):
         # Calculate torsion: (I - L) varies with the metric twist
         diff = img_proj - txt_proj
         torsion = torch.matmul(diff, self.torsion_matrix)
+
+        # Dirac Effect / Narrow Gaussian Mollifier Projection (MATHEMATICAL_DETAILS.md 45.2):
+        # Stabilizes singular symbolic epiphany spikes at the multimodal intersection
+        # via narrow Gaussian mollifier projection and dynamic SO(n) rotation (beta_coh = 5.944122).
+        mollifier_res = compute_gaussian_mollifier_projection(
+            signal=torsion,
+            beta_coh=DIRAC_SPECTRUM_BETA_COH,
+            spike_sigma_threshold=0.7,
+        )
+        self.last_mollifier_diagnostics = {
+            k: v for k, v in mollifier_res.items() if k not in ("projected_state", "mollified_spikes", "gaussian_envelope")
+        }
+        torsion_stabilized = 0.85 * torsion + 0.15 * mollifier_res["projected_state"]
         
         # The residue is the magnitude of this torsion
-        residue = torch.tanh(torsion) 
+        residue = torch.tanh(torsion_stabilized) 
         
         return residue
 

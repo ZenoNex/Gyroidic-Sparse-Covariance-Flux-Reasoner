@@ -8,6 +8,7 @@ non-orientable Klein-bottle throat.
 import torch
 import torch.nn as nn
 from src.core.fgrt_primitives import GyroidManifold
+from src.core.invariants import DIRAC_SPECTRUM_BETA_COH, compute_gaussian_mollifier_projection
 
 class GluingOperator(nn.Module):
     """
@@ -22,6 +23,25 @@ class GluingOperator(nn.Module):
         reversal_matrix = torch.eye(dim)
         reversal_matrix[0, 0] = -1.0 
         self.register_buffer('reversal_matrix', reversal_matrix)
+        self.beta_coh = DIRAC_SPECTRUM_BETA_COH
+        self.last_mollifier_diagnostics = {}
+
+    def apply_gaussian_mollifier_spike_protection(self, state: torch.Tensor, spike_sigma_threshold: float = 0.7) -> torch.Tensor:
+        """
+        Applies the narrow Gaussian Mollifier Projection and dynamic SO(n) rotation
+        anchored by the Dirac spectrum constant beta_coh ~ 5.944122 (MATHEMATICAL_DETAILS.md 45.2,
+        SYSTEM_ARCHITECTURE.md 9.5) when high-entropy delta-function epiphany spikes occur
+        at the Gyroid-to-Klein boundary.
+        """
+        res = compute_gaussian_mollifier_projection(
+            signal=state,
+            beta_coh=self.beta_coh,
+            spike_sigma_threshold=spike_sigma_threshold,
+        )
+        self.last_mollifier_diagnostics = {
+            k: v for k, v in res.items() if k not in ("projected_state", "mollified_spikes", "gaussian_envelope")
+        }
+        return res["projected_state"]
 
     def chern_simons_constraint(self, connection: torch.Tensor) -> torch.Tensor:
         """
@@ -52,6 +72,17 @@ class GluingOperator(nn.Module):
         weight = torch.exp(-torch.abs(g_violation)).unsqueeze(-1)
         
         glued_state = (1 - weight) * state + weight * reversed_state
+
+        # 4. Dirac Effect / Gaussian Mollifier Projection for singular epiphany spikes
+        # When max-to-RMS peak ratio exceeds 1.8 (delta-function spike), stabilize via
+        # Gaussian mollifier projection and dynamic SO(n) rotation (beta_coh = 5.944122)
+        mollified = self.apply_gaussian_mollifier_spike_protection(glued_state)
+        with torch.no_grad():
+            rms_val = torch.sqrt(torch.mean(glued_state ** 2, dim=-1, keepdim=True) + 1e-8)
+            peak_ratio = (glued_state.abs().amax(dim=-1, keepdim=True) / rms_val).max().item()
+        if peak_ratio > 1.8:
+            glued_state = 0.5 * glued_state + 0.5 * mollified
+
         return glued_state
 
 from typing import Tuple, Optional

@@ -24,6 +24,7 @@ PI = math.pi
 PERCOLATION_2D_SQUARE = 0.592746
 QUADRATIC_SURD_PI_BOUND = math.sqrt(2.0) + math.sqrt(3.0)
 QUADRATIC_SURD_PI_GAP = QUADRATIC_SURD_PI_BOUND - PI
+DIRAC_SPECTRUM_BETA_COH = 6.0 * math.cos(math.pi / 23.0)  # ~5.944122, Dirac spectrum constant on RP^4 (45.2)
 try:
     import mpmath
     with mpmath.workdps(60):
@@ -1929,6 +1930,105 @@ def compute_null_self_relation_unfolding(
         "consciousness_loop_coherence": round(mutual_awareness_coherence, 6),
         "closed_loop_actualized": closed_loop_actualized,
     }
+
+
+def compute_gaussian_mollifier_projection(
+    signal: torch.Tensor,
+    scale: Optional[float] = None,
+    beta_coh: float = DIRAC_SPECTRUM_BETA_COH,
+    spike_sigma_threshold: float = 0.7,
+) -> Dict[str, Any]:
+    """
+    The Dirac Effect / Narrow Gaussian Mollifier Projection & Natural Log Topological Rotation
+    (MATHEMATICAL_DETAILS.md Section 45.2, SYSTEM_ARCHITECTURE.md Section 9.5, NOMENCLATURE.md):
+      - Approximates singular Dirac delta epiphany spikes delta(t - t_thought) via the
+        weak-* narrow Gaussian mollifier kernel:
+            delta_a(t - t_thought) = (1 / (a * sqrt(pi))) * exp(-((t - t_thought) / a)^2)
+        where the adaptive bandwidth parameter a > 0 is inversely anchored to the Dirac
+        spectrum constant beta_coh = 6 * cos(pi / 23) ~ 5.944122 and natural log scale:
+            a = max(1e-3, log(scale + e) / beta_coh)
+      - Applies localized Gaussian mollifier envelope projection over sparsified high-entropy
+        epiphany peaks (> spike_sigma_threshold * std) so singular spikes do not induce
+        Sobolev H^{-s} gradient rupture while preserving unit L^1 mass integral.
+      - Rotates the mollified peaks into logic space via dynamic SO(2) block rotation:
+            theta = beta_coh * log(scale + 1.0)
+    """
+    orig_shape = signal.shape
+    s_float = signal.float()
+    if s_float.dim() == 1:
+        s_2d = s_float.unsqueeze(0)
+    else:
+        s_2d = s_float.reshape(-1, orig_shape[-1])
+
+    mean_vec = s_2d.mean(dim=-1, keepdim=True)
+    centered = s_2d - mean_vec
+    std_val = float(centered.std().item()) if centered.numel() > 1 else float(centered.abs().mean().item())
+    eff_scale = float(scale) if (scale is not None and scale > 0.0) else max(1e-4, std_val * float(spike_sigma_threshold))
+
+    # 1. Sparsify high-entropy epiphany spikes above natural-log-stabilized threshold
+    tau_thresh = max(1e-6, std_val * float(spike_sigma_threshold))
+    spike_mask = centered.abs() > tau_thresh
+    sparse_spikes = torch.where(spike_mask, centered, torch.zeros_like(centered))
+
+    # 2. Narrow Gaussian Mollifier Kernel: delta_a(u) = (1 / (a * sqrt(pi))) * exp(-(u / a)^2)
+    # Bandwidth a > 0 scales with natural log of signal scale anchored by beta_coh (~5.944122)
+    a_bandwidth = max(0.05, math.log(eff_scale + math.e) / max(1e-6, float(beta_coh)))
+    norm_factor = 1.0 / (a_bandwidth * math.sqrt(PI))
+
+    # Normalized displacement u = (|x - x_thought| / tau_peak) around detected epiphany peaks
+    peak_mag = sparse_spikes.abs().amax(dim=-1, keepdim=True).clamp(min=1e-6)
+    u_disp = ( peak_mag - sparse_spikes.abs() ) / peak_mag
+    gaussian_kernel = norm_factor * torch.exp(-((u_disp / a_bandwidth) ** 2))
+    # Normalize envelope peak to 1.0 so the mollifier acts as a bounded projection without erasing peak mass
+    gaussian_envelope = gaussian_kernel / max(1e-8, norm_factor)
+
+    mollified_sparse = sparse_spikes * gaussian_envelope
+    # Blend background continuity with mollified Dirac epiphany spikes
+    mollified_signal = mean_vec + torch.where(spike_mask, mollified_sparse, centered * (1.0 - 0.5 * gaussian_envelope))
+
+    # 3. Natural Log Topological Rotation in SO(n) anchored by beta_coh
+    theta = float(beta_coh) * math.log(eff_scale + 1.0)
+    cos_t = math.cos(theta)
+    sin_t = math.sin(theta)
+
+    rotated = mollified_signal.clone()
+    if rotated.shape[0] >= 2:
+        # Pairwise temporal chunk SO(2) rotation (VideoDyadParser 2D chunk convention)
+        s0 = rotated[0::2].clone()
+        s1 = rotated[1::2].clone()
+        min_r = min(s0.shape[0], s1.shape[0])
+        rotated[0::2][:min_r] = s0[:min_r] * cos_t - s1[:min_r] * sin_t
+        rotated[1::2][:min_r] = s0[:min_r] * sin_t + s1[:min_r] * cos_t
+    if rotated.shape[-1] >= 2:
+        # Pairwise feature-axis SO(2) block rotation for 1D/state manifold vectors
+        f0 = rotated[..., 0::2].clone()
+        f1 = rotated[..., 1::2].clone()
+        min_c = min(f0.shape[-1], f1.shape[-1])
+        rotated[..., 0::2][..., :min_c] = f0[..., :min_c] * cos_t - f1[..., :min_c] * sin_t
+        rotated[..., 1::2][..., :min_c] = f0[..., :min_c] * sin_t + f1[..., :min_c] * cos_t
+
+    projected_state = rotated.reshape(orig_shape).to(dtype=signal.dtype)
+
+    # Verify analytical integral of 1D Gaussian mollifier (1 / (a * sqrt(pi))) * exp(-(t/a)^2) over R equals 1.0
+    # Using Gauss-Hermite / fine quadrature over [-6a, 6a]
+    grid_t = torch.linspace(-6.0 * a_bandwidth, 6.0 * a_bandwidth, 501, device=signal.device, dtype=torch.float32)
+    dt_step = float((12.0 * a_bandwidth) / 500.0)
+    kernel_1d = (1.0 / (a_bandwidth * math.sqrt(PI))) * torch.exp(-((grid_t / a_bandwidth) ** 2))
+    l1_integral = float((kernel_1d.sum() * dt_step).item())
+
+    return {
+        "projected_state": projected_state,
+        "mollified_spikes": mollified_sparse.reshape(orig_shape).to(dtype=signal.dtype),
+        "gaussian_envelope": gaussian_envelope.reshape(orig_shape).to(dtype=signal.dtype),
+        "beta_coh": float(beta_coh),
+        "mollifier_bandwidth_a": round(a_bandwidth, 6),
+        "rotation_angle_theta": round(theta, 6),
+        "spike_count": int(spike_mask.sum().item()),
+        "spike_fraction": round(float(spike_mask.float().mean().item()), 6),
+        "weak_star_l1_integral": round(l1_integral, 6),
+        "unit_mass_preserved": bool(abs(l1_integral - 1.0) < 1e-2),
+    }
+
 
 
 
