@@ -145,6 +145,17 @@ class JSpacePCAMapper:
             freqs = torch.tensor([1.618033988749895, 2.718281828459045, 3.141592653589793, 4.66920160910299][:target_dim], device=device, dtype=dtype).unsqueeze(0)
             proj_matrix = torch.cos(indices @ freqs) / (math.sqrt(D) + 1e-8)
             
+        if not (flat_state.requires_grad or proj_matrix.requires_grad) and D >= 8:
+            try:
+                from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                engine = get_sovereignty_engine()
+                if engine is not None and engine.is_initialized:
+                    projected = engine.hardware_sovereign_matmul(flat_state, proj_matrix)
+                    out_shape = list(orig_shape[:-1]) + [target_dim]
+                    return projected.to(device=state.device, dtype=state.dtype).view(*out_shape)
+            except Exception:
+                pass
+
         projected = torch.matmul(flat_state, proj_matrix)
         out_shape = list(orig_shape[:-1]) + [target_dim]
         return projected.view(*out_shape)

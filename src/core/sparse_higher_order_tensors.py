@@ -33,9 +33,20 @@ class SparseHigherOrderTensorDynamics(nn.Module):
         is_play = mode.upper() in ('PLAY', 'GOO')
         is_serious = mode.upper() in ('SERIOUSNESS', 'PRICKLES')
         
+        def _sovereign_mm(lhs: torch.Tensor, rhs: torch.Tensor) -> torch.Tensor:
+            if not (lhs.requires_grad or rhs.requires_grad) and dim >= 8:
+                try:
+                    from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                    engine = get_sovereignty_engine()
+                    if engine is not None and engine.is_initialized:
+                        return engine.hardware_sovereign_matmul(lhs, rhs).to(device=lhs.device, dtype=lhs.dtype)
+                except Exception:
+                    pass
+            return torch.matmul(lhs, rhs)
+
         # 1st Order (Linear) - Always computed fully
         w1 = self.tensor_weights['1']
-        results[1] = torch.matmul(x, w1)
+        results[1] = _sovereign_mm(x, w1)
         
         if self.max_order < 2:
             return results
@@ -71,7 +82,7 @@ class SparseHigherOrderTensorDynamics(nn.Module):
             # approximation: element-wise interaction with weight matrix
             # For efficiency in this demo, we mask the input
             x_sparse = x * mask
-            results[2] = torch.matmul(x_sparse, w2) * x_sparse
+            results[2] = _sovereign_mm(x_sparse, w2) * x_sparse
             
         # 3rd Order (Cubic)
         if self.max_order >= 3:
@@ -79,11 +90,11 @@ class SparseHigherOrderTensorDynamics(nn.Module):
             if is_play:
                 soft_mask = torch.sigmoid(combined_scores)
                 x_soft = x * soft_mask
-                results[3] = (torch.matmul(x_soft, w3) ** 2) * x_soft
+                results[3] = (_sovereign_mm(x_soft, w3) ** 2) * x_soft
             else:
                 x_sparse = x * mask
                 # Mock cubic interaction
-                results[3] = (torch.matmul(x_sparse, w3) ** 2) * x_sparse
+                results[3] = (_sovereign_mm(x_sparse, w3) ** 2) * x_sparse
             
         return results
 

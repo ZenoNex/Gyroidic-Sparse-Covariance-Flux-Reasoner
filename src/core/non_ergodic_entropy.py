@@ -236,11 +236,27 @@ class AdaptiveFractalPartitioner(nn.Module):
         if K <= self.min_block:
             return [(0, K)]
         
-        # Compute pairwise coherence (use first batch element)
+        # Compute pairwise coherence (PyOpenCL Gram matrix for multi-sample batches, FFT loop otherwise)
         coherences = []
-        for i in range(K - 1):
-            coh = self._compute_spectral_coherence(phi[0, i], phi[0, i + 1])
-            coherences.append(coh.item())
+        used_opencl = False
+        if batch_size >= 4 and K >= 8 and not phi.requires_grad:
+            try:
+                from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                engine = get_sovereignty_engine()
+                if engine is not None and engine.is_initialized:
+                    phi_centered = phi - phi.mean(dim=0, keepdim=True)
+                    norms = torch.norm(phi_centered, dim=0, keepdim=True) + 1e-8
+                    phi_norm = phi_centered / norms
+                    gram = engine.hardware_sovereign_matmul(phi_norm.t(), phi_norm)
+                    coherences = [float(torch.abs(gram[i, i + 1]).item()) for i in range(K - 1)]
+                    used_opencl = True
+            except Exception:
+                used_opencl = False
+
+        if not used_opencl:
+            for i in range(K - 1):
+                coh = self._compute_spectral_coherence(phi[0, i], phi[0, i + 1])
+                coherences.append(coh.item())
         
         # Find block boundaries at coherence drops
         blocks = []

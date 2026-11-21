@@ -716,6 +716,57 @@ class UniversalOrchestrator(nn.Module):
         except Exception:
             self.terminal_ui_bridge_registry = {}
 
+        # 7.32c Polymorphic FGRT Recurrent Cell Bank, Fractional Tag Stacker & Codec/Garden Bridges
+        # (FGRT_RNN_IMPLEMENTATION_DRAFTS.md Sec 5.5, hardware_stochasticity_pas.md Sec 1.C, BOSTICK_GARDEN_ATTRACTORS)
+        try:
+            from src.core.fgrt_rnn_cells import (
+                BerryPhaseGRUCell,
+                ChiralGatedRNNCell,
+                ComplexFGRTRNNCell,
+                SaturatedQuantizerRNNCell,
+                PyOpenCLHardwareSovereigntyCell,
+                LazarusSuperpositionRNNCell,
+                FeatureScarLCFTCell,
+            )
+            self.fgrt_rnn_bank = {
+                "berry_phase_gru": BerryPhaseGRUCell(dim, dim),
+                "chiral_gated": ChiralGatedRNNCell(dim, dim),
+                "complex_fgrt": ComplexFGRTRNNCell(dim, dim),
+                "saturated_quantizer": SaturatedQuantizerRNNCell(dim, dim),
+                "pyopencl_sovereignty": PyOpenCLHardwareSovereigntyCell(dim, dim),
+                "lazarus_superposition": LazarusSuperpositionRNNCell(dim, dim),
+                "feature_scar_lcft": FeatureScarLCFTCell(dim, dim),
+            }
+        except Exception:
+            self.fgrt_rnn_bank = {}
+
+        try:
+            from src.core.superposed_tag_stacker import FractionalQuotientTagStacker
+            self.fractional_tag_stacker = FractionalQuotientTagStacker(dim=dim)
+        except Exception:
+            self.fractional_tag_stacker = None
+
+        try:
+            from src.codec.gyroidic_codec import CodecCRTBridge
+            self.codec_crt_bridge = CodecCRTBridge(
+                codec=getattr(self, "gyroidic_codec", None),
+                poly_config=getattr(self, "poly_config", None),
+            ) if getattr(self, "gyroidic_codec", None) is not None else None
+        except Exception:
+            self.codec_crt_bridge = None
+
+        try:
+            from src.core.garden_statistical_attractors import DefectAttractor
+            self.defect_attractor = DefectAttractor(num_defect_sites=8, feature_dim=dim, device=str(_device))
+        except Exception:
+            self.defect_attractor = None
+
+        try:
+            from src.core.device_utils import get_compute_acceleration_summary
+            self.compute_acceleration_summary = get_compute_acceleration_summary()
+        except Exception:
+            self.compute_acceleration_summary = {"torch_device": str(_device)}
+
         self.survival_lattice = getattr(self.erosion_filter, "survival_lattice", None)
         
         # 7.33 Foundational January 2026 Core Operators & Holonomy Adjudicators

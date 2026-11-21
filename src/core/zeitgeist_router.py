@@ -875,14 +875,12 @@ class ZeitgeistRouter(nn.Module):
                  out_x = x.squeeze(0) if is_1d and x.dim() == 2 and x.shape[0] == 1 else x
                  return mode, new_state, diag, out_x
 
-        #  Batch normalise  #
+        #  Batch normalise & Fractal (Reflective) Padding  #
         if x.dim() == 1:
             x = x.unsqueeze(0)          # [1, dim]
-        x_norm = F.normalize(x, dim=-1) # [batch, dim]
-
-        #  Fractal (Reflective) Padding  #
         if x.shape[-1] != self.dim:
             x = fractal_pad(x, self.dim)
+        x_norm = F.normalize(x, dim=-1) # [batch, dim]
 
         #  1. Facet grazing check  #
         #  1. Algebraic State Classification (Unicorn Synthesis)  #

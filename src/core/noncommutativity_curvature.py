@@ -47,15 +47,18 @@ class NonCommutativityCurvature(nn.Module):
     
     def compute_commutator(self, A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         """
-        Compute [A, B] = AB - BA.
-        
-        Args:
-            A: [dim, dim] or [batch, dim, dim] operator
-            B: [dim, dim] or [batch, dim, dim] operator
-            
-        Returns:
-            commutator: same shape as inputs
+        Compute [A, B] = AB - BA, routing through SiliconSovereigntyEngine
+        (CUDA / PyOpenCL dual-queue acceleration) when available.
         """
+        if A.dim() == 2 and B.dim() == 2 and A.shape == B.shape and A.shape[-1] >= 8:
+            try:
+                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+                if not hasattr(self, "_silicon_engine"):
+                    self._silicon_engine = SiliconSovereigntyEngine()
+                comm, _ = self._silicon_engine.compute_noncommutativity_commutator(A, B)
+                return comm
+            except Exception:
+                pass
         return torch.matmul(A, B) - torch.matmul(B, A)
     
     def extract_curvature(self, commutator: torch.Tensor) -> torch.Tensor:

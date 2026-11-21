@@ -72,14 +72,22 @@ class Polychoron600Quantizer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Projects input onto the nearest 600-cell vertex.
+        Projects input onto the nearest 600-cell vertex via CUDA/OpenCL acceleration when available.
         Assume x shape is (..., 4)
         """
         orig_shape = x.shape
         x_flat = x.view(-1, 4)
-        dist = torch.cdist(x_flat, self.vertices)
+        try:
+            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+            if not hasattr(self, "_silicon_engine"):
+                self._silicon_engine = SiliconSovereigntyEngine()
+            quantized, _ = self._silicon_engine.quantize_600_cell_vertices(x_flat, self.vertices)
+            return quantized.view(orig_shape)
+        except Exception:
+            pass
+        dist = torch.cdist(x_flat, self.vertices.to(device=x.device, dtype=x.dtype))
         indices = torch.argmin(dist, dim=1)
-        quantized = self.vertices[indices]
+        quantized = self.vertices.to(device=x.device, dtype=x.dtype)[indices]
         return quantized.view(orig_shape)
 
 

@@ -207,14 +207,23 @@ class HardwareMonitor:
             }
         }
         
-        # 1. CPU Layout via psutil
+        # 1. CPU Layout via psutil + platform/brand profile
         try:
+            import platform
             phys = psutil.cpu_count(logical=False) or 1
             logi = psutil.cpu_count(logical=True) or phys
             per_cpu = psutil.cpu_percent(interval=None, percpu=True)
+            cpu_brand = platform.processor() or ""
             layout["cpu"]["physical_cores"] = phys
             layout["cpu"]["logical_cores"] = logi
             layout["cpu"]["per_core_percent"] = per_cpu
+            layout["cpu"]["brand"] = cpu_brand
+            # Detect Alder Lake / Raptor Lake hybrid P+E topology (e.g. HP ENVY x360 15-ew0xxx 10-core i5-1235U/i7-1255U: 2P+8E, 12 logical)
+            if phys >= 10 and logi > phys and logi < 2 * phys:
+                layout["cpu"]["is_heterogeneous"] = True
+                p_count = logi - phys
+                layout["cpu"]["performance_cores"] = list(range(p_count))
+                layout["cpu"]["efficiency_cores"] = list(range(p_count, phys))
             
             try:
                 freqs = psutil.cpu_freq(percpu=True)
@@ -279,16 +288,111 @@ class HardwareMonitor:
 
     get_hardware_core_layout = get_cpu_gpu_layout
 
+    def detect_storage_and_hardware_profile(self, data_dir: str = "data/encodings") -> Dict[str, Any]:
+        """
+        Detects host laptop hardware & storage bus profile to tune fossil loading,
+        SQLite WAL mmap budgets, and parallel I/O concurrency without thrashing HDDs
+        or starving NVMe Gen3/Gen4 drives:
+          - Acer Nitro 5 (GTX 1050 Ti 4GB VRAM, 4C/8T i7-6700HQ/7700HQ, M.2 NVMe Gen3 x4 or 2.5" SATA III)
+          - HP ENVY x360 2-in-1 15-ew0xxx (12th-Gen Alder Lake 10C/12T 2P+8E, Intel Iris Xe, DDR4-3200, M.2 PCIe Gen4 x4 NVMe)
+        """
+        cached = getattr(self, "_cached_storage_profile", None)
+        if cached is not None and cached.get("data_dir") == data_dir:
+            return cached
+
+        phys_cores = psutil.cpu_count(logical=False) or 4
+        logi_cores = psutil.cpu_count(logical=True) or phys_cores
+        ram_gb = round(psutil.virtual_memory().total / (1024 ** 3), 2)
+
+        has_cuda = False
+        gpu_name = "CPU/Integrated"
+        vram_gb = 0.0
+        try:
+            import torch
+            if torch.cuda.is_available():
+                has_cuda = True
+                props = torch.cuda.get_device_properties(0)
+                gpu_name = props.name
+                vram_gb = round(props.total_memory / (1024 ** 3), 2)
+        except Exception:
+            pass
+
+        # Classify storage medium (NVMe vs SATA SSD vs HDD) via Windows PowerShell CIM/WMI or latency probe
+        storage_bus = "UNKNOWN"
+        media_type = "SSD"
+        if sys.platform == "win32":
+            try:
+                import subprocess
+                cmd = [
+                    "powershell", "-NoProfile", "-Command",
+                    "Get-PhysicalDisk | Select-Object -First 2 BusType,MediaType | ConvertTo-Json -Compress"
+                ]
+                out = subprocess.check_output(cmd, timeout=2.0, stderr=subprocess.DEVNULL, text=True).strip()
+                if out:
+                    import json as _json
+                    disks = _json.loads(out)
+                    if isinstance(disks, dict):
+                        disks = [disks]
+                    buses = [str(d.get("BusType", "")).upper() for d in disks]
+                    medias = [str(d.get("MediaType", "")).upper() for d in disks]
+                    if any("NVME" in b or b == "17" for b in buses):
+                        storage_bus = "NVME"
+                        media_type = "SSD"
+                    elif any("SATA" in b or b == "11" for b in buses):
+                        storage_bus = "SATA"
+                        media_type = "HDD" if any("HDD" in m or m == "3" for m in medias) else "SSD"
+            except Exception:
+                pass
+
+        # Determine named laptop profile
+        is_alder_lake_envy = (phys_cores >= 10 and logi_cores > phys_cores and not has_cuda)
+        is_nitro5_pascal = (has_cuda and ("1050" in gpu_name or vram_gb <= 4.5))
+        if is_alder_lake_envy:
+            profile_name = "HP_ENVY_X360_15_EW0_ALDER_LAKE_NVME_GEN4"
+            io_workers = min(8, max(4, phys_cores - 2))
+            sqlite_mmap_bytes = 268435456  # 256 MB mmap for PCIe Gen4 NVMe
+            default_fossil_budget = 2500
+        elif is_nitro5_pascal:
+            profile_name = "ACER_NITRO_5_GTX1050TI_NVME_SATA"
+            io_workers = 1 if media_type == "HDD" else min(4, max(2, phys_cores // 2))
+            sqlite_mmap_bytes = 0 if media_type == "HDD" else 134217728  # 128 MB on NVMe/SATA SSD, 0 on HDD
+            default_fossil_budget = 1500
+        else:
+            profile_name = f"GENERIC_{storage_bus}_{media_type}"
+            io_workers = 1 if media_type == "HDD" else min(6, max(2, phys_cores // 2))
+            sqlite_mmap_bytes = 0 if media_type == "HDD" else 134217728
+            default_fossil_budget = 1500
+
+        profile = {
+            "data_dir": data_dir,
+            "profile_name": profile_name,
+            "physical_cores": phys_cores,
+            "logical_cores": logi_cores,
+            "ram_gb": ram_gb,
+            "has_cuda": has_cuda,
+            "gpu_name": gpu_name,
+            "vram_gb": vram_gb,
+            "storage_bus": storage_bus,
+            "media_type": media_type,
+            "io_workers": io_workers,
+            "sqlite_mmap_bytes": sqlite_mmap_bytes,
+            "default_fossil_budget": default_fossil_budget,
+        }
+        self._cached_storage_profile = profile
+        return profile
+
     def budget_cpu_threads(self, max_threads: Optional[int] = None) -> int:
         """
         Budgets PyTorch and MKL thread pools to prevent pegging 100% of CPU physical cores
         and freezing the host system during interactive generation loops.
+        Scales up to 4 threads on 10+ core Alder Lake (HP ENVY x360 15-ew0xxx) while staying
+        at <=2 threads on 4-core Acer Nitro 5 hosts.
         """
         import torch
         if max_threads is None:
             phys = psutil.cpu_count(logical=False) or 4
-            # Keep thread budget to at most half physical cores (max 2 threads)
-            max_threads = max(1, min(2, phys // 2))
+            cap = 4 if phys >= 10 else 2
+            max_threads = max(1, min(cap, phys // 2))
         try:
             torch.set_num_threads(max_threads)
         except Exception:
@@ -842,6 +946,7 @@ class HardwareMonitor:
         vram_allocated_mb = 0.0
         vram_free_mb = 0.0
         try:
+            import torch
             if torch.cuda.is_available():
                 vram_allocated_mb = float(torch.cuda.memory_allocated() / (1024 ** 2))
                 vram_free_mb = float(torch.cuda.mem_get_info()[0] / (1024 ** 2))

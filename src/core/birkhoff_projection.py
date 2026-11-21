@@ -338,7 +338,7 @@ class BouligandBirkhoffProjectionFunction(torch.autograd.Function):
         shape = grad_output.shape
         grad_flat = grad_output.view(shape[0], -1)
         
-        if getattr(manifold, 'direct_projector', None) is not None:
+        if getattr(manifold, 'direct_projector', None) is not None and manifold.direct_projector.P.numel() > 0:
             grad_proj = torch.matmul(grad_flat, manifold.direct_projector.P.T)
             grad_proj = grad_proj.view(shape)
         else:

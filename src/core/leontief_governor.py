@@ -174,7 +174,17 @@ class LeontiefGovernor(nn.Module):
 
         Each term represents one additional level of cascading dependency.
         The residual A^{K+1} is treated as unresolvable "structural debt."
+        Delegates to SiliconSovereigntyEngine (PyOpenCL Queue A) for dim >= 8.
         """
+        if not A.requires_grad and A.dim() == 2 and A.shape[0] >= 8:
+            try:
+                from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                engine = get_sovereignty_engine()
+                if engine is not None and engine.is_initialized:
+                    return engine.compute_leontief_neumann_series(A, num_terms=self.neumann_terms)
+            except Exception:
+                pass
+
         L = I.clone()
         A_power = I.clone()
 

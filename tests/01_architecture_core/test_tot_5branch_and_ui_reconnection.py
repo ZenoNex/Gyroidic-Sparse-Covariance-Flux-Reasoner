@@ -490,6 +490,90 @@ def test_wheel_algebra_null_self_relation_and_vanellope_admr_shear():
     assert fused_res.shape == (1, 16)
     assert rfusion.last_mollifier_diagnostics.get("unit_mass_preserved") is True
 
+    # 8. Hardware Storage Profile, SQLite WAL Fossil Index, Birkhoff n>32 Backward, & Zeitgeist Pad Order
+    from src.core.hardware_monitor import HardwareMonitor
+    from src.core.birkhoff_projection import BouligandBirkhoffManifold
+    from src.core.zeitgeist_router import ZeitgeistRouter
+
+    hm = HardwareMonitor.get_instance()
+    prof = hm.detect_storage_and_hardware_profile()
+    assert "profile_name" in prof and prof["io_workers"] >= 1
+    assert prof["sqlite_mmap_bytes"] >= 0
+
+    b_manifold = BouligandBirkhoffManifold(n=36)
+    t_in = torch.randn(1, 36, 36, requires_grad=True)
+    t_out = b_manifold(t_in)
+    t_out.sum().backward()
+    assert t_in.grad is not None and t_in.grad.shape == (1, 36, 36)
+
+    zr = ZeitgeistRouter(dim=16)
+    z_mode, z_state, z_diag, z_out = zr(torch.randn(1, 10))
+    assert z_out.shape[-1] == 16
+
+    # 9. CUDA + PyOpenCL Sovereignty Acceleration & Disconnected Class Wiring
+    from src.core.device_utils import get_compute_acceleration_summary
+    from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+    from src.core.noncommutativity_curvature import NonCommutativityCurvature
+    from src.core.polychoron_quantization import Polychoron600Quantizer
+    from src.core.orchestrator import UniversalOrchestrator
+
+    accel = get_compute_acceleration_summary()
+    assert "cuda_available" in accel and "opencl_platforms" in accel
+
+    se = SiliconSovereigntyEngine()
+    A_m = torch.randn(16, 16)
+    B_m = torch.randn(16, 16)
+    comm, kappa = se.compute_noncommutativity_commutator(A_m, B_m)
+    assert comm.shape == (16, 16) and kappa.shape == (16, 16)
+    assert torch.allclose(kappa, -kappa.T, atol=1e-5)
+
+    nc = NonCommutativityCurvature(dim=16)
+    nc_res = nc.compute_curvature(A_m, B_m)
+    assert nc_res["kappa"].shape == (16, 16)
+
+    q600 = Polychoron600Quantizer()
+    q_out = q600(torch.randn(20, 4))
+    assert q_out.shape == (20, 4)
+
+    orch = UniversalOrchestrator(dim=16, device="cpu")
+    assert len(orch.fgrt_rnn_bank) == 7
+    assert orch.fractional_tag_stacker is not None
+    assert orch.defect_attractor is not None
+
+    # 10. Doc-Aligned Remaining Classes & PyOpenCL Hooks
+    from src.core.archetype_engines import ArchetypalSynthesisEngine, DeformationFirewallOperator
+    from src.core.leontief_governor import LeontiefGovernor
+    from src.optimization.muon_hybrid import zeropower_via_newtonschulz5
+    from src.core.jspace_pca_mapper import JSpacePCAMapper
+    from src.core.sparse_higher_order_tensors import SparseHigherOrderTensorDynamics
+    from src.core.non_ergodic_entropy import AdaptiveFractalPartitioner
+
+    ase = ArchetypalSynthesisEngine(state_dim=16)
+    assert isinstance(ase.deformation_firewall, DeformationFirewallOperator)
+
+    lg = LeontiefGovernor(state_dim=12, neumann_terms=6)
+    A_cons = torch.eye(12) * 0.25
+    L_neumann = lg._neumann_series(A_cons, torch.eye(12))
+    assert L_neumann.shape == (12, 12) and torch.isfinite(L_neumann).all()
+
+    ns_out = zeropower_via_newtonschulz5(torch.randn(12, 16), steps=3)
+    assert ns_out.shape == (12, 16) and torch.isfinite(ns_out).all()
+
+    jmap = JSpacePCAMapper(n_components=4)
+    j_proj = jmap.project_hyper_ring_invariants(torch.randn(4, 16), target_dim=3)
+    assert j_proj.shape == (4, 3)
+
+    shot = SparseHigherOrderTensorDynamics(max_order=3, num_shells=3, base_dim=16)
+    with torch.no_grad():
+        shot_out = shot(torch.randn(4, 16))
+    assert set(shot_out.keys()) == {1, 2, 3} and shot_out[3].shape == (4, 16)
+
+    afp = AdaptiveFractalPartitioner(min_block=2, max_block=4)
+    blocks = afp.partition(torch.randn(6, 12))
+    assert len(blocks) >= 1 and blocks[0][0] == 0 and blocks[-1][1] == 12
+
+
+
 
 
 

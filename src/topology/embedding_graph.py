@@ -76,6 +76,128 @@ class GyroidicGraphManager:
         self._cached_edges: Optional[List[Dict[str, Any]]] = None
         self._edges_dirty: bool = True
         self._load_lock = threading.Lock()
+        self._sqlite_index_path = os.path.join(self.data_dir, "fossil_index.sqlite")
+        self._storage_profile: Optional[Dict[str, Any]] = None
+
+    def _get_storage_profile(self) -> Dict[str, Any]:
+        if self._storage_profile is None:
+            try:
+                from src.core.hardware_monitor import HardwareMonitor
+                self._storage_profile = HardwareMonitor.get_instance().detect_storage_and_hardware_profile(self.data_dir)
+            except Exception:
+                self._storage_profile = {
+                    "profile_name": "GENERIC_FALLBACK",
+                    "io_workers": 2,
+                    "sqlite_mmap_bytes": 134217728,
+                    "default_fossil_budget": 1500,
+                    "media_type": "SSD",
+                }
+        return self._storage_profile
+
+    def _init_sqlite_wal_index(self):
+        import sqlite3
+        os.makedirs(self.data_dir, exist_ok=True)
+        prof = self._get_storage_profile()
+        mmap_bytes = int(prof.get("sqlite_mmap_bytes", 134217728))
+        conn = sqlite3.connect(self._sqlite_index_path, timeout=5.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute(f"PRAGMA mmap_size={mmap_bytes};")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS fossils (
+                node_id TEXT PRIMARY KEY,
+                mtime REAL,
+                text TEXT,
+                chiral_score REAL,
+                spectral_entropy REAL,
+                tags_json TEXT,
+                embedding_blob BLOB
+            )
+            """
+        )
+        conn.commit()
+        return conn
+
+    def _load_nodes_from_sqlite_wal(self, limit: int) -> int:
+        if not os.path.exists(self._sqlite_index_path):
+            return 0
+        try:
+            import numpy as np
+            conn = self._init_sqlite_wal_index()
+            cur = conn.execute(
+                "SELECT node_id, text, chiral_score, spectral_entropy, tags_json, embedding_blob "
+                "FROM fossils ORDER BY mtime DESC LIMIT ?",
+                (int(limit),),
+            )
+            rows = cur.fetchall()
+            conn.close()
+            if not rows:
+                return 0
+            existing_ids = {n.node_id for n in self.nodes}
+            loaded = 0
+            for node_id, text, chiral_score, spectral_entropy, tags_json, emb_blob in rows:
+                if node_id in existing_ids:
+                    continue
+                arr = np.frombuffer(emb_blob, dtype=np.float32).copy()
+                emb = torch.from_numpy(arr)
+                if emb.numel() > self.dim:
+                    emb = emb[:self.dim]
+                elif emb.numel() < self.dim:
+                    emb = torch.cat([emb, torch.zeros(self.dim - emb.numel())])
+                try:
+                    tags = json.loads(tags_json) if tags_json else []
+                except Exception:
+                    tags = []
+                node = KnowledgeFossilNode(
+                    node_id=node_id,
+                    state=emb,
+                    text=text or "",
+                    metrics={
+                        "chiral_score": float(chiral_score or 0.0),
+                        "spectral_entropy": float(spectral_entropy or 0.0),
+                        "tags": tags,
+                    },
+                )
+                self.nodes.append(node)
+                existing_ids.add(node_id)
+                loaded += 1
+            return loaded
+        except Exception:
+            return 0
+
+    def _upsert_nodes_to_sqlite_wal(self, nodes_to_save: List[KnowledgeFossilNode]):
+        if not nodes_to_save:
+            return
+        try:
+            conn = self._init_sqlite_wal_index()
+            now_ts = time.time()
+            payload = []
+            for n in nodes_to_save:
+                if n.node_id.startswith("live_"):
+                    continue
+                emb_bytes = n.state.detach().cpu().float().numpy().tobytes()
+                tags_json = json.dumps(getattr(n, "tags", []) or [])
+                payload.append((
+                    n.node_id,
+                    now_ts,
+                    str(n.text or ""),
+                    float(getattr(n, "chiral_score", 0.0) or 0.0),
+                    float(getattr(n, "spectral_entropy", 0.0) or 0.0),
+                    tags_json,
+                    emb_bytes,
+                ))
+            if payload:
+                conn.executemany(
+                    "INSERT OR REPLACE INTO fossils "
+                    "(node_id, mtime, text, chiral_score, spectral_entropy, tags_json, embedding_blob) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    payload,
+                )
+                conn.commit()
+            conn.close()
+        except Exception:
+            pass
         
     def get_valid_node_count(self) -> int:
         """Returns the number of actual nodes, excluding uncollapsed homological ghost cycles."""
@@ -103,8 +225,11 @@ class GyroidicGraphManager:
         snapshot_path = os.path.join(self.data_dir, "neglecton_snapshot.pt")
         if use_snapshot and os.path.exists(snapshot_path):
             try:
-                print(f"[GRAPH] Loading Neglecton from snapshot: {snapshot_path}")
-                data = torch.load(snapshot_path, map_location='cpu', weights_only=False)
+                print(f"[GRAPH] Loading Neglecton from snapshot (mmap): {snapshot_path}")
+                try:
+                    data = torch.load(snapshot_path, map_location='cpu', weights_only=False, mmap=True)
+                except TypeError:
+                    data = torch.load(snapshot_path, map_location='cpu', weights_only=False)
                 self.load_memory_snapshot(data)
                 self._snapshot_node_count = len(self.nodes)
                 if len(self.nodes) > 0:
@@ -113,6 +238,12 @@ class GyroidicGraphManager:
                     loaded_full_from_snapshot = (not limit) or (len(self.nodes) >= limit)
             except Exception as e:
                 print(f"[GRAPH] Snapshot corrupt or incompatible: {e}. Falling back to scan.")
+
+        # Fast-path: load pre-indexed fossils from SQLite WAL + mmap index (<20ms on NVMe/SSD)
+        if not loaded_full_from_snapshot and limit and len(self.nodes) < limit:
+            wal_loaded = self._load_nodes_from_sqlite_wal(limit=limit)
+            if wal_loaded > 0 and len(self.nodes) >= limit:
+                loaded_full_from_snapshot = True
 
         if not loaded_full_from_snapshot and os.path.exists(self.data_dir):
             # Bounded scandir avoids sorting 40,000+ .pt filenames on the HTTP request thread
@@ -205,6 +336,10 @@ class GyroidicGraphManager:
                 except Exception as e:
                     print(f"Failed to load fossil {f}: {e}")
                     
+        # Persist newly scanned nodes into SQLite WAL index so subsequent procedural loads are instant
+        if not loaded_full_from_snapshot and self.nodes:
+            self._upsert_nodes_to_sqlite_wal(self.nodes)
+
         self.loaded_from_snapshot = loaded_full_from_snapshot
         self._last_scan_limit = max(int(getattr(self, '_last_scan_limit', 0) or 0), int(limit or 0))
         # Invalidate edge cache so it is cleanly populated on next access

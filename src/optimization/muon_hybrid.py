@@ -65,11 +65,23 @@ def zeropower_via_newtonschulz5(
         X = X.T
         transposed = True
 
-    for _ in range(steps):
-        A = torch.matmul(X, X.T)
-        AA = torch.matmul(A, A)
-        B = b * A + c * AA
-        X = a * X + torch.matmul(B, X)
+    used_opencl = False
+    if not G.is_cuda and not G.requires_grad and min(X.size(0), X.size(1)) >= 8:
+        try:
+            from src.core.pyopencl_sovereignty import get_sovereignty_engine
+            engine = get_sovereignty_engine()
+            if engine is not None and engine.is_initialized:
+                X = engine.compute_newton_schulz5(X, steps=steps, a=a, b=b, c=c)
+                used_opencl = True
+        except Exception:
+            used_opencl = False
+
+    if not used_opencl:
+        for _ in range(steps):
+            A = torch.matmul(X, X.T)
+            AA = torch.matmul(A, A)
+            B = b * A + c * AA
+            X = a * X + torch.matmul(B, X)
 
     if transposed:
         X = X.T

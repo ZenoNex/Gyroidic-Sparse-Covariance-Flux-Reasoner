@@ -1162,12 +1162,14 @@ class HybridAI:
             os.makedirs(self.graph_dir, exist_ok=True)
             
             self.graph_manager = GyroidicGraphManager(data_dir=self.graph_dir, dim=256)
-            fossil_limit = 16 if getattr(self, 'lightweight', False) else 150
-            scan_limit = 32 if getattr(self, 'lightweight', False) else 250
+            hw_prof = self.graph_manager._get_storage_profile()
+            hw_default_budget = int(hw_prof.get('default_fossil_budget', 1500))
+            fossil_limit = 16 if getattr(self, 'lightweight', False) else min(500, hw_default_budget)
+            scan_limit = 32 if getattr(self, 'lightweight', False) else min(1000, hw_default_budget * 2)
             self.graph_manager.load_fossils(limit=fossil_limit, scan_limit=scan_limit)
             if self.engine:
                 self.engine.graph_manager = self.graph_manager
-            print(f"[OK] Gyroidic Graph Manager initialized with {self.graph_manager.get_valid_node_count()} fossils")
+            print(f"[OK] Gyroidic Graph Manager initialized ({hw_prof.get('profile_name')}) with {self.graph_manager.get_valid_node_count()} fossils")
         except Exception as e:
             print(f"[FAIL] Graph Manager init failed: {e}")
             self.graph_manager = None
@@ -2859,7 +2861,10 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     else:
                         graph_data = json.loads(gm.export_graph_json())
                     f_inst = getattr(AI_SYSTEM, 'fossilizer', None)
+                    if f_inst is None and getattr(AI_SYSTEM, 'engine', None) is not None:
+                        f_inst = getattr(AI_SYSTEM.engine, 'fossilizer', None)
                     graph_data["total_index"] = len(getattr(f_inst, 'fossil_index', {})) if f_inst else len(getattr(gm, 'nodes', []))
+                    graph_data["storage_profile"] = gm._get_storage_profile() if hasattr(gm, '_get_storage_profile') else {}
                     graph_data["cached"] = not force_reload
                     graph_data["procedural_mode"] = is_procedural
                     self._send_json(graph_data)

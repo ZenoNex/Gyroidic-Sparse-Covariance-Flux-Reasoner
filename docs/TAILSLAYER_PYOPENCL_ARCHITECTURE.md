@@ -172,6 +172,14 @@ How existing Python components map to the PyOpenCL environment:
 | 500ms Restless Thermal Guard | Unbounded GPU kernel queue | `enforce_500ms_restless_thermal_guard` triggers `clFinish()` on Queue A/B + $\mathbb{RP}^4$ Lazarus Play |
 | 7-Step Speculative Draft | Step-by-step sequential solve | `SpectralSpeculationEngine.draft_chebyshev_trajectory` ($K_{\text{spec}} \le 7$, Catalan bound $C_6 = 132$) |
 | Local/Community Feelers | Static CPU/RAM check | `HardwareMonitor.probe_compute_feelers` ($t_{\text{RFC}}$ ns feeler + `BonfireNomadicRing` / `FreenetGhostCaller` latency) |
+| Non-Commutativity Curvature | CPU `A @ B - B @ A` | `SiliconSovereigntyEngine.compute_noncommutativity_commutator` (PyOpenCL `hardware_sovereign_matmul` on Queue A) |
+| 600-Cell Polychoron Quantizer | CPU 120-vertex argmax | `SiliconSovereigntyEngine.quantize_600_cell_vertices` (PyOpenCL 4D inner-product projection) |
+| Bostick Garden Chiral Gating | CPU `InfluenceAttractor.compute_chiral_gating` | `SiliconSovereigntyEngine.compute_chiral_gating_and_pat` (PyOpenCL sigmoid gating) |
+| Disconnected FGRT/CRT/Tag Banks | Unwired standalone classes | Wired into `UniversalOrchestrator` (7-cell `fgrt_rnn_bank`, `FractionalQuotientTagStacker`, `CodecCRTBridge`, `DefectAttractor`) & `ArchetypalSynthesisEngine.deformation_firewall` (`DeformationFirewallOperator`) |
+| Leontief Neumann Series | CPU iterative `A @ A` powers | `SiliconSovereigntyEngine.compute_leontief_neumann_series` (PyOpenCL `hardware_sovereign_matmul` on Queue A) |
+| Muon Newton-Schulz Polar Iter | CPU quintic `X @ X.T` loop | `SiliconSovereigntyEngine.compute_newton_schulz5` (PyOpenCL `hardware_sovereign_matmul` on Queue A) |
+| J-Space / Higher-Order / Fractal | CPU `matmul` & scalar coherence | PyOpenCL `hardware_sovereign_matmul` hooks in `JSpacePCAMapper`, `SparseHigherOrderTensorDynamics`, and `AdaptiveFractalPartitioner` (multi-sample Gram matrix) |
+| Bouligand Birkhoff Manifold | Closed-form $O(N^2)$ affine | Retained on exact closed-form $O(N^2)$ `DirectBirkhoffProjection` (faster than PCIe round-trip) |
 
 ---
 

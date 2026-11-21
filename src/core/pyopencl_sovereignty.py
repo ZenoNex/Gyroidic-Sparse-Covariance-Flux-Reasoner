@@ -2483,6 +2483,167 @@ class SiliconSovereigntyEngine:
         projected[..., 2] = z + step * grad_z
         return projected
 
+    def compute_noncommutativity_commutator(
+        self,
+        A: torch.Tensor,
+        B: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute Lie bracket commutator [A, B] = A @ B - B @ A and antisymmetric
+        curvature 2-form kappa = 0.5 * ([A, B] - [A, B]^T) using the PyOpenCL
+        hardware-sovereign GEMM bridge (Queue A).
+        Preserves autograd when requires_grad is active and returns on caller device.
+        """
+        orig_device = A.device
+        orig_dtype = A.dtype
+
+        if A.requires_grad or B.requires_grad:
+            comm = torch.matmul(A, B) - torch.matmul(B, A)
+            kappa = 0.5 * (comm - comm.transpose(-2, -1))
+            return comm, kappa
+
+        if A.dim() == 2 and B.dim() == 2 and self.is_initialized and self.queue_a is not None:
+            try:
+                ab = self.hardware_sovereign_matmul(A, B)
+                ba = self.hardware_sovereign_matmul(B, A)
+                comm = (ab - ba).to(device=orig_device, dtype=orig_dtype)
+                kappa = 0.5 * (comm - comm.transpose(-2, -1))
+                return comm, kappa
+            except Exception as e:
+                self.logger.warning(f"OpenCL commutator failed: {e}. Falling back to PyTorch.")
+
+        comm = (torch.matmul(A, B) - torch.matmul(B, A)).to(device=orig_device, dtype=orig_dtype)
+        kappa = 0.5 * (comm - comm.transpose(-2, -1))
+        return comm, kappa
+
+    def quantize_600_cell_vertices(
+        self,
+        x_flat: torch.Tensor,
+        vertices: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Project 4D vectors [N, 4] onto the nearest vertex of the 120-vertex
+        600-cell polychoron using PyOpenCL hardware_sovereign_gemm acceleration.
+
+        Returns:
+            (quantized [N, 4], indices [N]) on x_flat.device.
+        """
+        orig_device = x_flat.device
+        orig_dtype = x_flat.dtype
+
+        if self.is_initialized and self.queue_a is not None:
+            try:
+                with torch.no_grad():
+                    dots = self.hardware_sovereign_matmul(x_flat.detach(), vertices.detach().t())
+                    indices = torch.argmax(dots, dim=-1)
+                    quantized = vertices[indices]
+                    return quantized.to(device=orig_device, dtype=orig_dtype), indices.to(device=orig_device)
+            except Exception as e:
+                self.logger.warning(f"OpenCL 600-cell quantization failed: {e}. Falling back to PyTorch.")
+
+        with torch.no_grad():
+            dots = torch.matmul(x_flat.detach(), vertices.detach().t())
+            indices = torch.argmax(dots, dim=-1)
+            quantized = vertices[indices]
+            return quantized.to(device=orig_device, dtype=orig_dtype), indices.to(device=orig_device)
+
+    def compute_chiral_gating_and_pat(
+        self,
+        concept_vector: torch.Tensor,
+        chiral_vectors: torch.Tensor,
+        clamp_val: float = 10.0,
+    ) -> torch.Tensor:
+        """
+        Compute chiral gating sigma(<x, chi_k>) for Bostick Garden Statistical Attractors
+        via PyOpenCL hardware_sovereign_gemm while preserving autograd when needed.
+        """
+        orig_device = concept_vector.device
+        orig_dtype = concept_vector.dtype
+
+        if concept_vector.requires_grad or chiral_vectors.requires_grad:
+            alignment = torch.matmul(concept_vector, chiral_vectors.t())
+            gamma_chi = torch.sigmoid(torch.clamp(alignment, -clamp_val, clamp_val))
+            return torch.where(torch.isfinite(gamma_chi), gamma_chi, torch.full_like(gamma_chi, 0.5))
+
+        if self.is_initialized and self.queue_a is not None and concept_vector.dim() == 2 and chiral_vectors.dim() == 2:
+            try:
+                alignment = self.hardware_sovereign_matmul(concept_vector, chiral_vectors.t())
+                gamma_chi = torch.sigmoid(torch.clamp(alignment, -clamp_val, clamp_val))
+                gamma_chi = torch.where(torch.isfinite(gamma_chi), gamma_chi, torch.full_like(gamma_chi, 0.5))
+                return gamma_chi.to(device=orig_device, dtype=orig_dtype)
+            except Exception as e:
+                self.logger.warning(f"OpenCL chiral gating failed: {e}. Falling back to PyTorch.")
+
+        alignment = torch.matmul(concept_vector, chiral_vectors.t())
+        gamma_chi = torch.sigmoid(torch.clamp(alignment, -clamp_val, clamp_val))
+        return torch.where(torch.isfinite(gamma_chi), gamma_chi, torch.full_like(gamma_chi, 0.5))
+
+
+    def compute_leontief_neumann_series(
+        self,
+        A: torch.Tensor,
+        num_terms: int = 12,
+        tol: float = 1e-8,
+    ) -> torch.Tensor:
+        """
+        Compute truncated Neumann series L = I + A + A^2 + ... + A^K for
+        LeontiefGovernor using PyOpenCL hardware_sovereign_matmul on Queue A.
+        """
+        orig_device = A.device
+        orig_dtype = A.dtype
+        n = A.shape[0]
+        I = torch.eye(n, device=orig_device, dtype=orig_dtype)
+        L = I.clone()
+        A_power = I.clone()
+        use_cl = self.is_initialized and self.queue_a is not None and A.dim() == 2 and not A.requires_grad
+
+        for _ in range(num_terms):
+            if use_cl:
+                try:
+                    A_power = self.hardware_sovereign_matmul(A_power, A).to(device=orig_device, dtype=orig_dtype)
+                except Exception:
+                    use_cl = False
+                    A_power = A_power @ A
+            else:
+                A_power = A_power @ A
+            L = L + A_power
+            if A_power.abs().max().item() < tol:
+                break
+        return L
+
+    def compute_newton_schulz5(
+        self,
+        X: torch.Tensor,
+        steps: int = 5,
+        a: float = 3.4445,
+        b: float = -4.7750,
+        c: float = 2.0315,
+    ) -> torch.Tensor:
+        """
+        Compute quintic Newton-Schulz polar factor iteration for MuonOptimizer
+        using PyOpenCL hardware_sovereign_matmul on Queue A.
+        """
+        orig_device = X.device
+        orig_dtype = X.dtype
+        use_cl = self.is_initialized and self.queue_a is not None and X.dim() == 2 and not X.requires_grad
+
+        for _ in range(steps):
+            if use_cl:
+                try:
+                    A = self.hardware_sovereign_matmul(X, X.t()).to(device=orig_device, dtype=orig_dtype)
+                    AA = self.hardware_sovereign_matmul(A, A).to(device=orig_device, dtype=orig_dtype)
+                    B = b * A + c * AA
+                    BX = self.hardware_sovereign_matmul(B, X).to(device=orig_device, dtype=orig_dtype)
+                    X = a * X + BX
+                    continue
+                except Exception:
+                    use_cl = False
+            A = torch.matmul(X, X.t())
+            AA = torch.matmul(A, A)
+            B = b * A + c * AA
+            X = a * X + torch.matmul(B, X)
+        return X
+
 
 # Expose standard execution hook
 def create_engine():
@@ -2493,3 +2654,14 @@ def create_engine():
         An initialized instance of SiliconSovereigntyEngine.
     """
     return SiliconSovereigntyEngine()
+
+
+_SOVEREIGNTY_SINGLETON = None
+
+
+def get_sovereignty_engine() -> SiliconSovereigntyEngine:
+    """Return a lazily initialized process-wide SiliconSovereigntyEngine singleton."""
+    global _SOVEREIGNTY_SINGLETON
+    if _SOVEREIGNTY_SINGLETON is None:
+        _SOVEREIGNTY_SINGLETON = SiliconSovereigntyEngine()
+    return _SOVEREIGNTY_SINGLETON

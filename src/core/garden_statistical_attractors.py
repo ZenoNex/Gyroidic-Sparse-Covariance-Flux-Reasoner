@@ -121,9 +121,19 @@ class InfluenceAttractor(nn.Module):
         
         Chiral gating modulates traversal probabilities based on orientation
         relative to chiral vectors, enabling direction-dependent exploration.
+        Delegates to SiliconSovereigntyEngine (CUDA/PyOpenCL) when available.
         """
-        batch_size = concept_vector.shape[0]
-        
+        if not (concept_vector.requires_grad or self.chiral_vectors.requires_grad):
+            try:
+                from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                engine = get_sovereignty_engine()
+                if engine is not None:
+                    return engine.compute_chiral_gating_and_pat(
+                        concept_vector, self.chiral_vectors, clamp_val=10.0
+                    )
+            except Exception:
+                pass
+
         # Compute inner product with chiral vectors for each attractor
         chiral_alignment = torch.matmul(concept_vector.unsqueeze(1), self.chiral_vectors.t())  # [batch, 1, num_attractors]
         chiral_alignment = chiral_alignment.squeeze(1)  # [batch, num_attractors]

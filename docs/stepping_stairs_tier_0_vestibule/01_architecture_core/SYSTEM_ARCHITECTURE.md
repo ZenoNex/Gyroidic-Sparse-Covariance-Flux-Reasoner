@@ -1188,4 +1188,22 @@ Following the unification of the linguistic resonance pipeline, the procedural S
    - All 88 topological, algebraic, governance, surrogate, and linguistic subsystems are active and bound inside `DiegeticPhysicsEngine` ([diegetic_backend.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/diegetic_backend.py)) and `UniversalOrchestrator` ([orchestrator.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py)).
    - Static import graph verification via `scratch/find_code_islands.py` confirms **215 / 215 connected Python modules in `src/` (0 code islands)**.
 
+## 9.15 Hardware-Profiled SQLite WAL + `mmap` Fossil Loading & 5-Paper ArXiv Synthesis (November 2026)
+
+1. **Host Hardware & Storage Bus Profiling (`HardwareMonitor.detect_storage_and_hardware_profile`)**:
+   - Differentiates **Acer Nitro 5 (GTX 1050 Ti 4GB VRAM, 4-core CPU, M.2 NVMe Gen3 x4 / 2.5" SATA III)** from **HP ENVY x360 2-in-1 15-ew0xxx (12th-Gen Intel Alder Lake 10-core 2P+8E, Intel Iris Xe, DDR4-3200, M.2 PCIe Gen4 x4 NVMe)** via CPU topology, CUDA VRAM probe, and Windows `Get-PhysicalDisk` (`BusType`/`MediaType`).
+   - Scales PyTorch CPU thread budgets (`<=2` threads on 4-core Nitro 5, up to `4` threads on 10-core Alder Lake) and fixes `torch.cuda` VRAM feeler reporting in `probe_compute_feelers()`.
+2. **SQLite WAL + `mmap` Accelerated Fossil Loading (`GyroidicGraphManager` & `hybrid_backend.py`)**:
+   - `GyroidicGraphManager` ([embedding_graph.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/topology/embedding_graph.py)) maintains a `fossil_index.sqlite` index in WAL mode (`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA mmap_size=256MB` on NVMe Gen4, `128MB` on NVMe Gen3/SATA SSD, `0` on HDD) and uses `mmap=True` for `neglecton_snapshot.pt`, eliminating the 2.5s synchronous `.pt` scan bottleneck in procedural mode.
+   - `hybrid_backend.py` scales initial fossil budgets to the detected hardware profile, exposes `storage_profile` in `/api/graph`, and resolves `total_index` from `AI_SYSTEM.engine.fossilizer`.
+3. **Deep Rehybridization Fixes**:
+   - Fixed `BouligandBirkhoffProjectionFunction.backward` (`src/core/birkhoff_projection.py`) for `n > 32` when `direct_projector.P` is empty (`P.numel() == 0`).
+   - Fixed `ZeitgeistRouter.forward` (`src/core/zeitgeist_router.py`) so `fractal_pad(x, self.dim)` runs before `F.normalize(x, dim=-1)`.
+4. **5-Paper ArXiv Formalism Mapping (`docs/2611.24748v1.pdf` – `docs/2611.25799v1.pdf`)**:
+   - `2611.24748v1.pdf` (*On Hilbert's Tenth Problem for Number Fields*, Pasten & Vidaux) & `2611.25002v1.pdf` (*On Hilbert's Tenth Problem over a Quadratic Field*, Sun): Vojta odd-valuation height bounds, 367-adic tubes, and Lucas-Pell exponential growth bounds -> `decoupled_polynomial_crt.py`, `modular_virtualization.py`, `invariants.py`.
+   - `2611.25303v1.pdf` (*Proof Checking Continuous Reachability*, Qian & Platzer): Differential dynamic logic (`dL`) Taylor-model Picard reachability certificates decoupling numerical integration from formal verification -> `admr_solver.py`, `codes_constraint_framework.py`, `manifold_time.py`.
+   - `2611.25698v1.pdf` (*Rigidity of Ordinal Spaces*, Zhou, Zhuang, Zhang): Global homeomorphic partition rigidity ($R_2(\alpha) \iff \text{CU}_2(\alpha)$) for $k$-to-one open maps -> `gluing_operator.py`, `chern_simons_gasket.py`, `chiral_graph_compiler.py`.
+   - `2611.25799v1.pdf` (*Computational Trust as Intuitionistic Knowledge*, Pezlar): Constructive modal trust monad $\mathsf{T}\varphi \equiv \varphi \vee \varepsilon$ (non-factive, fallible trust without collapsing $\mathsf{T}\varphi \equiv \varphi$) -> `failure_token.py`, `false_negative_subsystem.py`, `five_gate_pipeline.py`.
+
+
 

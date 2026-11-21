@@ -804,6 +804,7 @@ class ArchetypalSynthesisEngine(nn.Module):
         self.pomni = ResilientCoherenceStabilizer(state_dim)
         self.gangle = ExploratoryBandwidthCompressor()
         self.zooble = ZoobleAutonomy(state_dim)
+        self.deformation_firewall = DeformationFirewallOperator()
         
         # Original modules retained for backward compatibility
         self.grim = NonlinearHourglassDilation()
