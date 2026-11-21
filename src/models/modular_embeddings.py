@@ -102,6 +102,60 @@ class CRTModularEmbeddingTable(nn.Module):
             
         return base + self.residue_scale * residue_bias
 
+    def compute_crt_channel_mdl(self, token_ids: torch.Tensor) -> Dict[str, Any]:
+        """
+        Carry-free CRT multi-modular Predictive Arithmetic Coding & Hutter two-part MDL.
+        Runs `HuffmanEntropyCodec.encode_predictive_arithmetic` independently on each
+        coprime residue channel r_k = t mod p_k, bounded by `ComputeAffordanceType.ALGORITHMIC`,
+        and reports decoder-size + data codelength MDL and implied channel probabilities.
+        """
+        import math
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        from src.core.hardware_monitor import ComputeAffordanceType, get_affordance_budget
+
+        eff_max_syms, aff = get_affordance_budget(
+            ComputeAffordanceType.ALGORITHMIC, base_steps=256, min_steps=16
+        )
+        flat_ids = token_ids.detach().reshape(-1).clamp(0, self.vocab_size - 1)
+        if flat_ids.numel() > eff_max_syms:
+            flat_ids = flat_ids[:eff_max_syms]
+
+        channel_reports: List[Dict[str, float]] = []
+        total_data_bits = 0.0
+        total_gain_bits = 0.0
+
+        for k, p_k in enumerate(self.primes):
+            residue_map = getattr(self, f"residue_map_{k}")
+            r_k = residue_map[flat_ids].cpu().tolist()
+            _, meta = HuffmanEntropyCodec.encode_predictive_arithmetic(
+                r_k, alphabet=list(range(int(p_k))), online_adapt=True
+            )
+            l_k = float(meta.get("shannon_cross_entropy", meta.get("total_bits", 0.0)))
+            bps_k = float(meta.get("bits_per_symbol", 0.0))
+            gain_k = float(meta.get("online_adaptation_gain_bits", 0.0))
+            total_data_bits += l_k
+            total_gain_bits += gain_k
+            channel_reports.append({
+                "prime": float(p_k),
+                "online_codelength_bits": l_k,
+                "bits_per_symbol": bps_k,
+                "online_adaptation_gain_bits": gain_k,
+                "implied_avg_prob": float(2.0 ** (-bps_k)) if bps_k > 0.0 else 1.0,
+            })
+
+        # Compact CRT centroid decoder complexity vs full vocabulary embedding table
+        crt_decoder_bits = float(sum(p.numel() * 32 for p in self.residue_centroids.parameters()))
+        full_vocab_bits = float(sum(p.numel() * 32 for p in self.base_embedding.parameters()))
+        return {
+            "channel_reports": channel_reports,
+            "crt_data_codelength_bits": total_data_bits,
+            "total_online_adaptation_gain_bits": total_gain_bits,
+            "crt_decoder_param_bits": crt_decoder_bits,
+            "full_vocab_param_bits": full_vocab_bits,
+            "hutter_crt_total_mdl_bits": crt_decoder_bits + total_data_bits,
+            "affordance_gauge": float(getattr(aff, "gauge", 1.0)),
+        }
+
 
 class IVSTEncoder(nn.Module):
     """

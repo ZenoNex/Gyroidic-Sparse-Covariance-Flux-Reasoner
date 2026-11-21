@@ -123,16 +123,36 @@ class ResidueFiltration(nn.Module):
                         complex[1].append((i, j))
         
         # 2-simplices (triangles): complete triangles from edges
+        # Gate O(N^3) triangle enumeration on ALGORITHMIC compute affordance
         if max_dimension >= 2 and len(complex[1]) > 0:
-            # Build edge set for fast lookup
-            edge_set = set(complex[1])
-            
-            # Check all triplets
-            for i in range(num_points):
-                for j in range(i + 1, num_points):
-                    for k in range(j + 1, num_points):
-                        if (i, j) in edge_set and (j, k) in edge_set and (i, k) in edge_set:
-                            complex[2].append((i, j, k))
+            allow_triangles = True
+            max_tri_points = num_points
+            try:
+                from src.core.hardware_monitor import (
+                    ComputeAffordanceType,
+                    has_compute_affordance,
+                    get_affordance_budget,
+                )
+                allow_triangles = bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC))
+                if allow_triangles and num_points > 12:
+                    max_tri_points, _ = get_affordance_budget(
+                        ComputeAffordanceType.COMPUTE_BATCH, num_points, min_steps=min(12, num_points)
+                    )
+            except Exception:
+                pass
+
+            if allow_triangles:
+                # Build edge set for fast lookup
+                edge_set = set(complex[1])
+                
+                # Check triplets up to affordance-governed point cap
+                for i in range(max_tri_points):
+                    for j in range(i + 1, max_tri_points):
+                        if (i, j) not in edge_set:
+                            continue
+                        for k in range(j + 1, max_tri_points):
+                            if (j, k) in edge_set and (i, k) in edge_set:
+                                complex[2].append((i, j, k))
         
         return complex
     

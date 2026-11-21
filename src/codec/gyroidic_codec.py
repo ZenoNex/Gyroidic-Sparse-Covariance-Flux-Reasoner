@@ -884,13 +884,24 @@ class GyroidicCodec(nn.Module):
         # 1. Text -> residues
         text_residues = self.text_projector(text)      # [K, n, n]
 
-        # 2. Image -> residues and berry phases (with Mandelbulb prefold if enabled)
+        # 2. Image -> residues and berry phases (with affordance-gated Mandelbulb prefold)
+        eff_mandelbulb = use_mandelbulb_prefold
+        codec_batch_gauge = 1.0
+        try:
+            from src.core.hardware_monitor import get_typed_affordance, ComputeAffordanceType
+            batch_aff = get_typed_affordance(ComputeAffordanceType.COMPUTE_BATCH)
+            codec_batch_gauge = batch_aff.gauge
+            if use_mandelbulb_prefold and not batch_aff.is_admissible:
+                eff_mandelbulb = False
+        except Exception:
+            pass
+
         image_residues, berry_phases = self.image_projector(
             image=image,
             unified_spectral_signature=unified_spectral_signature,
             image_fingerprint=image_fingerprint,
             audio_harmonics=audio_harmonics,
-            use_mandelbulb_prefold=use_mandelbulb_prefold
+            use_mandelbulb_prefold=eff_mandelbulb
         )    # [K, n, n], [K]
 
         # 3. Non-abelian combination
@@ -1050,6 +1061,55 @@ class GyroidicCodec(nn.Module):
         ent = result.diagnostics.get('entanglement_ratio', 0.0)
         se = result.diagnostics.get('spectral_entropy', 0.0)
         return math.log1p(ent) * se
+
+    def compress_residue_stream(
+        self,
+        result: EncodingResult,
+        quant_levels: int = 32,
+        use_predictive_arithmetic: bool = True,
+    ) -> Dict[str, Union[int, float, bytes, Dict]]:
+        """
+        Compress the irreducible CRT residue matrix using the canonical
+        HuffmanEntropyCodec (Huffman prefix coding + Context-Adaptive Predictive
+        Arithmetic Coding with online deterministic adaptation).
+        """
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+
+        flat = result.residue.detach().float().flatten()
+        if flat.numel() == 0:
+            return {"total_symbols": 0, "bits_per_symbol": 0.0, "roundtrip_exact": True}
+
+        r_min = float(flat.min().item())
+        r_max = float(flat.max().item())
+        span = max(1e-6, r_max - r_min)
+        levels = max(2, int(quant_levels))
+        symbols = [
+            max(0, min(levels - 1, int(round(((float(v) - r_min) / span) * (levels - 1)))))
+            for v in flat.tolist()
+        ]
+
+        huff_bytes, huff_meta = HuffmanEntropyCodec.encode_symbols(symbols)
+        out: Dict[str, Union[int, float, bytes, Dict]] = {
+            "total_symbols": len(symbols),
+            "huffman_bits": int(huff_meta.get("total_bits", 0)),
+            "huffman_shannon_entropy": float(huff_meta.get("shannon_entropy", 0.0)),
+            "huffman_avg_code_length": float(huff_meta.get("avg_code_length", 0.0)),
+            "huffman_payload_bytes": len(huff_bytes),
+        }
+        if use_predictive_arithmetic:
+            arith_bytes, arith_meta = HuffmanEntropyCodec.encode_predictive_arithmetic(
+                symbols, online_adapt=True
+            )
+            decoded = HuffmanEntropyCodec.decode_predictive_arithmetic(arith_bytes, arith_meta)
+            out.update({
+                "arithmetic_bits": int(arith_meta.get("total_bits", 0)),
+                "arithmetic_bits_per_symbol": float(arith_meta.get("bits_per_symbol", 0.0)),
+                "arithmetic_cross_entropy": float(arith_meta.get("shannon_cross_entropy", 0.0)),
+                "online_adaptation_gain_bits": float(arith_meta.get("online_adaptation_gain_bits", 0.0)),
+                "arithmetic_payload_bytes": len(arith_bytes),
+                "roundtrip_exact": bool(decoded == symbols),
+            })
+        return out
 
 
 # =============================================================================

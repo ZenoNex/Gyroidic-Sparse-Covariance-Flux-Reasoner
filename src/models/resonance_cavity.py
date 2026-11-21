@@ -136,23 +136,111 @@ class HeritableTrustVault(nn.Module):
             indices.append(slot)
         return torch.tensor(indices, dtype=torch.long, device=residues.device)
 
-    def update(self, residues: torch.Tensor, survivorship: torch.Tensor):
+    def compute_prequential_mdl_survivorship(
+        self,
+        residues: torch.Tensor,
+        quant_levels: int = 16,
+        active_param_bits: float = 0.0,
+    ) -> Dict[str, Any]:
+        """
+        Prequential MDL & Surplus Description Length (SDL) survivorship scoring for Signal Sovereignty.
+        Delegates to `HuffmanEntropyCodec.encode_predictive_arithmetic` gated by
+        `ComputeAffordanceType.ALGORITHMIC` so compressible, fast-adapting residue patterns
+        receive higher heritable trust without bloating decoder complexity.
+        """
+        from src.core.huffman_entropy import HuffmanEntropyCodec
+        from src.core.hardware_monitor import ComputeAffordanceType, get_affordance_budget
+
+        q_levels = max(2, int(quant_levels))
+        eff_max_syms, aff = get_affordance_budget(
+            ComputeAffordanceType.ALGORITHMIC, base_steps=128, min_steps=8
+        )
+        r_2d = residues.detach().float()
+        if r_2d.dim() == 1:
+            r_2d = r_2d.unsqueeze(0)
+        elif r_2d.dim() > 2:
+            r_2d = r_2d.flatten(1)
+
+        batch_size = r_2d.shape[0]
+        mdl_weights: List[float] = []
+        total_l_online = 0.0
+        total_sdl = 0.0
+        total_gain = 0.0
+        alphabet = list(range(q_levels))
+
+        for i in range(batch_size):
+            row = r_2d[i]
+            if row.numel() > eff_max_syms:
+                stride = max(1, row.numel() // eff_max_syms)
+                row = row[::stride][:eff_max_syms]
+            r_min = float(row.min().item())
+            r_max = float(row.max().item())
+            span = max(r_max - r_min, 1e-8)
+            syms = ((row - r_min) / span * (q_levels - 1)).round().clamp(0, q_levels - 1).long().cpu().tolist()
+            _, meta = HuffmanEntropyCodec.encode_predictive_arithmetic(
+                syms, alphabet=alphabet, online_adapt=True
+            )
+            n_sym = max(1, len(syms))
+            l_online = float(meta.get("shannon_cross_entropy", meta.get("total_bits", 0.0)))
+            gain = float(meta.get("online_adaptation_gain_bits", 0.0))
+
+            counts: Dict[int, int] = {}
+            for s in syms:
+                counts[s] = counts.get(s, 0) + 1
+            h_emp = sum(-c * math.log2(max(c / float(n_sym), 1e-12)) for c in counts.values())
+            sdl = max(0.0, l_online - h_emp)
+
+            # Fast-adapting, low-SDL residue patterns gain higher heritable survivorship
+            gain_factor = max(0.25, 1.0 + gain / max(l_online + 1.0, 1.0))
+            sdl_penalty = 1.0 / (1.0 + sdl / max(float(n_sym), 1.0))
+            mdl_weights.append(gain_factor * sdl_penalty)
+            total_l_online += l_online
+            total_sdl += sdl
+            total_gain += gain
+
+        weight_tensor = torch.tensor(mdl_weights, dtype=residues.dtype, device=residues.device)
+        mean_l_online = total_l_online / max(1, batch_size)
+        return {
+            "mdl_survivorship": weight_tensor,
+            "mean_online_codelength_bits": mean_l_online,
+            "mean_surplus_description_length_bits": total_sdl / max(1, batch_size),
+            "mean_online_adaptation_gain_bits": total_gain / max(1, batch_size),
+            "hutter_total_mdl_bits": float(active_param_bits) + mean_l_online,
+            "affordance_gauge": float(getattr(aff, "gauge", 1.0)),
+        }
+
+    def update(
+        self,
+        residues: torch.Tensor,
+        survivorship: torch.Tensor,
+        use_mdl_weighting: bool = False,
+        quant_levels: int = 16,
+    ):
         """
         Update trust table with surviving patterns.
         Contradictory patterns are allowed via soft-overwriting or separate slots.
+        When `use_mdl_weighting=True`, weights survivorship by prequential MDL gain / SDL.
         """
+        eff_survivorship = survivorship
+        if use_mdl_weighting:
+            mdl_report = self.compute_prequential_mdl_survivorship(
+                residues, quant_levels=quant_levels
+            )
+            self.last_mdl_report = mdl_report
+            eff_survivorship = survivorship * mdl_report["mdl_survivorship"].to(survivorship.device)
+
         indices = self._hash(residues)
         for i, idx in enumerate(indices):
             # Trust is heritable: surviving patterns amplify their slot's survival
             # We allow slight variation by blending residues if trust is high,
             # but preserve contradictions by only updating if trust is significantly higher.
-            if survivorship[i] > self.trust_scores[idx]:
+            if eff_survivorship[i] > self.trust_scores[idx]:
                 if residues.shape[1] == self.k_dim:
                     self.trust_table[idx] = residues[i]
                 else:
                     self.trust_table[idx] = residues[i].mean()
                 
-                self.trust_scores[idx] = survivorship[i]
+                self.trust_scores[idx] = eff_survivorship[i]
             
             self.longevity[idx] += 1
 

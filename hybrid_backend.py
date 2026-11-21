@@ -2805,13 +2805,18 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                 '/api/affordances', '/api/bulletin_board', '/api/progress',
                 '/api/hardware', '/api/gpus', '/api/scheduler', '/api/memory_systems',
                 '/api/compute/feelers', '/api/affordance/feelers',
-                '/mindmap', '/api/mindmap-data', '/api/mindmap-expand'
+                '/mindmap', '/generative-mind-map', '/api/mindmap',
+                '/api/mindmap-data', '/api/mindmap-expand'
             ]
             or parsed_path.path.startswith('/api/freenet/')
             or parsed_path.path.startswith('/api/bonfire/')
             or parsed_path.path.startswith('/api/viewer/')
             or parsed_path.path.startswith('/api/madoc/')
             or parsed_path.path.startswith('/api/benchmark/')
+            or (
+                parsed_path.path.startswith('/api/voxelboxter/')
+                and parsed_path.path != '/api/voxelboxter/proxy_status'
+            )
         ):
             from src.ui.diegetic_backend import RequestHandler as DiegeticRequestHandler
             DiegeticRequestHandler.do_GET(self)
@@ -4271,12 +4276,21 @@ def clean_exit_handler():
         pass
     if AI_SYSTEM and not FOSSIL_SAVED:
         FOSSIL_SAVED = True
-        print("[FOSSIL] Clean exit triggered. Running Fossilization Protocol...", flush=True)
+        try:
+            print("[FOSSIL] Clean exit triggered. Running Fossilization Protocol...", flush=True)
+        except (RuntimeError, ValueError, OSError):
+            pass
         try:
             message = AI_SYSTEM.save_model_state()
-            print(f"[OK] {message}", flush=True)
+            try:
+                print(f"[OK] {message}", flush=True)
+            except (RuntimeError, ValueError, OSError):
+                pass
         except Exception as e:
-            print(f"[FAIL] Emergency clean exit save failed: {e}", flush=True)
+            try:
+                print(f"[FAIL] Emergency clean exit save failed: {e}", flush=True)
+            except (RuntimeError, ValueError, OSError):
+                pass
 
 atexit.register(clean_exit_handler)
 
@@ -4422,7 +4436,12 @@ def main():
         pass
 
     def _graceful_interrupt_handler(signum, frame):
-        print(f"\n[INTERRUPT] Received system signal {signum}. Triggering graceful shutdown...", flush=True)
+        # Async-signal-safe: NEVER call print() or sys.stdout inside a signal handler,
+        # which causes `RuntimeError: reentrant call inside <_io.BufferedWriter>`.
+        try:
+            os.write(2, f"\n[INTERRUPT] Received system signal {signum}. Triggering graceful shutdown...\n".encode("ascii", errors="ignore"))
+        except Exception:
+            pass
         raise KeyboardInterrupt
 
     for sig_name in ('SIGTERM', 'SIGINT', 'SIGBREAK'):

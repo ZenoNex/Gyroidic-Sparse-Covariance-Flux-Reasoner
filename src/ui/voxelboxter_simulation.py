@@ -2384,6 +2384,355 @@ class PointerlessOctree:
 from src.core.yield_criteria import MohrCoulombProjection, DruckerPragerProjection
 from src.core.erosion_filter import TopologicalErosionFBM
 
+# ==========================================
+# SELECTABLE WORLD GENERATION SYSTEM
+# (Lost Worlds-inspired Advanced Worldgen Selector
+#  for Mangosteen / fl0w & Gyroidic Topology Presets)
+# ==========================================
+
+WORLDGEN_PRESETS: Dict[str, Dict[str, Any]] = {
+    "gyroidic_minimal_surface": {
+        "id": "gyroidic_minimal_surface",
+        "name": "Gyroidic Minimal Surface",
+        "tagline": "Triply-periodic zero-mean-curvature labyrinth (sin x cos y + sin y cos z + sin z cos x = 0)",
+        "description": (
+            "Carves interconnected non-Abelian Gyroid tunnels with constant zero mean curvature, "
+            "high Betti-1 cycle density, and embedded mineral veins along saddle ridges."
+        ),
+        "tags": ["gyroid", "minimal_surface", "tpms", "high_betti_1"],
+        "default_params": {
+            "world_radius": 10,
+            "frequency": 0.42,
+            "amplitude": 1.0,
+            "density_threshold": 0.28,
+            "vein_abundance": 0.35,
+            "life_activity": 0.25,
+            "bone_ratio": 0.80,
+        },
+    },
+    "mangosteen_fl0w_life": {
+        "id": "mangosteen_fl0w_life",
+        "name": "Mangosteen / fl0w Mathematical Life",
+        "tagline": "Radial organic aril-pod attractors, harmonic fl0w currents, and Pirangi root canopies",
+        "description": (
+            "Generates concentric mangosteen-segment cellular domes linked by continuous fl0w "
+            "streamline bridges, living botanical roots, and adaptive ISN fauna habitats."
+        ),
+        "tags": ["mangosteen", "fl0w", "mathematical_life", "ecological"],
+        "default_params": {
+            "world_radius": 10,
+            "frequency": 0.36,
+            "amplitude": 1.25,
+            "density_threshold": 0.32,
+            "vein_abundance": 0.25,
+            "life_activity": 0.85,
+            "bone_ratio": 0.72,
+        },
+    },
+    "non_dual_cerumen_ecology": {
+        "id": "non_dual_cerumen_ecology",
+        "name": "Non-Dual Cerumen Ecology",
+        "tagline": "Meliponini discrete S2 cerumen pots bounded below 2D percolation criticality (p_c = 0.592746)",
+        "description": (
+            "Forms isolated spherical cerumen chambers suspended in a permeable non-dual matrix "
+            "with 80/20 fossilized bone shells protecting plastic inner chambers."
+        ),
+        "tags": ["meliponini", "cerumen_pot", "percolation", "non_dual"],
+        "default_params": {
+            "world_radius": 10,
+            "frequency": 0.48,
+            "amplitude": 0.95,
+            "density_threshold": 0.44,
+            "vein_abundance": 0.20,
+            "life_activity": 0.70,
+            "bone_ratio": 0.80,
+        },
+    },
+    "dmet_qsci_rbm_lattice": {
+        "id": "dmet_qsci_rbm_lattice",
+        "name": "DMET-QSCI-RBM Quantum Lattice",
+        "tagline": "Fragment-bath crystalline supercells with sparse covariance pillars and resonant bridges",
+        "description": (
+            "Constructs quantized impurity-bath lattice blocks connected by sparse covariance "
+            "waveguides and restricted Boltzmann harmonic terraces."
+        ),
+        "tags": ["dmet", "qsci", "rbm", "crystalline_lattice"],
+        "default_params": {
+            "world_radius": 10,
+            "frequency": 0.55,
+            "amplitude": 1.10,
+            "density_threshold": 0.34,
+            "vein_abundance": 0.50,
+            "life_activity": 0.30,
+            "bone_ratio": 0.85,
+        },
+    },
+    "conformal_escher_logpolar": {
+        "id": "conformal_escher_logpolar",
+        "name": "Conformal Escher Log-Polar",
+        "tagline": "Hyperbolic log-polar stepwells and self-similar conformal spiral arches",
+        "description": (
+            "Maps coordinates through conformal log-polar spirals w = ln(r) + i*theta to create "
+            "nested Poincare-disk stepwells and Escher-like recursive terraces."
+        ),
+        "tags": ["conformal", "escher", "log_polar", "poincare_disk"],
+        "default_params": {
+            "world_radius": 10,
+            "frequency": 0.50,
+            "amplitude": 1.15,
+            "density_threshold": 0.30,
+            "vein_abundance": 0.30,
+            "life_activity": 0.40,
+            "bone_ratio": 0.78,
+        },
+    },
+}
+
+
+def list_worldgen_presets() -> List[Dict[str, Any]]:
+    """Return serializable metadata for all selectable Voxelboxter worldgen presets."""
+    return [copy.deepcopy(v) for v in WORLDGEN_PRESETS.values()]
+
+
+@dataclass
+class WorldGenConfig:
+    """Validated configuration for the Voxelboxter Selectable World Generation System."""
+    preset: str = "gyroidic_minimal_surface"
+    seed: int = 1337
+    world_radius: int = 10
+    frequency: float = 0.42
+    amplitude: float = 1.0
+    density_threshold: float = 0.28
+    vein_abundance: float = 0.35
+    life_activity: float = 0.25
+    bone_ratio: float = 0.80
+
+    def __post_init__(self):
+        if self.preset not in WORLDGEN_PRESETS:
+            self.preset = "gyroidic_minimal_surface"
+        self.seed = int(self.seed) & 0x7FFFFFFF
+        self.world_radius = max(4, min(20, int(self.world_radius)))
+        self.frequency = max(0.05, min(2.5, float(self.frequency)))
+        self.amplitude = max(0.1, min(4.0, float(self.amplitude)))
+        self.density_threshold = max(0.05, min(0.95, float(self.density_threshold)))
+        self.vein_abundance = max(0.0, min(1.0, float(self.vein_abundance)))
+        self.life_activity = max(0.0, min(1.0, float(self.life_activity)))
+        self.bone_ratio = max(0.1, min(0.95, float(self.bone_ratio)))
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]] = None) -> "WorldGenConfig":
+        raw = dict(data or {})
+        preset_id = str(raw.get("preset") or "gyroidic_minimal_surface").strip()
+        if preset_id not in WORLDGEN_PRESETS:
+            preset_id = "gyroidic_minimal_surface"
+        defaults = WORLDGEN_PRESETS[preset_id]["default_params"]
+        params = raw.get("params") if isinstance(raw.get("params"), dict) else {}
+
+        def _pick(key: str, fallback: Any):
+            if key in raw and raw[key] is not None:
+                return raw[key]
+            if key in params and params[key] is not None:
+                return params[key]
+            return fallback
+
+        raw_seed = _pick("seed", 1337)
+        try:
+            seed_int = int(raw_seed)
+        except (TypeError, ValueError):
+            # Deterministically hash arbitrary string seeds
+            seed_int = sum((idx + 1) * ord(ch) for idx, ch in enumerate(str(raw_seed))) % 0x7FFFFFFF
+
+        return cls(
+            preset=preset_id,
+            seed=seed_int,
+            world_radius=int(_pick("world_radius", defaults["world_radius"])),
+            frequency=float(_pick("frequency", defaults["frequency"])),
+            amplitude=float(_pick("amplitude", defaults["amplitude"])),
+            density_threshold=float(_pick("density_threshold", defaults["density_threshold"])),
+            vein_abundance=float(_pick("vein_abundance", defaults["vein_abundance"])),
+            life_activity=float(_pick("life_activity", defaults["life_activity"])),
+            bone_ratio=float(_pick("bone_ratio", defaults["bone_ratio"])),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "preset": self.preset,
+            "preset_name": WORLDGEN_PRESETS[self.preset]["name"],
+            "seed": self.seed,
+            "world_radius": self.world_radius,
+            "frequency": self.frequency,
+            "amplitude": self.amplitude,
+            "density_threshold": self.density_threshold,
+            "vein_abundance": self.vein_abundance,
+            "life_activity": self.life_activity,
+            "bone_ratio": self.bone_ratio,
+        }
+
+
+class VoxelboxterWorldGenerator:
+    """
+    Deterministic topological world generator supporting selectable mathematical
+    life and minimal-surface presets. Populates a StructuralGraph and PointerlessOctree
+    with reproducible seeded geometry and 80/20 fossilized bone/flesh stratification.
+    """
+
+    def _evaluate_field(self, preset: str, x: int, y: int, z: int, cfg: WorldGenConfig, phase: Tuple[float, float, float]) -> Tuple[bool, int, List[str]]:
+        px, py, pz = phase
+        f = cfg.frequency
+        amp = cfg.amplitude
+        sx, sy, sz = (x * f) + px, (y * f) + py, (z * f) + pz
+
+        if preset == "gyroidic_minimal_surface":
+            g = math.sin(sx) * math.cos(sy) + math.sin(sy) * math.cos(sz) + math.sin(sz) * math.cos(sx)
+            solid = abs(g) <= (cfg.density_threshold * amp)
+            mat_id = 1 if abs(g) < (cfg.density_threshold * 0.4) else 2
+            return solid, mat_id, ["gyroid", "minimal_surface"]
+
+        if preset == "mangosteen_fl0w_life":
+            r = math.sqrt(x * x + y * y + z * z) + 1e-6
+            theta = math.atan2(z, x)
+            # 6-lobed mangosteen aril symmetry + harmonic fl0w wave
+            lobe = math.cos(6.0 * theta + px) * 0.5 + 0.5
+            fl0w_wave = math.sin(r * f * 1.4 + py) * math.cos(y * f + pz)
+            shell = abs((r / max(1.0, float(cfg.world_radius))) - (0.45 + 0.35 * lobe))
+            solid = (shell < cfg.density_threshold * 0.55) or (
+                fl0w_wave > (1.0 - cfg.life_activity * 0.65) and abs(y) <= max(2, cfg.world_radius // 3)
+            )
+            mat_id = 5 if fl0w_wave > 0.3 else 3
+            return solid, mat_id, ["mangosteen", "fl0w_life", "botanical"]
+
+        if preset == "non_dual_cerumen_ecology":
+            # Discrete S2 cerumen pot shells bounded below percolation criticality p_c = 0.592746
+            cx = math.sin(sx * 1.2)
+            cy = math.sin(sy * 1.2)
+            cz = math.sin(sz * 1.2)
+            pot_dist = math.sqrt(cx * cx + cy * cy + cz * cz)
+            # Hollow chambers: shell around pot_dist in [0.65, 0.65 + threshold]
+            p_eff = min(0.58, cfg.density_threshold + 0.15)
+            solid = (0.62 <= pot_dist <= (0.62 + p_eff * 0.65 * amp))
+            mat_id = 4 if pot_dist < 0.85 else 6
+            return solid, mat_id, ["meliponini", "cerumen_pot", "non_dual"]
+
+        if preset == "dmet_qsci_rbm_lattice":
+            # Fragment-bath periodic supercell with sparse covariance waveguides
+            cell_period = max(3, int(round(4.0 / max(0.25, f))))
+            mx, my, mz = abs(x) % cell_period, abs(y) % cell_period, abs(z) % cell_period
+            on_frame = (mx == 0 and my == 0) or (my == 0 and mz == 0) or (mx == 0 and mz == 0)
+            rbm_energy = 0.5 * (math.cos(sx * 2.0) + math.cos(sy * 2.0) + math.cos(sz * 2.0)) / 1.5
+            solid = on_frame or (rbm_energy > (1.0 - cfg.density_threshold * 1.4 * amp))
+            mat_id = 7 if on_frame else 8
+            return solid, mat_id, ["dmet", "qsci", "rbm_lattice"]
+
+        if preset == "conformal_escher_logpolar":
+            # Conformal log-polar spiral w = ln(r) + i * theta
+            r_xz = math.sqrt(x * x + z * z) + 0.5
+            log_r = math.log(r_xz)
+            theta = math.atan2(z, x)
+            spiral = math.sin(log_r * (3.5 * f * amp) + 3.0 * theta + px)
+            terrace = math.cos(y * f * 1.6 + log_r * 1.2 + py)
+            solid = abs(spiral + 0.5 * terrace) <= (cfg.density_threshold * 1.35)
+            mat_id = 9 if spiral >= 0 else 10
+            return solid, mat_id, ["conformal", "escher", "log_polar"]
+
+        return False, 1, ["voxelboxter"]
+
+    def generate_world(
+        self,
+        config: Optional[Union[WorldGenConfig, Dict[str, Any]]] = None,
+        graph: Optional["StructuralGraph"] = None,
+        octree: Optional["PointerlessOctree"] = None,
+        vein_generator: Optional[Any] = None,
+    ) -> Tuple["StructuralGraph", "PointerlessOctree", Dict[str, Any]]:
+        """
+        Deterministically generate a Voxelboxter world for the selected preset and seed.
+        """
+        t0 = time.perf_counter()
+        cfg = config if isinstance(config, WorldGenConfig) else WorldGenConfig.from_dict(config)
+        target_graph = graph if graph is not None else StructuralGraph()
+        target_octree = octree if octree is not None else PointerlessOctree(max_depth=4)
+
+        # Reset previous voxels/blocks cleanly
+        target_graph.blocks.clear()
+        target_graph.bone_blocks.clear()
+        target_graph.flesh_blocks.clear()
+        if hasattr(target_octree, "morton_grid"):
+            target_octree.morton_grid.clear()
+
+        # Deterministic phase offsets derived from seed
+        rng_phase = (
+            ((cfg.seed * 2654435761) % 6283) / 1000.0,
+            (((cfg.seed ^ 0x5A5A5A) * 2246822519) % 6283) / 1000.0,
+            (((cfg.seed ^ 0xA5A5A5) * 3266489917) % 6283) / 1000.0,
+        )
+
+        r = cfg.world_radius
+        y_half = max(3, r // 2)
+        preset_meta = WORLDGEN_PRESETS[cfg.preset]
+        vein_blocks = 0
+
+        for x in range(-r, r + 1):
+            for y in range(-y_half, y_half + 1):
+                for z in range(-r, r + 1):
+                    solid, mat_id, cell_tags = self._evaluate_field(cfg.preset, x, y, z, cfg, rng_phase)
+                    if not solid:
+                        continue
+                    # Optional vein modulation based on deterministic hash
+                    if cfg.vein_abundance > 0.0:
+                        h_val = ((x * 73856093) ^ (y * 19349663) ^ (z * 83492791) ^ cfg.seed) & 0xFFFF
+                        if (h_val / 65535.0) < (cfg.vein_abundance * 0.18):
+                            mat_id = 11  # Mineral vein material
+                            vein_blocks += 1
+                    blk = Block(
+                        local_cell=(x, y, z),
+                        rotation=(0, 0, 0, 1),
+                        material_id=mat_id,
+                        health=100.0,
+                        parent_id=f"world_{cfg.preset}",
+                        tags=list(cell_tags),
+                        public_domain_tags=list(preset_meta["tags"]),
+                    )
+                    target_graph.add_block(blk)
+                    if hasattr(target_octree, "insert_voxel"):
+                        target_octree.insert_voxel(x + r, y + y_half, z + r, mat_id)
+
+        # Guarantee non-empty anchor construct even under extreme parameter thresholds
+        if not target_graph.blocks:
+            for dx in (-1, 0, 1):
+                for dz in (-1, 0, 1):
+                    blk = Block(
+                        local_cell=(dx, 0, dz),
+                        rotation=(0, 0, 0, 1),
+                        material_id=1,
+                        health=100.0,
+                        parent_id=f"world_{cfg.preset}",
+                        tags=list(preset_meta["tags"]),
+                        public_domain_tags=list(preset_meta["tags"]),
+                    )
+                    target_graph.add_block(blk)
+                    if hasattr(target_octree, "insert_voxel"):
+                        target_octree.insert_voxel(dx + r, y_half, dz + r, 1)
+
+        fossil_info = target_graph.fossilize_core(bone_ratio=cfg.bone_ratio)
+        betti = target_graph.compute_betti_numbers()
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+        summary = {
+            "preset": cfg.preset,
+            "preset_name": preset_meta["name"],
+            "seed": cfg.seed,
+            "block_count": len(target_graph.blocks),
+            "bone_blocks": fossil_info["bone_blocks"],
+            "flesh_blocks": fossil_info["flesh_blocks"],
+            "vein_blocks": vein_blocks,
+            "octree_voxels": len(getattr(target_octree, "morton_grid", {})),
+            "betti_numbers": betti,
+            "generation_time_ms": round(elapsed_ms, 2),
+            "params": cfg.to_dict(),
+            "tags": list(preset_meta["tags"]),
+        }
+        return target_graph, target_octree, summary
+
+
 class VoxelboxterEngine:
     """
     Hooks the DiegeticPhysicsEngine into the ECS architecture.
@@ -2396,7 +2745,7 @@ class VoxelboxterEngine:
     - Fractional Brownian Motion (FBM) erosion for carving weather gullies and Ley Lines
     - Living ecological loops: Pirangi cashew flora mutation and Fauna ISN populations
     """
-    def __init__(self, device: str = "cpu"):
+    def __init__(self, device: str = "cpu", lightweight: bool = False, physics_engine: Optional[Any] = None):
         from src.core.diegetic_physics_engine import DiegeticPhysicsEngine
         try:
             from src.core.device_utils import get_torch_device
@@ -2404,15 +2753,21 @@ class VoxelboxterEngine:
         except Exception:
             torch_dev = "cpu" if str(device).lower() == "opencl" else str(device)
 
+        self.lightweight = bool(lightweight)
+        self.silicon_ready = False
         try:
             from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-            self.silicon_sovereignty = SiliconSovereigntyEngine(use_gpu=True)
+            self.silicon_sovereignty = SiliconSovereigntyEngine(use_gpu=(not self.lightweight))
+            self.silicon_ready = bool(getattr(self.silicon_sovereignty, "ctx", None) is not None)
         except Exception as e:
             self.silicon_sovereignty = None
             print(f"[VoxelboxterEngine] SiliconSovereigntyEngine running in mock mode: {e}")
 
-        self.physics = DiegeticPhysicsEngine(device=torch_dev)
+        self.physics = physics_engine if physics_engine is not None else DiegeticPhysicsEngine(device=torch_dev)
         self.device = device
+        self.world_generator = VoxelboxterWorldGenerator()
+        self.active_worldgen_config: WorldGenConfig = WorldGenConfig()
+        self.last_worldgen_summary: Optional[Dict[str, Any]] = None
         self.constructs: Dict[str, 'StructuralGraph'] = {}
         self.controllers: Dict[str, VehicleController] = {}
         self.rigid_bodies: Dict[str, RigidBody] = {}
@@ -3316,8 +3671,31 @@ class VoxelboxterEngine:
                     tags.add(t.lower())
         return sorted(tags)
 
+    def generate_world(self, worldgen_config: Optional[Union[WorldGenConfig, Dict[str, Any]]] = None) -> Dict[str, Any]:
+        """
+        Generate and mount a selectable topological world preset into this VoxelboxterEngine.
+        Updates self.constructs['world_terrain'], self.terrain_octree, active_worldgen_config,
+        and last_worldgen_summary.
+        """
+        cfg = (
+            worldgen_config
+            if isinstance(worldgen_config, WorldGenConfig)
+            else WorldGenConfig.from_dict(worldgen_config)
+        )
+        world_graph, world_octree, summary = self.world_generator.generate_world(
+            config=cfg,
+            graph=self.constructs.get("world_terrain"),
+            octree=self.terrain_octree,
+            vein_generator=getattr(self, "large_veins", None),
+        )
+        self.constructs["world_terrain"] = world_graph
+        self.terrain_octree = world_octree
+        self.active_worldgen_config = cfg
+        self.last_worldgen_summary = summary
+        return summary
+
     def export_world_state(self) -> Dict[str, Any]:
-        """Exports world state summary with structural honesty and public domain tags."""
+        """Exports world state summary with structural honesty, worldgen preset, and public domain tags."""
         constructs_summary = {}
         for cid, graph in self.constructs.items():
             if hasattr(graph, 'to_dict'):
@@ -3331,7 +3709,14 @@ class VoxelboxterEngine:
             "fauna_count": len(self.fauna_populations),
             "terrain_betti": self.compute_terrain_betti(),
             "public_domain_tags": self.get_public_domain_tags(),
-            "structural_honesty": True
+            "structural_honesty": True,
+            "silicon_ready": bool(getattr(self, "silicon_ready", False)),
+            "worldgen": self.last_worldgen_summary or {
+                "preset": self.active_worldgen_config.preset,
+                "seed": self.active_worldgen_config.seed,
+                "params": self.active_worldgen_config.to_dict(),
+                "generated": False,
+            },
         }
 
 # Canonical Alias

@@ -241,15 +241,18 @@ class AdaptiveFractalPartitioner(nn.Module):
         used_opencl = False
         if batch_size >= 4 and K >= 8 and not phi.requires_grad:
             try:
-                from src.core.pyopencl_sovereignty import get_sovereignty_engine
-                engine = get_sovereignty_engine()
-                if engine is not None and engine.is_initialized:
-                    phi_centered = phi - phi.mean(dim=0, keepdim=True)
-                    norms = torch.norm(phi_centered, dim=0, keepdim=True) + 1e-8
-                    phi_norm = phi_centered / norms
-                    gram = engine.hardware_sovereign_matmul(phi_norm.t(), phi_norm)
-                    coherences = [float(torch.abs(gram[i, i + 1]).item()) for i in range(K - 1)]
-                    used_opencl = True
+                from src.core.hardware_monitor import should_offload_gpu_sovereign
+                gpu_ok, _ = should_offload_gpu_sovereign(dim=K, min_dim=8)
+                if gpu_ok:
+                    from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                    engine = get_sovereignty_engine()
+                    if engine is not None and engine.is_initialized:
+                        phi_centered = phi - phi.mean(dim=0, keepdim=True)
+                        norms = torch.norm(phi_centered, dim=0, keepdim=True) + 1e-8
+                        phi_norm = phi_centered / norms
+                        gram = engine.hardware_sovereign_matmul(phi_norm.t(), phi_norm)
+                        coherences = [float(torch.abs(gram[i, i + 1]).item()) for i in range(K - 1)]
+                        used_opencl = True
             except Exception:
                 used_opencl = False
 

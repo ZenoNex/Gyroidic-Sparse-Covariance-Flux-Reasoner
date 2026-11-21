@@ -1174,9 +1174,22 @@
             <span style="color:#333;">│</span>
             <button id="btn-top-launch-viewer" onclick="launchPickleViewerGUI()" style="background:rgba(255,0,242,0.15);border:1px solid var(--terminal-magenta);color:#fff;font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;transition:all 0.2s;" title="Boot standalone C++ accelerated DearPyGui / Tkinter Fossil and Pickle Encoding Viewer">LAUNCH FOSSIL / PICKLE VIEWER</button>
             <span style="color:#333;">│</span>
-            <a href="/mindmap" target="_blank" style="background:rgba(57,255,20,0.15);border:1px solid var(--terminal-green);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;text-decoration:none;transition:all 0.2s;" title="Launch DaemonAton Generative Radial Tree Mind Map">[MIND MAP]</a>
+            <button id="btn-mindmap-toggle" type="button" onclick="toggleMindMapOverlay()" style="background:rgba(57,255,20,0.15);border:1px solid var(--terminal-green);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.65rem;padding:3px 8px;border-radius:3px;cursor:pointer;font-weight:bold;text-decoration:none;transition:all 0.2s;" title="Toggle DaemonAton Generative Radial Tree Mind Map">[MIND MAP]</button>
         </div>
     </header>
+
+    <!-- DaemonAton Generative Mind Map Overlay Modal -->
+    <div id="mindmap-overlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(2,8,6,0.92);backdrop-filter:blur(8px);flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.55rem 1.25rem;background:rgba(5,16,12,0.95);border-bottom:1px solid rgba(57,255,20,0.35);font-family:var(--font-mono);font-size:0.75rem;">
+            <span style="color:var(--terminal-green);font-weight:bold;letter-spacing:1.5px;">DAEMONATON GENERATIVE MIND MAP // LIVE MANIFOLD TOPOLOGY</span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+                <button type="button" onclick="refreshMindMapOverlay()" style="background:rgba(57,255,20,0.12);border:1px solid var(--terminal-green);color:var(--terminal-green);font-family:var(--font-mono);font-size:0.7rem;padding:3px 9px;border-radius:3px;cursor:pointer;">[REFRESH]</button>
+                <button type="button" onclick="openMindMapNewTab()" style="background:rgba(0,242,255,0.12);border:1px solid var(--terminal-blue);color:var(--terminal-blue);font-family:var(--font-mono);font-size:0.7rem;padding:3px 9px;border-radius:3px;cursor:pointer;">[OPEN NEW TAB]</button>
+                <button type="button" onclick="toggleMindMapOverlay(false)" style="background:rgba(255,68,68,0.15);border:1px solid #ff5555;color:#ff8888;font-family:var(--font-mono);font-size:0.7rem;padding:3px 9px;border-radius:3px;cursor:pointer;">[CLOSE]</button>
+            </div>
+        </div>
+        <iframe id="mindmap-iframe" title="DaemonAton Generative Mind Map" style="flex:1;width:100%;height:100%;border:none;background:#030708;"></iframe>
+    </div>
 
     <main>
         <!-- Left Sidebar: Topological Health -->
@@ -1852,30 +1865,91 @@
 
             <!-- Tab: Voxelboxter Simulation -->
             <div class="tab-pane" id="pane-voxelboxter"
-                style="background: #030303; flex: 1; position: relative; padding: 2rem;">
-                <div class="section-title" style="color: #ffaa00;">Dual Engine Sandbox</div>
-                <p style="font-family: var(--font-mono); font-size: 0.8rem; color: #aaa; margin-bottom: 2rem;">
+                style="background: #030303; flex: 1; position: relative; padding: 1.5rem; overflow-y: auto;">
+                <div class="section-title" style="color: #ffaa00;">Dual Engine Sandbox // Selectable World Generation</div>
+                <p style="font-family: var(--font-mono); font-size: 0.78rem; color: #aaa; margin-bottom: 1.25rem;">
                     The Voxelboxter client bridges the Gyroidic Engine with a Bevy-based topological voxel renderer.<br>
-                    Booting the engine launches a separate window on the host machine.
+                    Select a mathematical life or minimal-surface worldgen preset, tune seed and topology parameters, preview Betti invariants, and boot the host client.
                 </p>
 
-                <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-                    <button id="boot-voxelboxter-btn"
-                        style="background: rgba(255, 170, 0, 0.1); border: 1px solid #ffaa00; color: #ffaa00; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); font-size: 1rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px;">
+                <!-- Selectable Worldgen Preset Grid (Lost Worlds-inspired) -->
+                <div class="metric-card" style="margin-bottom: 1rem; border-color: rgba(255, 170, 0, 0.35);">
+                    <div class="metric-label" style="color: #ffaa00; margin-bottom: 0.6rem;">WORLDGEN PRESET SELECTOR</div>
+                    <div id="voxelboxter-preset-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem;"></div>
+                </div>
+
+                <!-- Seed & Advanced Worldgen Controls -->
+                <div class="metric-card" style="margin-bottom: 1rem; border-color: rgba(0, 240, 255, 0.25);">
+                    <div class="metric-label" style="color: #00f0ff; margin-bottom: 0.6rem;">SEED &amp; TOPOLOGICAL PARAMETERS</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; font-family: var(--font-mono); font-size: 0.75rem;">
+                        <label style="color: #ccc;">SEED:
+                            <input id="vb-wg-seed" type="text" value="1337"
+                                style="background:#0a0a0a; border:1px solid #333; color:#00f0ff; font-family:var(--font-mono); padding:4px 8px; width:120px; border-radius:3px; margin-left:4px;">
+                        </label>
+                        <button type="button" id="vb-wg-random-seed"
+                            style="background:rgba(0,240,255,0.1); border:1px solid #00f0ff; color:#00f0ff; padding:4px 10px; border-radius:3px; font-family:var(--font-mono); font-size:0.72rem; cursor:pointer;">
+                            [RANDOMIZE SEED]
+                        </button>
+                        <label style="color: #aaa; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input id="vb-wg-headless" type="checkbox"> Headless Boot (No Window)
+                        </label>
+                        <label style="color: #aaa; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input id="vb-wg-autoplay" type="checkbox"> Auto-Switch to PLAY Mode
+                        </label>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 0.65rem; font-family: var(--font-mono); font-size: 0.72rem; color: #bbb;">
+                        <label>Radius: <span id="vb-val-radius">10</span>
+                            <input id="vb-wg-radius" type="range" min="4" max="16" step="1" value="10" style="width:100%;">
+                        </label>
+                        <label>Frequency: <span id="vb-val-freq">0.42</span>
+                            <input id="vb-wg-freq" type="range" min="0.10" max="1.20" step="0.02" value="0.42" style="width:100%;">
+                        </label>
+                        <label>Amplitude: <span id="vb-val-amp">1.00</span>
+                            <input id="vb-wg-amp" type="range" min="0.30" max="2.50" step="0.05" value="1.00" style="width:100%;">
+                        </label>
+                        <label>Density Threshold: <span id="vb-val-density">0.28</span>
+                            <input id="vb-wg-density" type="range" min="0.10" max="0.80" step="0.02" value="0.28" style="width:100%;">
+                        </label>
+                        <label>Vein Abundance: <span id="vb-val-vein">0.35</span>
+                            <input id="vb-wg-vein" type="range" min="0.00" max="1.00" step="0.05" value="0.35" style="width:100%;">
+                        </label>
+                        <label>Life Activity: <span id="vb-val-life">0.25</span>
+                            <input id="vb-wg-life" type="range" min="0.00" max="1.00" step="0.05" value="0.25" style="width:100%;">
+                        </label>
+                        <label>80/20 Bone Ratio: <span id="vb-val-bone">0.80</span>
+                            <input id="vb-wg-bone" type="range" min="0.30" max="0.95" step="0.05" value="0.80" style="width:100%;">
+                        </label>
+                    </div>
+                    <div id="vb-wg-preview-summary" style="margin-top:0.75rem; padding:0.5rem 0.75rem; background:rgba(0,0,0,0.45); border:1px solid #222; border-radius:3px; font-family:var(--font-mono); font-size:0.72rem; color:#8ae99c;">
+                        Active Preset: gyroidic_minimal_surface | Seed: 1337 | Ready for preview or boot.
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <button id="preview-voxelboxter-btn" type="button"
+                        style="background: rgba(57, 255, 20, 0.12); border: 1px solid var(--terminal-green); color: var(--terminal-green); padding: 10px 18px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">
+                        [ PREVIEW WORLDGEN ]
+                    </button>
+                    <button id="boot-voxelboxter-btn" type="button"
+                        style="background: rgba(255, 170, 0, 0.12); border: 1px solid #ffaa00; color: #ffaa00; padding: 10px 20px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1.5px;">
                         [ BOOT HOST CLIENT ]
                     </button>
-                    <button onclick="document.getElementById('voxelboxter-logs').innerHTML = '';"
-                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid #444; color: #888; padding: 12px 24px; border-radius: 4px; font-family: var(--font-mono); cursor: pointer;">
+                    <button id="stop-voxelboxter-btn" type="button"
+                        style="background: rgba(255, 68, 68, 0.12); border: 1px solid #ff5555; color: #ff8888; padding: 10px 16px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">
+                        [ STOP CLIENT ]
+                    </button>
+                    <button type="button" onclick="document.getElementById('voxelboxter-logs').innerHTML = '';"
+                        style="background: rgba(255, 255, 255, 0.05); border: 1px solid #444; color: #888; padding: 10px 16px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer;">
                         CLEAR LOGS
                     </button>
                 </div>
 
-                <div class="metric-card" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="metric-card" style="flex: 1; display: flex; flex-direction: column; min-height: 180px;">
                     <div class="metric-label" style="color: #ffaa00;">Operational Terminal</div>
                     <div id="voxelboxter-logs" class="small-log"
-                        style="flex: 1; height: auto; max-height: none; background: rgba(0,0,0,0.5); padding: 1rem; font-size: 0.75rem; color: #00f0ff;">
+                        style="flex: 1; height: auto; max-height: 280px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 1rem; font-size: 0.75rem; color: #00f0ff;">
                         [SYSTEM] Voxelboxter interface ready.<br>
-                        [SYSTEM] Waiting for boot command...<br>
+                        [SYSTEM] Select a worldgen preset and click PREVIEW WORLDGEN or BOOT HOST CLIENT.<br>
                     </div>
                 </div>
             </div>
@@ -7054,30 +7128,290 @@ Association: ${data.association_report || 'Entangled in Dyad Fossilizer'}`);
                 };
             }
 
-            // Voxelboxter Boot Sequence
+            // DaemonAton Generative Mind Map Overlay Toggle & Handlers
+            function getMindMapUrl() {
+                const base = (typeof state !== 'undefined' && state.backend_url) ? state.backend_url : 'http://localhost:8000';
+                return `${base}/mindmap?backend=${encodeURIComponent(base)}`;
+            }
+
+            window.toggleMindMapOverlay = function (forceState) {
+                const overlay = document.getElementById('mindmap-overlay');
+                const iframe = document.getElementById('mindmap-iframe');
+                const btn = document.getElementById('btn-mindmap-toggle');
+                if (!overlay) return;
+                const isOpen = overlay.style.display === 'flex';
+                const nextOpen = (typeof forceState === 'boolean') ? forceState : !isOpen;
+                if (nextOpen) {
+                    const targetUrl = getMindMapUrl();
+                    if (iframe && (!iframe.src || !iframe.src.includes('/mindmap'))) {
+                        iframe.src = targetUrl;
+                    }
+                    overlay.style.display = 'flex';
+                    if (btn) {
+                        btn.style.background = 'rgba(57,255,20,0.35)';
+                        btn.innerText = '[MIND MAP: OPEN]';
+                    }
+                } else {
+                    overlay.style.display = 'none';
+                    if (btn) {
+                        btn.style.background = 'rgba(57,255,20,0.15)';
+                        btn.innerText = '[MIND MAP]';
+                    }
+                }
+            };
+
+            window.refreshMindMapOverlay = function () {
+                const iframe = document.getElementById('mindmap-iframe');
+                if (iframe) {
+                    iframe.src = `${getMindMapUrl()}&_t=${Date.now()}`;
+                }
+            };
+
+            window.openMindMapNewTab = function () {
+                window.open(getMindMapUrl(), '_blank', 'noopener');
+            };
+
+            document.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Escape') {
+                    const overlay = document.getElementById('mindmap-overlay');
+                    if (overlay && overlay.style.display === 'flex') {
+                        window.toggleMindMapOverlay(false);
+                    }
+                }
+            });
+
+            // Voxelboxter Selectable World Generation & Ordered Boot Sequence
+            const defaultVoxelboxterPresets = [
+                {
+                    id: 'gyroidic_minimal_surface',
+                    name: 'Gyroidic Minimal Surface',
+                    tagline: 'Triply-periodic zero-mean-curvature labyrinth',
+                    default_params: { world_radius: 10, frequency: 0.42, amplitude: 1.0, density_threshold: 0.28, vein_abundance: 0.35, life_activity: 0.25, bone_ratio: 0.80 }
+                },
+                {
+                    id: 'mangosteen_fl0w_life',
+                    name: 'Mangosteen / fl0w Mathematical Life',
+                    tagline: 'Radial organic aril-pod attractors and harmonic fl0w currents',
+                    default_params: { world_radius: 10, frequency: 0.36, amplitude: 1.25, density_threshold: 0.32, vein_abundance: 0.25, life_activity: 0.85, bone_ratio: 0.72 }
+                },
+                {
+                    id: 'non_dual_cerumen_ecology',
+                    name: 'Non-Dual Cerumen Ecology',
+                    tagline: 'Meliponini discrete S2 cerumen pots below p_c = 0.592746',
+                    default_params: { world_radius: 10, frequency: 0.48, amplitude: 0.95, density_threshold: 0.44, vein_abundance: 0.20, life_activity: 0.70, bone_ratio: 0.80 }
+                },
+                {
+                    id: 'dmet_qsci_rbm_lattice',
+                    name: 'DMET-QSCI-RBM Quantum Lattice',
+                    tagline: 'Fragment-bath crystalline supercells and sparse covariance bridges',
+                    default_params: { world_radius: 10, frequency: 0.55, amplitude: 1.10, density_threshold: 0.34, vein_abundance: 0.50, life_activity: 0.30, bone_ratio: 0.85 }
+                },
+                {
+                    id: 'conformal_escher_logpolar',
+                    name: 'Conformal Escher Log-Polar',
+                    tagline: 'Hyperbolic log-polar stepwells and conformal spiral arches',
+                    default_params: { world_radius: 10, frequency: 0.50, amplitude: 1.15, density_threshold: 0.30, vein_abundance: 0.30, life_activity: 0.40, bone_ratio: 0.78 }
+                }
+            ];
+
+            let vbPresetsCache = defaultVoxelboxterPresets;
+            let selectedVbPreset = 'gyroidic_minimal_surface';
+            let vbStatusPollTimer = null;
+
+            function readWorldGenPayload() {
+                return {
+                    preset: selectedVbPreset,
+                    seed: (document.getElementById('vb-wg-seed')?.value || '1337').trim(),
+                    world_radius: parseInt(document.getElementById('vb-wg-radius')?.value || '10', 10),
+                    frequency: parseFloat(document.getElementById('vb-wg-freq')?.value || '0.42'),
+                    amplitude: parseFloat(document.getElementById('vb-wg-amp')?.value || '1.0'),
+                    density_threshold: parseFloat(document.getElementById('vb-wg-density')?.value || '0.28'),
+                    vein_abundance: parseFloat(document.getElementById('vb-wg-vein')?.value || '0.35'),
+                    life_activity: parseFloat(document.getElementById('vb-wg-life')?.value || '0.25'),
+                    bone_ratio: parseFloat(document.getElementById('vb-wg-bone')?.value || '0.80'),
+                    headless: Boolean(document.getElementById('vb-wg-headless')?.checked),
+                    auto_play: Boolean(document.getElementById('vb-wg-autoplay')?.checked),
+                    api_url: state.backend_url
+                };
+            }
+
+            function syncSliderLabels() {
+                const pairs = [
+                    ['vb-wg-radius', 'vb-val-radius', 0],
+                    ['vb-wg-freq', 'vb-val-freq', 2],
+                    ['vb-wg-amp', 'vb-val-amp', 2],
+                    ['vb-wg-density', 'vb-val-density', 2],
+                    ['vb-wg-vein', 'vb-val-vein', 2],
+                    ['vb-wg-life', 'vb-val-life', 2],
+                    ['vb-wg-bone', 'vb-val-bone', 2]
+                ];
+                pairs.forEach(([inputId, labelId, decimals]) => {
+                    const inp = document.getElementById(inputId);
+                    const lbl = document.getElementById(labelId);
+                    if (inp && lbl) {
+                        lbl.innerText = decimals === 0 ? String(inp.value) : Number(inp.value).toFixed(decimals);
+                    }
+                });
+            }
+
+            function applyPresetDefaults(presetObj) {
+                if (!presetObj || !presetObj.default_params) return;
+                const d = presetObj.default_params;
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+                setVal('vb-wg-radius', d.world_radius);
+                setVal('vb-wg-freq', d.frequency);
+                setVal('vb-wg-amp', d.amplitude);
+                setVal('vb-wg-density', d.density_threshold);
+                setVal('vb-wg-vein', d.vein_abundance);
+                setVal('vb-wg-life', d.life_activity);
+                setVal('vb-wg-bone', d.bone_ratio);
+                syncSliderLabels();
+                const summaryEl = document.getElementById('vb-wg-preview-summary');
+                if (summaryEl) {
+                    const seedVal = (document.getElementById('vb-wg-seed')?.value || '1337').trim();
+                    summaryEl.innerText = `Active Preset: ${presetObj.id} (${presetObj.name}) | Seed: ${seedVal} | Ready for preview or boot.`;
+                }
+            }
+
+            function renderVoxelboxterPresets(presets) {
+                const grid = document.getElementById('voxelboxter-preset-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+                presets.forEach((p) => {
+                    const card = document.createElement('button');
+                    card.type = 'button';
+                    const isSelected = p.id === selectedVbPreset;
+                    card.style.cssText = `text-align:left;padding:0.65rem;border-radius:4px;cursor:pointer;font-family:var(--font-mono);transition:all 0.15s;background:${isSelected ? 'rgba(255,170,0,0.18)' : 'rgba(255,255,255,0.03)'};border:1px solid ${isSelected ? '#ffaa00' : '#333'};color:${isSelected ? '#ffdd88' : '#ccc'};`;
+                    card.innerHTML = `
+                        <div style="font-size:0.78rem;font-weight:bold;color:${isSelected ? '#ffaa00' : '#eee'};margin-bottom:3px;">${p.name}</div>
+                        <div style="font-size:0.66rem;color:#888;line-height:1.3;">${p.tagline || ''}</div>
+                        <div style="font-size:0.62rem;color:#00f0ff;margin-top:4px;">ID: ${p.id}</div>
+                    `;
+                    card.addEventListener('click', () => {
+                        selectedVbPreset = p.id;
+                        renderVoxelboxterPresets(vbPresetsCache);
+                        applyPresetDefaults(p);
+                    });
+                    grid.appendChild(card);
+                });
+            }
+
+            async function initVoxelboxterWorldgenUI() {
+                renderVoxelboxterPresets(vbPresetsCache);
+                ['vb-wg-radius', 'vb-wg-freq', 'vb-wg-amp', 'vb-wg-density', 'vb-wg-vein', 'vb-wg-life', 'vb-wg-bone'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('input', syncSliderLabels);
+                });
+                const randBtn = document.getElementById('vb-wg-random-seed');
+                if (randBtn) {
+                    randBtn.addEventListener('click', () => {
+                        const seedEl = document.getElementById('vb-wg-seed');
+                        if (seedEl) seedEl.value = String(Math.floor(Math.random() * 999999) + 1);
+                    });
+                }
+                try {
+                    const res = await fetch(`${state.backend_url}/api/voxelboxter/worldgen/presets`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.status === 'ok' && Array.isArray(data.presets) && data.presets.length > 0) {
+                            vbPresetsCache = data.presets;
+                            renderVoxelboxterPresets(vbPresetsCache);
+                        }
+                    }
+                } catch (e) {
+                    // Use built-in defaults if backend is offline
+                }
+            }
+
+            initVoxelboxterWorldgenUI();
+
+            const previewVbBtn = document.getElementById('preview-voxelboxter-btn');
+            if (previewVbBtn) {
+                previewVbBtn.addEventListener('click', async () => {
+                    const logBox = document.getElementById('voxelboxter-logs');
+                    const summaryEl = document.getElementById('vb-wg-preview-summary');
+                    const payload = readWorldGenPayload();
+                    logBox.innerHTML += `<br><span style="color:#39ff14;">[WORLDGEN] Previewing preset=${payload.preset} seed=${payload.seed}...</span>`;
+                    try {
+                        const res = await fetch(`${state.backend_url}/api/voxelboxter/worldgen/preview`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ worldgen: payload })
+                        });
+                        const data = await res.json();
+                        if (data.status === 'ok' && data.worldgen) {
+                            const wg = data.worldgen;
+                            const b = wg.betti_numbers || {};
+                            const msg = `Preset: ${wg.preset} | Seed: ${wg.seed} | Blocks: ${wg.block_count} (Bone ${wg.bone_blocks} / Flesh ${wg.flesh_blocks} / Veins ${wg.vein_blocks}) | Betti0=${b.betti_0} Betti1=${b.betti_1} | ${wg.generation_time_ms} ms`;
+                            if (summaryEl) summaryEl.innerText = msg;
+                            logBox.innerHTML += `<br><span style="color:#00ff41;">[PREVIEW OK] ${msg}</span>`;
+                        } else {
+                            logBox.innerHTML += `<br><span style="color:#ff4444;">[PREVIEW ERROR] ${data.message || data.error}</span>`;
+                        }
+                    } catch (err) {
+                        logBox.innerHTML += `<br><span style="color:#ff4444;">[PREVIEW FATAL] ${err.message}</span>`;
+                    }
+                    logBox.scrollTop = logBox.scrollHeight;
+                });
+            }
+
+            async function pollVoxelboxterStatusOnce() {
+                const logBox = document.getElementById('voxelboxter-logs');
+                try {
+                    const res = await fetch(`${state.backend_url}/api/voxelboxter/status`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.status === 'ok' && Array.isArray(data.logs) && data.logs.length > 0 && logBox) {
+                        const tail = data.logs.slice(-10).join('<br>');
+                        logBox.innerHTML = tail;
+                        logBox.scrollTop = logBox.scrollHeight;
+                    }
+                    if (!data.running && vbStatusPollTimer) {
+                        clearInterval(vbStatusPollTimer);
+                        vbStatusPollTimer = null;
+                    }
+                } catch (e) {
+                    // ignore transient poll errors
+                }
+            }
+
             const bootBtn = document.getElementById('boot-voxelboxter-btn');
             if (bootBtn) {
                 bootBtn.addEventListener('click', async () => {
                     const logBox = document.getElementById('voxelboxter-logs');
+                    const summaryEl = document.getElementById('vb-wg-preview-summary');
                     const originalText = bootBtn.innerText;
+                    const payload = readWorldGenPayload();
 
                     bootBtn.innerText = "[ BOOTING... ]";
                     bootBtn.style.pointerEvents = "none";
                     bootBtn.style.opacity = "0.7";
 
-                    logBox.innerHTML += `<br><span style="color:#ffaa00;">[CMD] Dispatching boot sequence to host machine...</span>`;
+                    logBox.innerHTML += `<br><span style="color:#ffaa00;">[CMD] Booting Voxelboxter with preset=${payload.preset}, seed=${payload.seed}...</span>`;
 
                     try {
                         const response = await fetch(`${state.backend_url}/api/voxelboxter/boot`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({})
+                            body: JSON.stringify({
+                                worldgen: payload,
+                                api_url: payload.api_url,
+                                headless: payload.headless,
+                                auto_play: payload.auto_play
+                            })
                         });
 
                         const data = await response.json();
 
                         if (data.status === 'ok') {
-                            logBox.innerHTML += `<br><span style="color:#00ff41;">[SUCCESS] ${data.message}</span>`;
+                            logBox.innerHTML += `<br><span style="color:#00ff41;">[SUCCESS] ${data.message} (PID: ${data.pid || 'n/a'})</span>`;
+                            if (data.worldgen && summaryEl) {
+                                const wg = data.worldgen;
+                                const b = wg.betti_numbers || {};
+                                summaryEl.innerText = `Booted: ${wg.preset} | Seed: ${wg.seed} | Blocks: ${wg.block_count} | Betti0=${b.betti_0} Betti1=${b.betti_1}`;
+                            }
+                            if (vbStatusPollTimer) clearInterval(vbStatusPollTimer);
+                            vbStatusPollTimer = setInterval(pollVoxelboxterStatusOnce, 2000);
                         } else {
                             logBox.innerHTML += `<br><span style="color:#ff4444;">[ERROR] ${data.message || data.error}</span>`;
                         }
@@ -7091,7 +7425,26 @@ Association: ${data.association_report || 'Entangled in Dyad Fossilizer'}`);
                         bootBtn.innerText = originalText;
                         bootBtn.style.pointerEvents = "auto";
                         bootBtn.style.opacity = "1";
-                    }, 2000);
+                    }, 1500);
+                });
+            }
+
+            const stopVbBtn = document.getElementById('stop-voxelboxter-btn');
+            if (stopVbBtn) {
+                stopVbBtn.addEventListener('click', async () => {
+                    const logBox = document.getElementById('voxelboxter-logs');
+                    try {
+                        const res = await fetch(`${state.backend_url}/api/voxelboxter/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+                        const data = await res.json();
+                        logBox.innerHTML += `<br><span style="color:#ffaa00;">[STOP] ${data.message || 'Stop signal dispatched.'}</span>`;
+                        if (vbStatusPollTimer) {
+                            clearInterval(vbStatusPollTimer);
+                            vbStatusPollTimer = null;
+                        }
+                    } catch (err) {
+                        logBox.innerHTML += `<br><span style="color:#ff4444;">[STOP ERROR] ${err.message}</span>`;
+                    }
+                    logBox.scrollTop = logBox.scrollHeight;
                 });
             }
 

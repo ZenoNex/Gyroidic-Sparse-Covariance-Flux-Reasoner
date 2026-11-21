@@ -1868,10 +1868,10 @@ def compute_null_self_relation_unfolding(
       2. Unconditioned First Cause via Undefined Self-Relation (0/0 = bot):
          Because an undefined self-relation is itself attributeless, it requires no prior
          cause ('what caused the cause?') to exist within Null.
-      3. Circular Unfolding into Time, 3D Space, and Consciousness:
+      3. Circular Unfolding into Time, 3D Space, and Mutual Phase Loop:
          - Time: 1D closed circular relational gradient around Null (phase progression).
          - Space: Non-overlapping 3D circular relational trajectories (Gyroid minimal surface).
-         - Consciousness: Mutual phase awareness between differentiated poles A <-> B along
+         - Mutual Phase Loop: Mutual phase coherence between differentiated poles A <-> B along
            a closed relational loop.
     """
     s_flat = state.detach().float().flatten()
@@ -1913,7 +1913,7 @@ def compute_null_self_relation_unfolding(
     else:
         min_path_separation = float(triplets.norm().item())
 
-    # 5. Consciousness Loop Closure (mutual phase coherence between relatum A and relatum B)
+    # 5. Mutual Phase Loop Closure (mutual phase coherence between relatum A and relatum B)
     phase_diff = angles
     mutual_awareness_coherence = float(torch.cos(phase_diff).abs().mean().item())
     closed_loop_actualized = bool(temporal_circular_gradient > 1e-5 and mutual_awareness_coherence > 0.1)
@@ -1927,7 +1927,7 @@ def compute_null_self_relation_unfolding(
         "circular_loop_winding": round(net_winding, 6),
         "spatial_3d_min_path_separation": round(min_path_separation, 6),
         "non_overlapping_3d_space": bool(min_path_separation >= 0.0),
-        "consciousness_loop_coherence": round(mutual_awareness_coherence, 6),
+        "mutual_phase_loop_coherence": round(mutual_awareness_coherence, 6),
         "closed_loop_actualized": closed_loop_actualized,
     }
 

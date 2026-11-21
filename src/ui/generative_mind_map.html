@@ -242,6 +242,19 @@
     </div>
 
     <script>
+        // Resolve backend API base (supports ?backend=... or same-origin)
+        const _urlParams = new URLSearchParams(window.location.search);
+        const API_BASE = (_urlParams.get("backend") || (window.location.protocol.startsWith("http") ? window.location.origin : "http://localhost:8000")).replace(/\/+$/, "");
+
+        function escapeHtml(str) {
+            return String(str == null ? "" : str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
         // DaemonAton Generative Radial Tree Separation Engine
         function daemonatonSeparation(a, b) {
             const baseSeparation = (a.parent === b.parent ? 4 : 6);
@@ -250,28 +263,38 @@
             return baseSeparation * depthFactor * outerNodeSpacing * Math.pow(2, a.depth);
         }
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const width = window.innerWidth || 1024;
+        const height = window.innerHeight || 768;
         const radius = Math.min(width, height) / 2;
+        const hasD3 = typeof window.d3 !== "undefined" && window.d3 !== null;
 
-        const svg = d3.select("#mindmap-container")
-            .append("svg")
-            .attr("viewBox", [-width / 2, -height / 2, width, height]);
+        let svg = null;
+        let g = null;
+        let zoom = null;
 
-        const g = svg.append("g");
+        if (hasD3) {
+            svg = d3.select("#mindmap-container")
+                .append("svg")
+                .attr("viewBox", [-width / 2, -height / 2, width, height]);
 
-        // Zoom Behavior
-        const zoom = d3.zoom()
-            .scaleExtent([0.15, 4.0])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
+            g = svg.append("g");
+
+            zoom = d3.zoom()
+                .scaleExtent([0.15, 4.0])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            document.getElementById("btn-reset-zoom").addEventListener("click", () => {
+                svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
             });
-
-        svg.call(zoom);
-
-        document.getElementById("btn-reset-zoom").addEventListener("click", () => {
-            svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
-        });
+        } else {
+            document.getElementById("btn-reset-zoom").addEventListener("click", () => {
+                if (currentTreeData) renderMindMap(currentTreeData);
+            });
+        }
 
         // Fallback Base Manifold Topology
         const defaultTopology = {
@@ -344,7 +367,69 @@
             ]
         };
 
+        function renderMindMapFallback(data) {
+            const container = document.getElementById("mindmap-container");
+            const ns = "http://www.w3.org/2000/svg";
+            container.innerHTML = "";
+            const svgEl = document.createElementNS(ns, "svg");
+            svgEl.setAttribute("viewBox", `${-width / 2} ${-height / 2} ${width} ${height}`);
+            const rootG = document.createElementNS(ns, "g");
+            svgEl.appendChild(rootG);
+
+            function drawNode(node, x, y, depth) {
+                const ng = document.createElementNS(ns, "g");
+                ng.setAttribute("class", "node");
+                ng.setAttribute("transform", `translate(${x},${y})`);
+                const c = document.createElementNS(ns, "circle");
+                c.setAttribute("r", depth === 0 ? "9" : "5");
+                ng.appendChild(c);
+                const t = document.createElementNS(ns, "text");
+                t.setAttribute("x", "10");
+                t.setAttribute("dy", "0.31em");
+                t.textContent = node.name || "Node";
+                ng.appendChild(t);
+                ng.addEventListener("click", () => inspectNode({ data: node, depth: depth, children: node.children || [] }));
+                rootG.appendChild(ng);
+            }
+
+            drawNode(data, 0, 0, 0);
+            const lvl1 = Array.isArray(data.children) ? data.children : [];
+            const r1 = Math.min(width, height) * 0.24;
+            const r2 = Math.min(width, height) * 0.40;
+            lvl1.forEach((child, i) => {
+                const a1 = (2 * Math.PI * i) / Math.max(1, lvl1.length) - Math.PI / 2;
+                const x1 = Math.cos(a1) * r1;
+                const y1 = Math.sin(a1) * r1;
+                const l1 = document.createElementNS(ns, "line");
+                l1.setAttribute("class", "link");
+                l1.setAttribute("x1", "0"); l1.setAttribute("y1", "0");
+                l1.setAttribute("x2", String(x1)); l1.setAttribute("y2", String(y1));
+                rootG.appendChild(l1);
+                drawNode(child, x1, y1, 1);
+
+                const lvl2 = Array.isArray(child.children) ? child.children : [];
+                lvl2.forEach((gc, j) => {
+                    const spread = (Math.PI / Math.max(3, lvl1.length)) * 0.9;
+                    const offset = lvl2.length > 1 ? ((j / (lvl2.length - 1)) - 0.5) * spread : 0;
+                    const a2 = a1 + offset;
+                    const x2 = Math.cos(a2) * r2;
+                    const y2 = Math.sin(a2) * r2;
+                    const l2 = document.createElementNS(ns, "line");
+                    l2.setAttribute("class", "link");
+                    l2.setAttribute("x1", String(x1)); l2.setAttribute("y1", String(y1));
+                    l2.setAttribute("x2", String(x2)); l2.setAttribute("y2", String(y2));
+                    rootG.appendChild(l2);
+                    drawNode(gc, x2, y2, 2);
+                });
+            });
+            container.appendChild(svgEl);
+        }
+
         function renderMindMap(data) {
+            if (!hasD3 || !g) {
+                renderMindMapFallback(data);
+                return;
+            }
             g.selectAll("*").remove();
 
             const treeLayout = d3.tree()
@@ -405,11 +490,11 @@
             let html = `
                 <div class="detail-row">
                     <span class="detail-key">Category:</span>
-                    <span class="detail-val">${d.data.category || 'General'}</span>
+                    <span class="detail-val">${escapeHtml(d.data.category || 'General')}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-key">Depth:</span>
-                    <span class="detail-val">${d.depth}</span>
+                    <span class="detail-val">${escapeHtml(d.depth)}</span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-key">Sub-Nodes:</span>
@@ -420,7 +505,7 @@
             if (d.data.details) {
                 html += `
                     <div style="margin-top: 0.6rem; color: #8ae99c; font-size: 0.8rem; border-top: 1px solid rgba(57, 255, 20, 0.2); padding-top: 0.5rem;">
-                        ${d.data.details}
+                        ${escapeHtml(d.data.details)}
                     </div>
                 `;
             }
@@ -441,7 +526,7 @@
                     node: nodeData.name || '',
                     category: nodeData.category || '',
                 });
-                const response = await fetch(`/api/mindmap-expand?${params.toString()}`);
+                const response = await fetch(`${API_BASE}/api/mindmap-expand?${params.toString()}`);
                 if (response.ok) {
                     const expanded = await response.json();
                     if (currentTreeData) {
@@ -471,7 +556,7 @@
             layerHistory.length = 0;
             document.getElementById("btn-back").style.display = "none";
             try {
-                const response = await fetch('/api/mindmap-data');
+                const response = await fetch(`${API_BASE}/api/mindmap-data`);
                 if (response.ok) {
                     const liveData = await response.json();
                     currentTreeData = liveData;

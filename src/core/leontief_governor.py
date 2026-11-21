@@ -150,11 +150,22 @@ class LeontiefGovernor(nn.Module):
         I = torch.eye(self.state_dim, device=A_bar.device)
 
         if is_productive:
-            # Direct solve via pivoted Gaussian elimination (LU): (I - A) L = I
-            try:
-                L = torch.linalg.solve(I - A_bar, I)
-            except Exception:
-                # Singular or near-singular: fall back to Neumann
+            # Gate O(d^3) direct LU solve on ALGORITHMIC compute affordance
+            algo_ok = True
+            if self.state_dim > 32:
+                try:
+                    from src.core.hardware_monitor import has_compute_affordance, ComputeAffordanceType
+                    algo_ok = bool(has_compute_affordance(ComputeAffordanceType.ALGORITHMIC))
+                except Exception:
+                    algo_ok = True
+            if algo_ok:
+                # Direct solve via pivoted Gaussian elimination (LU): (I - A) L = I
+                try:
+                    L = torch.linalg.solve(I - A_bar, I)
+                except Exception:
+                    # Singular or near-singular: fall back to Neumann
+                    L = self._neumann_series(A_bar, I)
+            else:
                 L = self._neumann_series(A_bar, I)
         else:
             # Neumann series truncation (the economy is not productive,
@@ -174,21 +185,36 @@ class LeontiefGovernor(nn.Module):
 
         Each term represents one additional level of cascading dependency.
         The residual A^{K+1} is treated as unresolvable "structural debt."
-        Delegates to SiliconSovereigntyEngine (PyOpenCL Queue A) for dim >= 8.
+        Gated by ALGORITHMIC & GPU_SOVEREIGN compute affordances.
         """
-        if not A.requires_grad and A.dim() == 2 and A.shape[0] >= 8:
+        eff_terms = self.neumann_terms
+        gpu_ok = False
+        try:
+            from src.core.hardware_monitor import (
+                ComputeAffordanceType,
+                get_affordance_budget,
+                should_offload_gpu_sovereign,
+            )
+            eff_terms, _ = get_affordance_budget(
+                ComputeAffordanceType.ALGORITHMIC, self.neumann_terms, min_steps=2
+            )
+            gpu_ok, _ = should_offload_gpu_sovereign(dim=A.shape[0], min_dim=8)
+        except Exception:
+            gpu_ok = A.shape[0] >= 8
+
+        if gpu_ok and not A.requires_grad and A.dim() == 2:
             try:
                 from src.core.pyopencl_sovereignty import get_sovereignty_engine
                 engine = get_sovereignty_engine()
                 if engine is not None and engine.is_initialized:
-                    return engine.compute_leontief_neumann_series(A, num_terms=self.neumann_terms)
+                    return engine.compute_leontief_neumann_series(A, num_terms=eff_terms)
             except Exception:
                 pass
 
         L = I.clone()
         A_power = I.clone()
 
-        for k in range(self.neumann_terms):
+        for k in range(eff_terms):
             A_power = A_power @ A
             L = L + A_power
 

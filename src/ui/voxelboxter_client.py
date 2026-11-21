@@ -10,8 +10,11 @@ Author: William Matthew Bryant
 Date: August 2026
 """
 
+import os
 import sys
+import json
 import time
+import argparse
 import logging
 import threading
 import requests
@@ -21,7 +24,7 @@ try:
     import pybevy
     from pybevy import App, DefaultPlugins, Commands, Res, ResMut, Query, Transform, Vec3, Color
 except ImportError:
-    logging.warning("PyBevy is not installed or failed to load. The client requires Python 3.12+.")
+    logging.warning("PyBevy is not installed or failed to load. Running in headless simulation fallback mode.")
     pybevy = None
 
 import torch
@@ -34,7 +37,8 @@ from src.core.jspace_pca_mapper import JSpacePCAMapper
 from src.ui.voxelboxter_simulation import (
     StructuralGraph, RigidBody, AddonRoutine, BSplineCompiledMod, 
     BooleanXORLayer, Role, PermissionsManager, InventoryComponent,
-    AirBreathingBattery, VehicleEngine, EnvironmentalAtmosphere
+    AirBreathingBattery, VehicleEngine, EnvironmentalAtmosphere,
+    WorldGenConfig, WORLDGEN_PRESETS, VoxelboxterEngine
 )
 
 try:
@@ -42,17 +46,55 @@ try:
 except ImportError:
     PhysicalNodeEditor = None
 
-API_URL = "http://localhost:1337"
+
+def resolve_api_url(explicit_url: str = None) -> str:
+    """Resolve the active Diegetic/Hybrid backend URL before launching telemetry."""
+    if explicit_url:
+        return str(explicit_url).rstrip("/")
+    env_url = os.environ.get("VOXELBOXTER_API_URL") or os.environ.get("MAIN_BACKEND_URL")
+    if env_url:
+        return str(env_url).rstrip("/")
+    for candidate in ("http://localhost:8000", "http://localhost:1337"):
+        try:
+            res = requests.get(f"{candidate}/ping", timeout=0.6)
+            if res.status_code == 200:
+                return candidate
+        except Exception:
+            continue
+    return "http://localhost:8000"
+
+
+API_URL = os.environ.get("VOXELBOXTER_API_URL") or os.environ.get("MAIN_BACKEND_URL") or "http://localhost:8000"
+
+
+class BootStage(Enum):
+    UNINITIALIZED = "UNINITIALIZED"
+    HANDSHAKE = "HANDSHAKE"
+    SILICON_READY = "SILICON_READY"
+    ENGINE_READY = "ENGINE_READY"
+    WORLDGEN_COMPLETE = "WORLDGEN_COMPLETE"
+    RUNNING = "RUNNING"
+
 
 class EngineMode(Enum):
     CREATION = auto()  # Admin/Creative mode: edit addon routines freely
     PLAY = auto()      # Survival/Physics mode: lock routines, apply physics
 
 class PatchStateResource:
-    """ECS Resource holding the simulation graph, roles, and reasoner telemetry."""
-    def __init__(self):
+    """ECS Resource holding the simulation graph, roles, worldgen state, and reasoner telemetry."""
+    def __init__(self, api_url: str = None, worldgen_config: dict = None, lightweight: bool = False):
         self.graph = StructuralGraph()
         self.routine = AddonRoutine() # The layered blueprint
+        self.mesh_dirty = False
+        self.lightweight = bool(lightweight)
+        self.api_url = (api_url or API_URL).rstrip("/")
+        self.boot_stage = BootStage.UNINITIALIZED
+        self.boot_report = {}
+        self.stop_event = threading.Event()
+        self.engine = None
+        self.silicon_ready = False
+        self.worldgen_config = WorldGenConfig.from_dict(worldgen_config)
+        self.worldgen_summary = None
         
         self.mode = EngineMode.CREATION
         self.permissions = PermissionsManager()
@@ -96,11 +138,16 @@ class PatchStateResource:
         # Silicon Sovereignty Engine for PyOpenCL Acceleration
         try:
             from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-            self.silicon_sovereignty = SiliconSovereigntyEngine(use_gpu=True)
-            logging.info("Silicon Sovereignty Engine (PyOpenCL) initialized for Voxelboxter Client.")
-        except ImportError:
+            self.silicon_sovereignty = SiliconSovereigntyEngine(use_gpu=(not self.lightweight))
+            self.silicon_ready = bool(getattr(self.silicon_sovereignty, "ctx", None) is not None)
+            logging.info(
+                "Silicon Sovereignty Engine (PyOpenCL) initialized for Voxelboxter Client (gpu_ready=%s).",
+                self.silicon_ready,
+            )
+        except Exception as e:
             self.silicon_sovereignty = None
-            logging.warning("Silicon Sovereignty Engine not available. Running CPU Mock.")
+            self.silicon_ready = False
+            logging.warning("Silicon Sovereignty Engine unavailable (%s). Running CPU fallback.", e)
 
         # In-Game Configuration GUI & Advanced Cleanroom Extensions
         from src.environment.cleanroom_advanced_extensions import (
@@ -210,6 +257,75 @@ class PatchStateResource:
             external_pressure=external_pressure,
         )
 
+    def boot_sequence(self, worldgen_config: dict = None, probe_backend: bool = True) -> dict:
+        """
+        Ordered, race-free Voxelboxter booter sequence:
+          1. HANDSHAKE: verify backend API reachability (non-blocking short probe).
+          2. SILICON_READY: verify PyOpenCL SiliconSovereigntyEngine / CPU fallback.
+          3. ENGINE_READY: eagerly initialize VoxelboxterEngine BEFORE ECS/telemetry loops.
+          4. WORLDGEN_COMPLETE: run selected WorldGenConfig into StructuralGraph & PointerlessOctree.
+          5. RUNNING: unlock telemetry daemon and ECS render/simulation ticks.
+        """
+        t0 = time.perf_counter()
+        self.boot_stage = BootStage.HANDSHAKE
+        backend_reachable = False
+        if probe_backend:
+            for probe_path in ("/api/status", "/ping"):
+                try:
+                    resp = requests.get(f"{self.api_url}{probe_path}", timeout=1.2)
+                    if resp.status_code == 200:
+                        backend_reachable = True
+                        break
+                except Exception:
+                    continue
+
+        self.boot_stage = BootStage.SILICON_READY
+        self.silicon_ready = bool(
+            self.silicon_sovereignty is not None
+            and getattr(self.silicon_sovereignty, "ctx", None) is not None
+        )
+
+        self.boot_stage = BootStage.ENGINE_READY
+        if self.engine is None:
+            self.engine = VoxelboxterEngine(device="cpu", lightweight=self.lightweight)
+            if self.silicon_sovereignty is not None and getattr(self.engine, "silicon_sovereignty", None) is None:
+                self.engine.silicon_sovereignty = self.silicon_sovereignty
+
+        cfg = WorldGenConfig.from_dict(worldgen_config) if worldgen_config is not None else self.worldgen_config
+        self.worldgen_config = cfg
+        with self.lock:
+            summary = self.engine.generate_world(cfg)
+            self.worldgen_summary = summary
+            self.graph = self.engine.constructs["world_terrain"]
+            self.terrain_octree = self.engine.terrain_octree
+            self.graph.dirty = False
+            self.mesh_dirty = True
+
+        self.boot_stage = BootStage.WORLDGEN_COMPLETE
+        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+        self.boot_report = {
+            "status": "ok",
+            "api_url": self.api_url,
+            "backend_reachable": backend_reachable,
+            "silicon_ready": self.silicon_ready,
+            "engine_ready": self.engine is not None,
+            "pybevy_available": pybevy is not None,
+            "worldgen": summary,
+            "boot_time_ms": elapsed_ms,
+        }
+        self.boot_stage = BootStage.RUNNING
+        logging.info(
+            "[Voxelboxter Boot] Stage=%s | preset=%s seed=%s blocks=%s silicon=%s backend=%s (%.1f ms)",
+            self.boot_stage.value,
+            cfg.preset,
+            cfg.seed,
+            summary.get("block_count", 0),
+            self.silicon_ready,
+            backend_reachable,
+            elapsed_ms,
+        )
+        return self.boot_report
+
     def update_ingame_options_gui(self, options: dict) -> dict:
         """In-game options config GUI for live tuning of wind, flight, and damage."""
         if "wind_sensitivity" in options:
@@ -229,10 +345,13 @@ class PatchStateResource:
         }
 
 def fetch_telemetry_loop(state: PatchStateResource):
-    """Background thread to poll the Diegetic Engine for Freenet telemetry."""
-    while True:
+    """Background thread to poll the Diegetic/Hybrid Engine for telemetry after boot completes."""
+    while not state.stop_event.is_set():
+        if state.boot_stage != BootStage.RUNNING:
+            state.stop_event.wait(0.2)
+            continue
         try:
-            status_res = requests.get(f"{API_URL}/api/status", timeout=2)
+            status_res = requests.get(f"{state.api_url}/api/status", timeout=2)
             if status_res.status_code == 200:
                 s_data = status_res.json()
                 with state.lock:
@@ -246,13 +365,14 @@ def fetch_telemetry_loop(state: PatchStateResource):
                                 new_layer = BSplineCompiledMod(f"EnergySweep_{x_end}", latent_dim=3)
                                 state.routine.add_layer(new_layer)
                                 state.graph.dirty = True # Force rebuild
+                                state.mesh_dirty = True
                     else:
                         state.fingerprint_energy *= 0.95 # Decay if absent
                         
             state.last_update = time.time()
         except requests.exceptions.RequestException:
             pass # Engine might be offline
-        time.sleep(1.0)
+        state.stop_event.wait(1.0)
 
 def switch_game_mode(state: PatchStateResource, target_mode: EngineMode):
     """Handles the transition between Creation and Play."""
@@ -307,35 +427,37 @@ def setup_scene(commands: 'Commands'):
 def simulate_engine(state: 'ResMut<PatchStateResource>', commands: 'Commands'):
     """
     ECS System: Processes the Dual Engine logic.
+    Uses separate graph.dirty and mesh_dirty flags so rebuilding the graph
+    does not clobber downstream mesh regeneration in render_dirty_chunks.
     """
     with state.lock:
         if state.mode == EngineMode.CREATION:
-            # Rebuild graph non-destructively from the addon layer stack
+            # Rebuild graph non-destructively from the addon layer stack when addon layers exist
             if state.graph.dirty:
-                logging.info(f"[Creation Mode] Rebuilding graph from {len(state.routine.layers)} layers...")
-                state.graph = state.routine.generate_graph()
+                if state.routine.layers:
+                    logging.info(f"[Creation Mode] Rebuilding graph from {len(state.routine.layers)} layers...")
+                    state.graph = state.routine.generate_graph()
                 state.graph.dirty = False
+                state.mesh_dirty = True
                 
         elif state.mode == EngineMode.PLAY:
             # Simulate physics / RigidBodies on the concrete graph
-            # Damage simulation (fracturing)
             if state.graph.dirty:
                 islands = state.graph.find_disconnected_components()
                 if len(islands) > 1:
                     logging.warning(f"[Play Mode] Construct fractured into {len(islands)} pieces! Spawning debris RigidBodies.")
                 state.graph.dirty = False
+                state.mesh_dirty = True
 
 def render_dirty_chunks(state: 'ResMut<PatchStateResource>'):
     """
-    ECS System: Detects dirty regions in the StructuralGraph and 
+    ECS System: Detects dirty mesh regions in the StructuralGraph and 
     regenerates PyBevy meshes using PyOpenCL zero-copy when available.
     """
     with state.lock:
-        if state.graph.dirty:
-            # Check if engine exists, else initialize a mock instance just for the hardware hook
-            if not hasattr(state, 'engine'):
-                from src.ui.voxelboxter_simulation import VoxelboxterEngine
-                state.engine = VoxelboxterEngine()
+        if state.mesh_dirty or state.graph.dirty:
+            if state.engine is None:
+                state.engine = VoxelboxterEngine(device="cpu", lightweight=state.lightweight)
             
             # Fetch the fractal meta state from the orchestrator if available
             fractal_state = None
@@ -348,6 +470,7 @@ def render_dirty_chunks(state: 'ResMut<PatchStateResource>'):
             state.engine._deform_terrain_mesh_pybevy(fractal_meta_state=fractal_state)
             
             state.graph.dirty = False
+            state.mesh_dirty = False
 
 def update_abeb_intake_system(
     query_batteries: 'Query[(AirBreathingBattery, Transform)]',
@@ -529,26 +652,75 @@ def monitor_chat_system(state: 'ResMut<PatchStateResource>'):
             elif subv_val > 0.01:
                 logging.info(f"[Voxelblockter] Constructive subversion allowed (Tox: {tox_val:.2f}, Subv: {subv_val:.2f}).")
 
-def run_client():
-    if not pybevy:
-        return
-        
+def _load_worldgen_from_args_and_env(args: argparse.Namespace) -> dict:
+    cfg: dict = {}
+    raw_json = getattr(args, "worldgen_json", None) or os.environ.get("VOXELBOXTER_WORLDGEN_JSON")
+    if raw_json:
+        try:
+            parsed = json.loads(raw_json)
+            if isinstance(parsed, dict):
+                cfg.update(parsed)
+        except Exception as exc:
+            logging.warning("Ignoring invalid worldgen JSON: %s", exc)
+    preset = getattr(args, "preset", None) or os.environ.get("VOXELBOXTER_WORLDGEN_PRESET")
+    if preset:
+        cfg["preset"] = preset
+    seed = getattr(args, "seed", None)
+    if seed is None:
+        seed = os.environ.get("VOXELBOXTER_WORLDGEN_SEED")
+    if seed is not None:
+        cfg["seed"] = seed
+    return cfg
+
+
+def run_client(
+    worldgen_config: dict = None,
+    api_url: str = None,
+    auto_play: bool = False,
+    headless: bool = False,
+    headless_ticks: int = 3,
+    lightweight: bool = False,
+) -> dict:
+    """
+    Ordered Voxelboxter Client entrypoint:
+    1. Resolves backend API URL.
+    2. Initializes PatchStateResource and runs staged boot_sequence (handshake -> silicon -> engine -> worldgen).
+    3. Starts telemetry daemon ONLY after boot_sequence reaches RUNNING.
+    4. Runs PyBevy app if available and not headless; otherwise runs bounded headless simulation ticks cleanly.
+    """
+    resolved_api = resolve_api_url(api_url)
+    state = PatchStateResource(
+        api_url=resolved_api,
+        worldgen_config=worldgen_config,
+        lightweight=lightweight,
+    )
+    boot_report = state.boot_sequence(worldgen_config=worldgen_config, probe_backend=True)
+
+    if not pybevy or headless:
+        logging.info(
+            "[Voxelboxter] Running in headless simulation mode (pybevy_available=%s, ticks=%d).",
+            pybevy is not None,
+            headless_ticks,
+        )
+        for _ in range(max(1, int(headless_ticks))):
+            if state.engine is not None:
+                state.engine.tick(0.016)
+        state.stop_event.set()
+        return boot_report
+
     app = pybevy.App()
     app.insert_resource(pybevy.WindowDescriptor(
-        title="Voxelboxter - Dual Engine Sandbox",
+        title=f"Voxelboxter - {state.worldgen_config.preset} (seed {state.worldgen_config.seed})",
         width=1280,
         height=720,
         vsync=True
     ))
     
     app.add_plugins(pybevy.DefaultPlugins)
-    
-    # Initialize our ECS Resource
-    state = PatchStateResource()
     app.insert_resource(state)
     
-    # Start the async networking daemon to sync with DiegeticPhysicsEngine
-    daemon = threading.Thread(target=fetch_telemetry_loop, args=(state,), daemon=True)
+    # Start the async networking daemon AFTER boot_sequence completes
+    daemon = threading.Thread(target=fetch_telemetry_loop, args=(state,), daemon=True, name="VoxelboxterTelemetry")
     daemon.start()
     
     # Attach Systems
@@ -559,16 +731,45 @@ def run_client():
     app.add_system(update_abeb_intake_system)
     app.add_system(process_abeb_power_cycle)
     
-    # Simulate a user mode switch a few seconds in
-    def delayed_mode_switch():
-        time.sleep(5)
-        switch_game_mode(state, EngineMode.PLAY)
+    # Opt-in delayed PLAY mode switch (never forced by default)
+    if auto_play:
+        def delayed_mode_switch():
+            if not state.stop_event.wait(5.0):
+                switch_game_mode(state, EngineMode.PLAY)
+        threading.Thread(target=delayed_mode_switch, daemon=True, name="VoxelboxterAutoPlay").start()
     
-    threading.Thread(target=delayed_mode_switch, daemon=True).start()
-    
-    logging.info("Launching Voxelboxter Dual Engine...")
-    app.run()
+    logging.info("Launching Voxelboxter Dual Engine (preset=%s, seed=%s)...", state.worldgen_config.preset, state.worldgen_config.seed)
+    try:
+        app.run()
+    finally:
+        state.stop_event.set()
+    return boot_report
+
+
+def _parse_cli_args(argv=None):
+    parser = argparse.ArgumentParser(description="Voxelboxter Dual Engine Client")
+    parser.add_argument("--preset", type=str, default=None, help="Worldgen preset ID")
+    parser.add_argument("--seed", type=str, default=None, help="Worldgen seed")
+    parser.add_argument("--worldgen-json", type=str, default=None, help="JSON serialized worldgen config")
+    parser.add_argument("--api-url", type=str, default=None, help="Backend API base URL")
+    parser.add_argument("--auto-play", action="store_true", help="Automatically switch to PLAY mode after 5s")
+    parser.add_argument("--headless", action="store_true", help="Run headless simulation boot without PyBevy window")
+    parser.add_argument("--headless-ticks", type=int, default=3, help="Number of ticks in headless fallback mode")
+    parser.add_argument("--lightweight", action="store_true", help="Lightweight initialization")
+    return parser.parse_args(argv)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-    run_client()
+    cli_args = _parse_cli_args()
+    wg_cfg = _load_worldgen_from_args_and_env(cli_args)
+    env_headless = os.environ.get("VOXELBOXTER_HEADLESS", "0").lower() in ("1", "true", "yes")
+    env_auto_play = os.environ.get("VOXELBOXTER_AUTO_PLAY", "0").lower() in ("1", "true", "yes")
+    run_client(
+        worldgen_config=wg_cfg,
+        api_url=cli_args.api_url,
+        auto_play=bool(cli_args.auto_play or env_auto_play),
+        headless=bool(cli_args.headless or env_headless),
+        headless_ticks=cli_args.headless_ticks,
+        lightweight=bool(cli_args.lightweight),
+    )

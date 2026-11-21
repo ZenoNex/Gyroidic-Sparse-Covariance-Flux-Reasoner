@@ -125,12 +125,15 @@ class InfluenceAttractor(nn.Module):
         """
         if not (concept_vector.requires_grad or self.chiral_vectors.requires_grad):
             try:
-                from src.core.pyopencl_sovereignty import get_sovereignty_engine
-                engine = get_sovereignty_engine()
-                if engine is not None:
-                    return engine.compute_chiral_gating_and_pat(
-                        concept_vector, self.chiral_vectors, clamp_val=10.0
-                    )
+                from src.core.hardware_monitor import should_offload_gpu_sovereign
+                gpu_ok, _ = should_offload_gpu_sovereign(dim=concept_vector.shape[-1], min_dim=4)
+                if gpu_ok:
+                    from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                    engine = get_sovereignty_engine()
+                    if engine is not None:
+                        return engine.compute_chiral_gating_and_pat(
+                            concept_vector, self.chiral_vectors, clamp_val=10.0
+                        )
             except Exception:
                 pass
 

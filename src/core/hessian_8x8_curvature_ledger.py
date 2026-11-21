@@ -167,14 +167,24 @@ class Hessian8x8CurvatureLedger(nn.Module):
         if grad is None:
             grad = grad_fn(state_tensor)
 
+        # Affordance-governed salient perturbation budget (ALGORITHMIC + THERMAL)
+        k_salient = 8
+        try:
+            from src.core.hardware_monitor import ComputeAffordanceType, get_affordance_budget
+            k_salient, _ = get_affordance_budget(ComputeAffordanceType.ALGORITHMIC, 8, min_steps=2)
+            k_therm, _ = get_affordance_budget(ComputeAffordanceType.THERMAL, k_salient, min_steps=2)
+            k_salient = min(k_salient, k_therm)
+        except Exception:
+            k_salient = 8
+
         active_indices = self.extract_salient_indices(state_tensor, grad, k=8)
         
-        # Gather forward and backward gradient responses along 8 salient directions
+        # Gather forward and backward gradient responses along salient directions
         fwd_grads = torch.zeros((8, 8), dtype=torch.float32, device=device)
         bwd_grads = torch.zeros((8, 8), dtype=torch.float32, device=device)
         grad_sub = grad.reshape(-1)[active_indices].float()
 
-        for idx_pos, coord_idx in enumerate(active_indices):
+        for idx_pos, coord_idx in enumerate(active_indices[:k_salient]):
             p_plus = state_tensor.clone()
             if p_plus.dim() == 1:
                 p_plus[coord_idx] += self.delta_h

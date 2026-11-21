@@ -573,8 +573,260 @@ def test_wheel_algebra_null_self_relation_and_vanellope_admr_shear():
     assert len(blocks) >= 1 and blocks[0][0] == 0 and blocks[-1][1] == 12
 
 
+def test_codec_crt_bridge_and_predictive_arithmetic_compression():
+    from src.core.huffman_entropy import HuffmanEntropyCodec
+    from src.codec.gyroidic_codec import GyroidicCodec, CodecConfig
+    from src.core.orchestrator import UniversalOrchestrator
+
+    # 1. Context-Adaptive Predictive Arithmetic Coding (3Blue1Brown Compression-is-Intelligence)
+    skewed_stream = [0] * 40 + [1] * 8 + [2] * 4 + [0] * 30 + [3] * 2
+    packed, meta = HuffmanEntropyCodec.encode_predictive_arithmetic(
+        skewed_stream, alphabet=[0, 1, 2, 3], online_adapt=True
+    )
+    decoded = HuffmanEntropyCodec.decode_predictive_arithmetic(packed, meta)
+    assert decoded == skewed_stream
+    assert meta["online_adaptation_gain_bits"] > 0.0
+    assert meta["bits_per_symbol"] < 2.0  # Strictly beats uniform 2 bits/symbol
+
+    # 2. GyroidicCodec + residue stream compression
+    codec = GyroidicCodec(CodecConfig(K=4, n=4, gyroid_resolution=8, device="cpu"))
+    enc = codec.encode("gyroidic predictive compression test", image=torch.randn(16))
+    comp = codec.compress_residue_stream(enc, quant_levels=16, use_predictive_arithmetic=True)
+    assert comp["roundtrip_exact"] is True
+    assert comp["huffman_bits"] > 0 and comp["arithmetic_bits"] > 0
+
+    # 3. UniversalOrchestrator CodecCRTBridge + Conformal Log-Polar + ImageExtension reconnection
+    orch = UniversalOrchestrator(dim=16, device="cpu")
+    assert orch.codec_crt_bridge is not None
+    bridge_report = orch.audit_codec_and_compression_bridge(torch.randn(16), text="orchestrator_bridge")
+    assert bridge_report.get("codec_crt_bridge_active") is True
+    assert bridge_report.get("conformal_log_polar_norm", 0.0) >= 0.0
+    assert bridge_report.get("structural_entanglement_net_norm", 0.0) >= 0.0
+    assert bridge_report.get("conjugate_color_transport_active") is True
+    assert bridge_report["predictive_compression"]["roundtrip_exact"] is True
 
 
+def test_tutte_matching_bft_non_dual_economy_and_dmet_qsci():
+    from src.core.admr_solver import PolynomialADMRSolver
+    from src.core.polynomial_coprime import PolynomialCoprimeConfig
+    from src.core.non_dual_coin import CerumenPotWallet, ChernSimonsValidator, EconomicAbortException
+    from src.core.orchestrator import UniversalOrchestrator
+
+    # 1. Tutte's Theorem odd-component matching audit (Dead Logic rejection)
+    poly_cfg = PolynomialCoprimeConfig(k=4, degree=4, device="cpu")
+    solver = PolynomialADMRSolver(poly_config=poly_cfg, state_dim=8)
+
+    # K_4 (complete graph on 4 vertices) has a perfect matching -> tutte_satisfied=True
+    k4 = torch.ones(4, 4) - torch.eye(4)
+    res_k4 = solver.audit_tutte_matching(k4, threshold=0.5)
+    assert res_k4["tutte_satisfied"] is True
+    assert res_k4["dead_logic_detected"] is False
+
+    # Star graph K_{1,3}: removing center vertex 0 leaves 3 odd components > |U|=1 -> Dead Logic
+    star = torch.zeros(4, 4)
+    star[0, 1:] = 1.0
+    star[1:, 0] = 1.0
+    res_star = solver.audit_tutte_matching(star, threshold=0.5)
+    assert res_star["tutte_satisfied"] is False
+    assert res_star["dead_logic_detected"] is True
+    assert res_star["max_tutte_deficit"] >= 2
+
+    # 2. Non-Dual Coin: CerumenPotWallet slogdet volume + Mohr-Coulomb EconomicAbortException
+    w1 = CerumenPotWallet(dim=8, device="cpu")
+    w2 = CerumenPotWallet(dim=8, device="cpu")
+    assert w1.get_volume() > 0.0
+    with torch.no_grad():
+        w2.state.mul_(50.0)  # Extreme parasitic extraction shear
+    validator = ChernSimonsValidator(yield_criteria=2.5)
+    aborted = False
+    try:
+        validator.validate_fusion(w1, w2)
+    except EconomicAbortException:
+        aborted = True
+    assert aborted is True
+
+    # 3. UniversalOrchestrator BFT Quorum, Non-Dual Economy, Bezout Supremacy, and QSCI
+    orch = UniversalOrchestrator(dim=16, device="cpu")
+    assert orch.quantum_reasoning is not None
+    cycle = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.5, 1.0, 0.2]]
+    econ = orch.audit_bft_and_non_dual_economy(torch.randn(16), cycle_coords=cycle, num_peers=4, max_byzantine_faults=1)
+    assert econ["bft_quorum_satisfied"] is True
+    assert econ["sys1_wallet_slogdet_volume"] > 0.0
+    assert econ["tripsodic_global_volume"] >= 1000.0
+    assert econ.get("carnot_mobius_active") is True
+    assert "tutte_matching" in econ
+    assert "bezout_condition_number" in econ
+    if orch.bonfire_ring is not None:
+        assert econ.get("non_euler_shamir_closed") is True
+
+
+def test_voxelboxter_worldgen_presets_boot_and_mindmap_ui_contracts():
+    from src.ui.voxelboxter_simulation import (
+        WORLDGEN_PRESETS,
+        list_worldgen_presets,
+        WorldGenConfig,
+        VoxelboxterEngine,
+    )
+    from src.ui.voxelboxter_client import PatchStateResource, BootStage
+
+    # 1. Selectable World Generation System: all 5 presets + deterministic seeded generation
+    presets = list_worldgen_presets()
+    expected_presets = {
+        "gyroidic_minimal_surface",
+        "mangosteen_fl0w_life",
+        "non_dual_cerumen_ecology",
+        "dmet_qsci_rbm_lattice",
+        "conformal_escher_logpolar",
+    }
+    assert expected_presets.issubset(set(WORLDGEN_PRESETS.keys()))
+    assert len(presets) >= 5
+
+    eng = VoxelboxterEngine(device="cpu", lightweight=True)
+    for preset_id in sorted(expected_presets):
+        cfg = WorldGenConfig.from_dict({"preset": preset_id, "seed": 4242, "world_radius": 4})
+        summary = eng.generate_world(cfg)
+        assert summary.get("preset") == preset_id
+        assert summary.get("seed") == 4242
+        assert summary.get("block_count", 0) > 0
+
+    # Deterministic repeatability check on same preset & seed
+    s1 = eng.generate_world(WorldGenConfig.from_dict({"preset": "mangosteen_fl0w_life", "seed": 1337, "world_radius": 4}))
+    s2 = eng.generate_world(WorldGenConfig.from_dict({"preset": "mangosteen_fl0w_life", "seed": 1337, "world_radius": 4}))
+    assert s1.get("block_count") == s2.get("block_count")
+
+    # 2. Race-free Voxelboxter boot_sequence (offline/lightweight)
+    patch_res = PatchStateResource(lightweight=True)
+    assert patch_res.boot_stage == BootStage.UNINITIALIZED
+    boot_report = patch_res.boot_sequence(
+        worldgen_config={"preset": "gyroidic_minimal_surface", "seed": 2026, "world_radius": 4},
+        probe_backend=False,
+    )
+    assert boot_report["status"] == "ok"
+    assert boot_report["engine_ready"] is True
+    assert patch_res.boot_stage in (BootStage.WORLDGEN_COMPLETE, BootStage.RUNNING)
+    assert patch_res.mesh_dirty is True
+
+    # 3. Mind Map overlay & Voxelboxter preset selector HTML contracts
+    term_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'diegetic_terminal.html')
+    with open(term_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    assert "btn-mindmap-toggle" in html
+    assert "toggleMindMapOverlay" in html
+    assert "mindmap-overlay" in html
+    assert "gyroidic_minimal_surface" in html
+    assert "mangosteen_fl0w_life" in html
+
+
+def test_compute_affordance_budget_and_cross_class_gating():
+    """Verify typed Compute Affordance scaling and thermal-runaway degradation across classes."""
+    import torch
+    from src.core.hardware_monitor import (
+        HardwareMonitor,
+        ComputeAffordanceType,
+        TypedComputeAffordance,
+        get_affordance_budget,
+        should_offload_gpu_sovereign,
+    )
+    from src.core.leontief_governor import LeontiefGovernor
+    from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
+    from src.topology.persistence_obstruction import ResidueFiltration
+
+    steps, aff = get_affordance_budget(ComputeAffordanceType.ALGORITHMIC, base_steps=12, min_steps=2)
+    assert isinstance(aff, TypedComputeAffordance)
+    assert aff.affordance_type == ComputeAffordanceType.ALGORITHMIC
+    assert 2 <= steps <= 12
+
+    gpu_ok, gpu_aff = should_offload_gpu_sovereign(dim=16, min_dim=8)
+    assert isinstance(gpu_aff, TypedComputeAffordance)
+    assert gpu_aff.affordance_type == ComputeAffordanceType.GPU_SOVEREIGN
+    assert isinstance(gpu_ok, bool)
+
+    # Verify thermal_runaway degrades step budget to min_steps and disables GPU offload cleanly
+    hm = HardwareMonitor.get_instance()
+    prev_runaway = hm.thermal_runaway
+    try:
+        hm.thermal_runaway = True
+        throttled_steps, _ = get_affordance_budget(ComputeAffordanceType.ALGORITHMIC, base_steps=12, min_steps=2)
+        assert throttled_steps == 2
+        throttled_gpu, _ = should_offload_gpu_sovereign(dim=32, min_dim=8)
+        assert throttled_gpu is False
+
+        # Classes continue to run cleanly under thermal throttling (no crash, bounded work)
+        lg = LeontiefGovernor(state_dim=12, neumann_terms=10)
+        L_out, rho, _ = lg.compute_leontief_inverse(torch.eye(12).unsqueeze(0) * 0.25)
+        assert L_out.shape == (12, 12) and torch.isfinite(L_out).all()
+
+        hl = Hessian8x8CurvatureLedger()
+        h_res = hl.compute_boundary_curvature_ledger(torch.randn(16))
+        assert h_res.hessian_8x8.shape == (8, 8)
+
+        pts = torch.randn(8, 4)
+        rf = ResidueFiltration(pts, pts)
+        cpx = rf.build_simplicial_complex(pts, max_dimension=2)
+        assert 0 in cpx and 1 in cpx
+    finally:
+        hm.thermal_runaway = prev_runaway
+
+
+def test_spliced_prequential_mdl_optimization_and_models():
+    """Verify spliced prequential MDL / predictive arithmetic coupling across optimization and models."""
+    import torch
+    from src.optimization.ricci_flow_optimizer import RicciFlowOptimizer
+    from src.optimization.muon_hybrid import MuonRicciHybridOptimizer
+    from src.models.resonance_cavity import HeritableTrustVault
+    from src.models.modular_embeddings import CRTModularEmbeddingTable
+    from src.models.polynomial_embeddings import PolynomialFunctionalEmbedder
+    from src.core.polynomial_coprime import PolynomialCoprimeConfig
+
+    # 1. Optimization: RicciFlowOptimizer & MuonRicciHybridOptimizer prequential MDL step governance
+    w_ricci = torch.nn.Parameter(torch.randn(8, 8))
+    opt_ricci = RicciFlowOptimizer([w_ricci], lr=1e-2, enable_mdl_gate=True, mdl_beta=1.5)
+    loss_r = (w_ricci ** 2).sum()
+    loss_r.backward()
+    opt_ricci.step()
+    assert 0.25 <= opt_ricci.last_mdl_metrics["step_scale"] <= 1.5
+    assert opt_ricci.last_mdl_metrics["online_codelength_bits"] > 0.0
+    assert opt_ricci.last_mdl_metrics["surplus_description_length_bits"] >= 0.0
+
+    w_muon = torch.nn.Parameter(torch.randn(8, 8))
+    opt_muon = MuonRicciHybridOptimizer([w_muon], lr=1e-2, enable_mdl_gate=True, mdl_beta=1.0)
+    loss_m = (w_muon ** 2).sum()
+    loss_m.backward()
+    opt_muon.step()
+    assert 0.25 <= opt_muon.last_mdl_metrics["step_scale"] <= 1.5
+    assert opt_muon.last_mdl_metrics["entropic_temperature_eps"] == 1.0
+
+    # 2. ResonanceCavity HeritableTrustVault prequential MDL survivorship weighting
+    vault = HeritableTrustVault(table_size=64, k_dim=8)
+    # Row 0 is highly structured/compressible; Row 1 is high-entropy uniform-like
+    structured = torch.zeros(1, 8)
+    structured[0, 0] = 1.0
+    noisy = torch.linspace(-1.0, 1.0, 8).unsqueeze(0)
+    residues = torch.cat([structured, noisy], dim=0)
+    mdl_surv = vault.compute_prequential_mdl_survivorship(residues)
+    assert mdl_surv["mdl_survivorship"].shape == (2,)
+    assert mdl_surv["mdl_survivorship"][0].item() > mdl_surv["mdl_survivorship"][1].item()
+    vault.update(residues, torch.tensor([1.0, 1.0]), use_mdl_weighting=True)
+    assert hasattr(vault, "last_mdl_report") and vault.last_mdl_report["mean_online_codelength_bits"] > 0.0
+
+    # 3. Models: CRTModularEmbeddingTable multi-channel MDL & PolynomialFunctionalEmbedder Hutter MDL
+    crt_table = CRTModularEmbeddingTable(vocab_size=128, embed_dim=32, num_primes=3)
+    skewed_tokens = torch.tensor([[0, 0, 0, 0, 3, 0, 0, 6, 0, 0, 0, 9]], dtype=torch.long)
+    crt_mdl = crt_table.compute_crt_channel_mdl(skewed_tokens)
+    assert len(crt_mdl["channel_reports"]) == 3
+    assert crt_mdl["crt_data_codelength_bits"] > 0.0
+    assert crt_mdl["hutter_crt_total_mdl_bits"] > crt_mdl["crt_decoder_param_bits"]
+
+    poly_cfg = PolynomialCoprimeConfig(k=3, degree=3)
+    embedder = PolynomialFunctionalEmbedder(
+        text_dim=16, graph_dim=8, num_dim=4, hidden_dim=16,
+        poly_config=poly_cfg, use_text=True, use_graph=False, use_num=False,
+    )
+    out = embedder(text_emb=torch.randn(2, 16))
+    poly_mdl = embedder.compute_hutter_prequential_mdl(out["residue_distributions"])
+    assert poly_mdl["data_codelength_bits"] > 0.0
+    assert poly_mdl["hutter_total_mdl_bits"] == poly_mdl["decoder_param_bits"] + poly_mdl["data_codelength_bits"]
+    assert poly_mdl["surplus_description_length_bits"] >= 0.0
 
 
 if __name__ == "__main__":

@@ -1340,3 +1340,46 @@ def budget_cpu_threads(max_threads: Optional[int] = None) -> int:
     return HardwareMonitor.get_instance().budget_cpu_threads(max_threads=max_threads)
 
 
+def get_affordance_budget(
+    affordance_type: Union[str, ComputeAffordanceType],
+    base_steps: int,
+    min_steps: int = 1,
+) -> tuple:
+    """
+    Canonical typed step/iteration budget scaler.
+    Queries the exact ComputeAffordanceType domain without scalarization collapse
+    and scales `base_steps` into `[min_steps, base_steps]` proportional to the
+    domain gauge (falling back to `min_steps` if inadmissible or thermal runaway).
+
+    Returns:
+        (scaled_steps: int, affordance: TypedComputeAffordance)
+    """
+    hm = HardwareMonitor.get_instance()
+    atype = ComputeAffordanceType.from_str(affordance_type)
+    aff = hm.get_typed_affordance(atype)
+    hi = max(1, int(base_steps))
+    lo = max(1, min(int(min_steps), hi))
+    if hm.thermal_runaway or not aff.is_admissible:
+        return lo, aff
+    scaled = int(round(lo + (hi - lo) * aff.gauge))
+    return max(lo, min(hi, scaled)), aff
+
+
+def should_offload_gpu_sovereign(dim: int = 8, min_dim: int = 8) -> tuple:
+    """
+    Checks whether PyOpenCL SiliconSovereigntyEngine GPU offload is admissible
+    for a tensor operation of size `dim`, respecting both GPU_SOVEREIGN and
+    THERMAL affordance domains.
+
+    Returns:
+        (admissible: bool, gpu_affordance: TypedComputeAffordance)
+    """
+    hm = HardwareMonitor.get_instance()
+    gpu_aff = hm.get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
+    if dim < min_dim or hm.thermal_runaway:
+        return False, gpu_aff
+    thermal_aff = hm.get_typed_affordance(ComputeAffordanceType.THERMAL)
+    return bool(gpu_aff.is_admissible and thermal_aff.is_admissible), gpu_aff
+
+
+

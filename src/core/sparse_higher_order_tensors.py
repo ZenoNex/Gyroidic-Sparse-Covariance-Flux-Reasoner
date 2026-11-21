@@ -36,10 +36,13 @@ class SparseHigherOrderTensorDynamics(nn.Module):
         def _sovereign_mm(lhs: torch.Tensor, rhs: torch.Tensor) -> torch.Tensor:
             if not (lhs.requires_grad or rhs.requires_grad) and dim >= 8:
                 try:
-                    from src.core.pyopencl_sovereignty import get_sovereignty_engine
-                    engine = get_sovereignty_engine()
-                    if engine is not None and engine.is_initialized:
-                        return engine.hardware_sovereign_matmul(lhs, rhs).to(device=lhs.device, dtype=lhs.dtype)
+                    from src.core.hardware_monitor import should_offload_gpu_sovereign
+                    gpu_ok, _ = should_offload_gpu_sovereign(dim=dim, min_dim=8)
+                    if gpu_ok:
+                        from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                        engine = get_sovereignty_engine()
+                        if engine is not None and engine.is_initialized:
+                            return engine.hardware_sovereign_matmul(lhs, rhs).to(device=lhs.device, dtype=lhs.dtype)
                 except Exception:
                     pass
             return torch.matmul(lhs, rhs)

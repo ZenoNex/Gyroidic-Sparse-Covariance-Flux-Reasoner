@@ -147,12 +147,15 @@ class JSpacePCAMapper:
             
         if not (flat_state.requires_grad or proj_matrix.requires_grad) and D >= 8:
             try:
-                from src.core.pyopencl_sovereignty import get_sovereignty_engine
-                engine = get_sovereignty_engine()
-                if engine is not None and engine.is_initialized:
-                    projected = engine.hardware_sovereign_matmul(flat_state, proj_matrix)
-                    out_shape = list(orig_shape[:-1]) + [target_dim]
-                    return projected.to(device=state.device, dtype=state.dtype).view(*out_shape)
+                from src.core.hardware_monitor import should_offload_gpu_sovereign
+                gpu_ok, _ = should_offload_gpu_sovereign(dim=D, min_dim=8)
+                if gpu_ok:
+                    from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                    engine = get_sovereignty_engine()
+                    if engine is not None and engine.is_initialized:
+                        projected = engine.hardware_sovereign_matmul(flat_state, proj_matrix)
+                        out_shape = list(orig_shape[:-1]) + [target_dim]
+                        return projected.to(device=state.device, dtype=state.dtype).view(*out_shape)
             except Exception:
                 pass
 

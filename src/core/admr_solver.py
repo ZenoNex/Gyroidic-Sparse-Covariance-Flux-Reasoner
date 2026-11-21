@@ -1091,5 +1091,88 @@ class PolynomialADMRSolver(nn.Module):
             "regularized_wheel_quotient_norm": float(wheel_audit["regularized_quotient"].norm().item()),
         }
 
+    def audit_tutte_matching(
+        self,
+        adjacency: torch.Tensor,
+        threshold: float = 0.05,
+    ) -> Dict[str, Any]:
+        """
+        Tutte's Theorem for Strict Resonance Matching (MATHEMATICAL_DETAILS.md Section 54):
+        A coupling graph G = (V, E) admits a perfect matching iff for every subset U <= V,
+        the number of odd-size connected components o(G - U) satisfies o(G - U) <= |U|.
+
+        Evaluates:
+          1. U = empty set (odd components in G and isolated 'hanging' variables).
+          2. Single-vertex cut subsets U = {v} for all v in V (detects star/bridge Dead Logic).
+        Rejects couplings that violate Tutte's threshold without scalar loss evaluation.
+        """
+        adj_2d = adjacency.detach().float()
+        if adj_2d.dim() == 1:
+            # Build outer-product coupling graph from 1D state vector
+            n = min(adj_2d.numel(), 32)
+            v = adj_2d[:n]
+            adj_2d = torch.outer(v, v).abs()
+        elif adj_2d.dim() > 2:
+            adj_2d = adj_2d.reshape(-1, adj_2d.shape[-1])
+            n = min(adj_2d.shape[0], adj_2d.shape[1], 32)
+            adj_2d = adj_2d[:n, :n].abs()
+        else:
+            n = min(adj_2d.shape[0], adj_2d.shape[1], 32)
+            adj_2d = adj_2d[:n, :n].abs()
+
+        # Symmetrize and zero diagonal for undirected simple graph
+        sym = 0.5 * (adj_2d + adj_2d.T)
+        sym.fill_diagonal_(0.0)
+        neighbors: List[List[int]] = [
+            [j for j in range(n) if float(sym[i, j].item()) > threshold]
+            for i in range(n)
+        ]
+
+        def _count_odd_components(excluded: set) -> Tuple[int, int]:
+            visited = set(excluded)
+            odd_count = 0
+            total_comps = 0
+            for start in range(n):
+                if start in visited:
+                    continue
+                total_comps += 1
+                stack = [start]
+                visited.add(start)
+                size = 0
+                while stack:
+                    cur = stack.pop()
+                    size += 1
+                    for nxt in neighbors[cur]:
+                        if nxt not in visited:
+                            visited.add(nxt)
+                            stack.append(nxt)
+                if size % 2 == 1:
+                    odd_count += 1
+            return odd_count, total_comps
+
+        odd_empty, num_components = _count_odd_components(set())
+        hanging_vertices = [i for i in range(n) if len(neighbors[i]) == 0]
+        max_deficit = odd_empty  # o(G - empty) - |empty|
+        worst_cut_vertex: Optional[int] = None
+
+        for v in range(n):
+            odd_minus_v, _ = _count_odd_components({v})
+            deficit = odd_minus_v - 1  # o(G - {v}) - |{v}|
+            if deficit > max_deficit:
+                max_deficit = deficit
+                worst_cut_vertex = v
+
+        tutte_satisfied = (max_deficit <= 0) and (len(hanging_vertices) == 0)
+        return {
+            "num_vertices": n,
+            "num_components": num_components,
+            "odd_components_empty_U": odd_empty,
+            "hanging_vertices": hanging_vertices,
+            "max_tutte_deficit": int(max_deficit),
+            "worst_cut_vertex": worst_cut_vertex,
+            "tutte_satisfied": bool(tutte_satisfied),
+            "dead_logic_detected": bool(not tutte_satisfied),
+        }
+
 
 

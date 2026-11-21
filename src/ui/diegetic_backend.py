@@ -8837,33 +8837,72 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.send_error(500, f"Error serving generative mind map: {e}")
                     return
 
-            elif base_path == '/api/mindmap-data':
+            elif base_path in ('/api/mindmap', '/api/mindmap-data'):
                 try:
-                    mindmap_tree = build_live_mindmap_tree(ENGINE)
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(json.dumps(mindmap_tree).encode('utf-8'))
+                    active_eng = _resolve_live_engine(ENGINE)
+                    mindmap_tree = build_live_mindmap_tree(active_eng)
+                    self._send_json(mindmap_tree)
                     return
                 except Exception as e:
-                    self.send_error(500, f"Error generating mindmap data: {e}")
+                    self._send_error_json(f"Error generating mindmap data: {e}", 500)
                     return
 
             elif base_path == '/api/mindmap-expand':
                 try:
-                    qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                    node_name = (qs.get('node', [''])[0] or '').strip()
-                    category = (qs.get('category', [''])[0] or '').strip()
-                    subtree = build_live_mindmap_expansion(ENGINE, node_name=node_name, category=category)
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'application/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(json.dumps(subtree).encode('utf-8'))
+                    node_name = (query.get('node', [''])[0] or '').strip()
+                    category = (query.get('category', [''])[0] or '').strip()
+                    active_eng = _resolve_live_engine(ENGINE)
+                    subtree = build_live_mindmap_expansion(active_eng, node_name=node_name, category=category)
+                    self._send_json(subtree)
                     return
                 except Exception as e:
-                    self.send_error(500, f"Error expanding mindmap node: {e}")
+                    self._send_error_json(f"Error expanding mindmap node: {e}", 500)
+                    return
+
+            elif base_path == '/api/voxelboxter/worldgen/presets':
+                try:
+                    from src.ui.voxelboxter_simulation import list_worldgen_presets
+                    active_eng = _resolve_live_engine(ENGINE)
+                    vb = getattr(active_eng, '_voxelboxter_vocal_bridge', None) if active_eng is not None else None
+                    active_wg = getattr(vb, 'last_worldgen_summary', None) if vb is not None else None
+                    self._send_json({
+                        "status": "ok",
+                        "presets": list_worldgen_presets(),
+                        "active_worldgen": active_wg,
+                    })
+                    return
+                except Exception as e:
+                    self._send_error_json(f"Failed to load Voxelboxter worldgen presets: {e}", 500)
+                    return
+
+            elif base_path == '/api/voxelboxter/status':
+                try:
+                    active_eng = _resolve_live_engine(ENGINE)
+                    proc = getattr(active_eng, 'voxelboxter_process', None) if active_eng is not None else None
+                    poll_code = proc.poll() if proc is not None else None
+                    running = proc is not None and poll_code is None
+                    logs = list(getattr(active_eng, '_voxelboxter_logs', []) or [])[-80:] if active_eng is not None else []
+                    vb = getattr(active_eng, '_voxelboxter_vocal_bridge', None) if active_eng is not None else None
+                    self._send_json({
+                        "status": "ok",
+                        "running": running,
+                        "pid": proc.pid if proc is not None else None,
+                        "exit_code": poll_code,
+                        "worldgen": getattr(vb, 'last_worldgen_summary', None) if vb is not None else None,
+                        "logs": logs,
+                    })
+                    return
+                except Exception as e:
+                    self._send_error_json(f"Failed to fetch Voxelboxter status: {e}", 500)
+                    return
+
+            elif base_path == '/api/voxelboxter/state':
+                try:
+                    vb = _get_or_create_voxelboxter_engine(_resolve_live_engine(ENGINE))
+                    self._send_json({"status": "ok", "voxelboxter": vb.export_world_state()})
+                    return
+                except Exception as e:
+                    self._send_error_json(f"Failed to fetch Voxelboxter state: {e}", 500)
                     return
             elif base_path.startswith('/api/bonfire/status') or base_path.startswith('/api/freenet/status'):
                 try:
@@ -10458,43 +10497,163 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
                     "current_hunger": float(current_hunger)
                 })
 
-            elif self.path == '/api/voxelboxter/boot':
-                # Launch the PyBevy voxelboxter client asynchronously
+            elif base_path == '/api/voxelboxter/boot':
+                # Ordered Voxelboxter booter: validate worldgen -> generate world -> launch client with pipe drain
                 import subprocess
                 import sys
+                import threading
                 try:
+                    content_length = int(self.headers.get('Content-Length', 0) or 0)
+                    raw_body = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                    try:
+                        req_data = json.loads(raw_body.decode('utf-8')) if raw_body else {}
+                    except Exception:
+                        req_data = {}
+
+                    from src.ui.voxelboxter_simulation import WorldGenConfig
+                    wg_payload = req_data.get("worldgen") if isinstance(req_data.get("worldgen"), dict) else req_data
+                    wg_cfg = WorldGenConfig.from_dict(wg_payload)
+
+                    active_eng = _resolve_live_engine(ENGINE)
+                    vb = _get_or_create_voxelboxter_engine(active_eng)
+                    wg_summary = vb.generate_world(wg_cfg)
+
                     venv_py = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
                     python_exe = venv_py if os.path.exists(venv_py) else sys.executable
                     client_path = os.path.join("src", "ui", "voxelboxter_client.py")
-                    
-                    # Store process in ENGINE or global to prevent GC, and allow tracking if needed
-                    if not hasattr(ENGINE, "voxelboxter_process"):
-                        ENGINE.voxelboxter_process = None
-                    
-                    if ENGINE.voxelboxter_process is None or ENGINE.voxelboxter_process.poll() is not None:
-                        # Process is not running, start it
-                        ENGINE.voxelboxter_process = subprocess.Popen(
-                            [python_exe, client_path],
+
+                    host_hdr = self.headers.get('Host') or "localhost:8000"
+                    api_url = str(req_data.get("api_url") or f"http://{host_hdr}").rstrip("/")
+                    auto_play = bool(req_data.get("auto_play", False))
+                    headless = bool(req_data.get("headless", False))
+
+                    if active_eng is not None and not hasattr(active_eng, "voxelboxter_process"):
+                        active_eng.voxelboxter_process = None
+                    if active_eng is not None and not hasattr(active_eng, "_voxelboxter_logs"):
+                        active_eng._voxelboxter_logs = []
+
+                    existing_proc = getattr(active_eng, "voxelboxter_process", None) if active_eng is not None else None
+                    if existing_proc is None or existing_proc.poll() is not None:
+                        wg_json = json.dumps(wg_cfg.to_dict())
+                        cmd = [
+                            python_exe,
+                            client_path,
+                            "--preset", wg_cfg.preset,
+                            "--seed", str(wg_cfg.seed),
+                            "--worldgen-json", wg_json,
+                            "--api-url", api_url,
+                        ]
+                        if auto_play:
+                            cmd.append("--auto-play")
+                        if headless:
+                            cmd.append("--headless")
+
+                        child_env = dict(
+                            os.environ,
+                            PYTHONPATH=os.getcwd(),
+                            VOXELBOXTER_API_URL=api_url,
+                            VOXELBOXTER_WORLDGEN_PRESET=wg_cfg.preset,
+                            VOXELBOXTER_WORLDGEN_SEED=str(wg_cfg.seed),
+                            VOXELBOXTER_WORLDGEN_JSON=wg_json,
+                        )
+                        proc = subprocess.Popen(
+                            cmd,
                             cwd=os.getcwd(),
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            env=dict(os.environ, PYTHONPATH=os.getcwd())
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            bufsize=1,
+                            env=child_env,
                         )
-                        self._send_json({"status": "ok", "message": "Voxelboxter Dual Engine booting..."})
+                        if active_eng is not None:
+                            active_eng.voxelboxter_process = proc
+                            active_eng._voxelboxter_logs = [
+                                f"[BOOT] Preset={wg_cfg.preset} | Seed={wg_cfg.seed} | Blocks={wg_summary['block_count']} | Betti=({wg_summary['betti_numbers']['betti_0']}, {wg_summary['betti_numbers']['betti_1']})"
+                            ]
+
+                            def _drain_voxelboxter_output(p, eng_ref):
+                                try:
+                                    if p.stdout is None:
+                                        return
+                                    for line in iter(p.stdout.readline, ""):
+                                        cleaned = line.rstrip()
+                                        if cleaned:
+                                            eng_ref._voxelboxter_logs.append(cleaned)
+                                            if len(eng_ref._voxelboxter_logs) > 200:
+                                                eng_ref._voxelboxter_logs = eng_ref._voxelboxter_logs[-200:]
+                                except Exception:
+                                    pass
+                                finally:
+                                    try:
+                                        if p.stdout:
+                                            p.stdout.close()
+                                    except Exception:
+                                        pass
+
+                            threading.Thread(
+                                target=_drain_voxelboxter_output,
+                                args=(proc, active_eng),
+                                daemon=True,
+                                name="VoxelboxterLogDrain",
+                            ).start()
+
+                        self._send_json({
+                            "status": "ok",
+                            "message": f"Voxelboxter Dual Engine booting ({wg_cfg.preset}, seed={wg_cfg.seed})...",
+                            "pid": proc.pid,
+                            "worldgen": wg_summary,
+                        })
                     else:
-                        self._send_json({"status": "error", "message": "Voxelboxter is already running!"})
+                        self._send_json({
+                            "status": "error",
+                            "message": "Voxelboxter is already running!",
+                            "pid": existing_proc.pid,
+                            "worldgen": wg_summary,
+                        })
                 except Exception as e:
                     self._send_error_json(f"Failed to boot Voxelboxter: {str(e)}")
 
+            elif base_path == '/api/voxelboxter/worldgen/preview':
+                try:
+                    content_length = int(self.headers.get('Content-Length', 0) or 0)
+                    raw_body = self.rfile.read(content_length) if content_length > 0 else b'{}'
+                    try:
+                        req_data = json.loads(raw_body.decode('utf-8')) if raw_body else {}
+                    except Exception:
+                        req_data = {}
+                    from src.ui.voxelboxter_simulation import WorldGenConfig
+                    wg_payload = req_data.get("worldgen") if isinstance(req_data.get("worldgen"), dict) else req_data
+                    wg_cfg = WorldGenConfig.from_dict(wg_payload)
+                    vb = _get_or_create_voxelboxter_engine(_resolve_live_engine(ENGINE))
+                    summary = vb.generate_world(wg_cfg)
+                    self._send_json({
+                        "status": "ok",
+                        "worldgen": summary,
+                        "voxelboxter": vb.export_world_state(),
+                    })
+                except Exception as e:
+                    self._send_error_json(f"Failed to preview Voxelboxter worldgen: {str(e)}")
+
+            elif base_path == '/api/voxelboxter/stop':
+                try:
+                    active_eng = _resolve_live_engine(ENGINE)
+                    proc = getattr(active_eng, 'voxelboxter_process', None) if active_eng is not None else None
+                    if proc is not None and proc.poll() is None:
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=3.0)
+                        except Exception:
+                            proc.kill()
+                        self._send_json({"status": "ok", "stopped": True, "message": "Voxelboxter client stopped."})
+                    else:
+                        self._send_json({"status": "ok", "stopped": False, "message": "Voxelboxter client was not running."})
+                except Exception as e:
+                    self._send_error_json(f"Failed to stop Voxelboxter: {str(e)}")
+
             elif self.path == '/api/voxelboxter/state' or base_path == '/api/voxelboxter/state':
                 try:
-                    state_payload = {}
-                    if hasattr(ENGINE, '_voxelboxter_vocal_bridge') and ENGINE._voxelboxter_vocal_bridge:
-                        state_payload = ENGINE._voxelboxter_vocal_bridge.export_world_state()
-                    else:
-                        from src.ui.voxelboxter_simulation import VoxelboxterEngine
-                        temp_vb = VoxelboxterEngine(device="cpu")
-                        state_payload = temp_vb.export_world_state()
+                    vb = _get_or_create_voxelboxter_engine(_resolve_live_engine(ENGINE))
+                    state_payload = vb.export_world_state()
                     self._send_json({"status": "ok", "voxelboxter": state_payload})
                 except Exception as e:
                     self._send_error_json(f"Failed to fetch Voxelboxter state: {str(e)}")
@@ -10996,12 +11155,12 @@ def main():
         print(f"[SEARXNG] Diegetic startup auto-boot check note: {e}")
 
     def _diegetic_sig_handler(signum, frame):
-        print(f"\n[DIEGETIC] Signal {signum} received. Triggering graceful shutdown...", flush=True)
-        if 'httpd' in locals():
-            try:
-                httpd.shutdown()
-            except Exception:
-                pass
+        # Async-signal-safe: NEVER call print() or httpd.shutdown() (same-thread deadlock)
+        # inside a signal handler, which causes `RuntimeError: reentrant call inside <_io.BufferedWriter>`.
+        try:
+            os.write(2, f"\n[DIEGETIC] Signal {signum} received. Triggering graceful shutdown...\n".encode("ascii", errors="ignore"))
+        except Exception:
+            pass
         raise KeyboardInterrupt
 
     import signal
@@ -11023,10 +11182,9 @@ def main():
     finally:
         if 'httpd' in locals():
             try:
-                httpd.shutdown()
+                httpd.server_close()
             except Exception:
                 pass
-            httpd.server_close()
             print("Server stopped.")
         if os.path.exists(pid_file):
             try:
@@ -11039,36 +11197,88 @@ def main():
         except Exception:
             pass
 
+_FALLBACK_VOXELBOXTER_ENGINE = None
+
+
+def _resolve_live_engine(engine_candidate: Optional[Any] = None) -> Optional[Any]:
+    """Resolve active engine, falling back to hybrid_backend.AI_SYSTEM when ENGINE is absent."""
+    if engine_candidate is not None:
+        return engine_candidate
+    try:
+        import sys
+        hb = sys.modules.get("hybrid_backend")
+        if hb is not None:
+            ai_sys = getattr(hb, "AI_SYSTEM", None)
+            if ai_sys is not None:
+                return getattr(ai_sys, "engine", None) or ai_sys
+    except Exception:
+        pass
+    return None
+
+
+def _get_or_create_voxelboxter_engine(engine_ref: Optional[Any] = None) -> Any:
+    """Return a persistent VoxelboxterEngine instance instead of re-instantiating per request."""
+    global _FALLBACK_VOXELBOXTER_ENGINE
+    if engine_ref is not None:
+        existing = getattr(engine_ref, "_voxelboxter_vocal_bridge", None)
+        if existing is not None:
+            return existing
+        from src.ui.voxelboxter_simulation import VoxelboxterEngine
+        vb = VoxelboxterEngine(device="cpu", lightweight=True)
+        if hasattr(engine_ref, "memory_palace"):
+            vb.memory_palace = engine_ref.memory_palace
+        if hasattr(engine_ref, "cavity"):
+            vb.resonance_cavity = engine_ref.cavity
+        engine_ref._voxelboxter_vocal_bridge = vb
+        return vb
+    if _FALLBACK_VOXELBOXTER_ENGINE is None:
+        from src.ui.voxelboxter_simulation import VoxelboxterEngine
+        _FALLBACK_VOXELBOXTER_ENGINE = VoxelboxterEngine(device="cpu", lightweight=True)
+    return _FALLBACK_VOXELBOXTER_ENGINE
+
+
 def build_live_mindmap_tree(engine: Optional[Any] = None, max_fossils: int = 12) -> Dict[str, Any]:
     """
     Build the live DaemonAton radial mind-map tree from the active engine:
-    streams Poincaré fossils from graph_manager/fossilizer, live archetype balances,
-    and HardwareMonitor compute affordance gauges.
+    streams Poincare fossils from graph_manager/fossilizer, live archetype balances,
+    HardwareMonitor compute affordance gauges, and live thermodynamics/P2P telemetry.
     """
-    pas_val = float(getattr(engine, 'last_pas', 0.2727)) if engine is not None else 0.2727
+    raw_pas = getattr(engine, 'last_pas', None) if engine is not None else None
+    try:
+        pas_val = float(raw_pas) if raw_pas is not None else 0.2727
+    except (TypeError, ValueError):
+        pas_val = 0.2727
 
-    # 1. Live Poincaré Fossils
+    # 1. Live Poincare Fossils
     fossil_children: List[Dict[str, Any]] = []
     gm = getattr(engine, 'graph_manager', None) if engine is not None else None
     if gm is not None and getattr(gm, 'nodes', None):
         for n in list(gm.nodes)[-max_fossils:]:
-            nid = getattr(n, 'node_id', None) or (n.get('node_id') if isinstance(n, dict) else 'fossil')
-            label = getattr(n, 'text', None) or (n.get('text') if isinstance(n, dict) else '') or str(nid)
-            chiral = getattr(n, 'chiral_score', 0.0) if not isinstance(n, dict) else n.get('chiral_score', 0.0)
-            pdt = getattr(n, 'public_domain_tags', []) if not isinstance(n, dict) else n.get('public_domain_tags', [])
-            px = getattr(n, 'px', 0.0) if not isinstance(n, dict) else n.get('px', 0.0)
-            py = getattr(n, 'py', 0.0) if not isinstance(n, dict) else n.get('py', 0.0)
+            is_d = isinstance(n, dict)
+            nid = (n.get('node_id') if is_d else getattr(n, 'node_id', None)) or 'fossil'
+            label = (n.get('text') if is_d else getattr(n, 'text', None)) or str(nid)
+            chiral = n.get('chiral_score', 0.0) if is_d else getattr(n, 'chiral_score', 0.0)
+            pdt = (n.get('public_domain_tags') if is_d else getattr(n, 'public_domain_tags', None)) or []
+            px = n.get('px', 0.0) if is_d else getattr(n, 'px', 0.0)
+            py = n.get('py', 0.0) if is_d else getattr(n, 'py', 0.0)
             px_f = float(px) if px is not None else 0.0
             py_f = float(py) if py is not None else 0.0
             fossil_children.append({
                 "name": str(label)[:42] or str(nid),
                 "category": "Poincaré Fossil",
-                "details": f"id={nid} | poincare=({px_f:.3f}, {py_f:.3f}) | chiral={float(chiral or 0.0):.3f} | tags={pdt[:4]}",
+                "details": f"id={nid} | poincare=({px_f:.3f}, {py_f:.3f}) | chiral={float(chiral or 0.0):.3f} | tags={list(pdt)[:4]}",
                 "node_id": str(nid),
             })
 
     fossilizer = getattr(engine, 'fossilizer', None) if engine is not None else None
-    fossil_count = len(getattr(fossilizer, 'fossil_bed', [])) if fossilizer is not None else len(fossil_children)
+    fossil_bed = getattr(fossilizer, 'fossil_bed', None) if fossilizer is not None else None
+    fossil_index = getattr(fossilizer, 'fossil_index', None) if fossilizer is not None else None
+    if isinstance(fossil_bed, (list, dict, set, tuple)):
+        fossil_count = len(fossil_bed)
+    elif isinstance(fossil_index, (list, dict, set, tuple)):
+        fossil_count = len(fossil_index)
+    else:
+        fossil_count = len(fossil_children)
     if not fossil_children:
         fossil_children = [
             {"name": "Chebyshev Multibasis", "category": "Spectral", "details": "Orthogonal polynomial bases"},
@@ -11109,8 +11319,9 @@ def build_live_mindmap_tree(engine: Optional[Any] = None, max_fossils: int = 12)
         try:
             levels = bus.get_levels()
             for k, v in list(levels.items())[:7]:
+                val_f = float(v.item()) if hasattr(v, 'item') else float(v)
                 archetype_children.append({
-                    "name": f"{k}: {float(v):.3f}",
+                    "name": f"{k}: {val_f:.3f}",
                     "category": "Archetype Balance",
                     "details": f"Live neuromodulatory balance for {k}",
                 })
@@ -11124,12 +11335,30 @@ def build_live_mindmap_tree(engine: Optional[Any] = None, max_fossils: int = 12)
             {"name": "Kinger (Slow)", "category": "Consolidation", "details": "Ombre sleep memory consolidation"},
         ]
 
-    # 4. Thermodynamics & Carnot-Mobius Ledger
+    # 4. Thermodynamics, Carnot-Mobius Ledger & Live P2P/Paradox/Entropy hooks
     carnot = getattr(engine, 'carnot_ledger', None) if engine is not None else None
+    if carnot is None and orch is not None:
+        carnot = getattr(orch, 'carnot_ledger', None)
     carnot_detail = "P_waste vs P_cool_max thermodynamic ledger"
     if carnot is not None:
-        xi_val = getattr(carnot, 'xi_shear', 0.1)
-        carnot_detail = f"CarnotMobiusLedger active (xi_shear={float(xi_val):.3f})"
+        xi_raw = getattr(carnot, 'xi_shear', 0.1)
+        xi_val = float(xi_raw) if xi_raw is not None else 0.1
+        carnot_detail = f"CarnotMobiusLedger active (xi_shear={xi_val:.3f})"
+
+    bonfire = getattr(engine, 'bonfire_ring', None) or (getattr(orch, 'bonfire_ring', None) if orch is not None else None)
+    shamir_detail = "Non-Euler Shamir (t, n) cycle shares"
+    if bonfire is not None:
+        nes = getattr(bonfire, 'non_euler_shamir', None)
+        if nes is not None:
+            shamir_detail = f"Non-Euler Shamir active (threshold={getattr(nes, 'threshold', 't')}, shares={getattr(nes, 'num_shares', 'n')})"
+
+    paradox_gate = getattr(orch, 'paradox_gate', None) if orch is not None else getattr(engine, 'paradox_gate', None)
+    huffman_codec = getattr(orch, 'huffman_codec', None) if orch is not None else getattr(engine, 'huffman_codec', None)
+    admr_detail = "Multiplicative remainder phase alignment"
+    if paradox_gate is not None:
+        admr_detail += " | ParadoxHardeningGate online"
+    if huffman_codec is not None:
+        admr_detail += " | HuffmanEntropyCodec bound"
 
     return {
         "name": "Gyroidic Reasoner",
@@ -11170,8 +11399,8 @@ def build_live_mindmap_tree(engine: Optional[Any] = None, max_fossils: int = 12)
                 "details": carnot_detail,
                 "children": [
                     {"name": "CarnotMobiusLedger", "category": "Ledger", "details": carnot_detail},
-                    {"name": "ADMR Solver", "category": "Lubrication", "details": "Multiplicative remainder phase alignment"},
-                    {"name": "Closed Topology Sequences", "category": "Homology", "details": "Non-Euler Shamir (t, n) cycle shares"},
+                    {"name": "ADMR Solver", "category": "Lubrication", "details": admr_detail},
+                    {"name": "Closed Topology Sequences", "category": "Homology", "details": shamir_detail},
                 ],
             },
         ],
@@ -11181,7 +11410,7 @@ def build_live_mindmap_tree(engine: Optional[Any] = None, max_fossils: int = 12)
 def build_live_mindmap_expansion(engine: Optional[Any], node_name: str, category: str = "") -> Dict[str, Any]:
     """
     DaemonAton-style generative node expansion: given a clicked node name,
-    queries matching live Poincaré fossils, tags, and closed-topology cycles
+    queries matching live Poincare fossils, tags, and closed-topology cycles
     to produce an expandable child sub-tree.
     """
     query_lc = (node_name or "Gyroidic").lower()
@@ -11189,14 +11418,15 @@ def build_live_mindmap_expansion(engine: Optional[Any], node_name: str, category
     gm = getattr(engine, 'graph_manager', None) if engine is not None else None
     if gm is not None and getattr(gm, 'nodes', None):
         for n in list(gm.nodes):
-            nid = str(getattr(n, 'node_id', '') or '')
-            txt = str(getattr(n, 'text', '') or '')
-            pdt = list(getattr(n, 'public_domain_tags', []) or [])
-            tags = list(getattr(n, 'tags', []) or [])
+            is_d = isinstance(n, dict)
+            nid = str((n.get('node_id') if is_d else getattr(n, 'node_id', '')) or '')
+            txt = str((n.get('text') if is_d else getattr(n, 'text', '')) or '')
+            pdt = list((n.get('public_domain_tags') if is_d else getattr(n, 'public_domain_tags', None)) or [])
+            tags = list((n.get('tags') if is_d else getattr(n, 'tags', None)) or [])
             haystack = f"{nid} {txt} {' '.join(pdt)} {' '.join(tags)}".lower()
             if any(tok in haystack for tok in query_lc.split()[:3]) or len(children) < 4:
                 children.append({
-                    "name": (txt[:38] or nid),
+                    "name": (txt[:38] or nid or "Fossil Node"),
                     "category": "Fossil Resonance",
                     "details": f"id={nid} | tags={pdt[:4] or tags[:4]}",
                     "node_id": nid,
@@ -11210,9 +11440,9 @@ def build_live_mindmap_expansion(engine: Optional[Any], node_name: str, category
                 proc = gm.query_procedural_graph(max_nodes=40)
                 for seq in proc.get("closed_topology_sequences", [])[:3]:
                     children.append({
-                        "name": f"Cycle ({seq['cycle_len']} nodes)",
+                        "name": f"Cycle ({seq.get('cycle_len', 0)} nodes)",
                         "category": "Closed Topology",
-                        "details": f"nodes={seq['node_ids']} | perimeter={seq['perimeter']}",
+                        "details": f"nodes={seq.get('node_ids', [])} | perimeter={seq.get('perimeter', 0.0)}",
                     })
             except Exception:
                 pass

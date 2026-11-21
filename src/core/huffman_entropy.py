@@ -259,3 +259,227 @@ class HuffmanEntropyCodec:
                 original.extend([val] * length)
         return original
 
+    @classmethod
+    def encode_predictive_arithmetic(
+        cls,
+        symbols: List[int],
+        alphabet: Optional[List[int]] = None,
+        online_adapt: bool = True,
+        prior_count: int = 1,
+    ) -> Tuple[bytes, Dict[str, Any]]:
+        """
+        Context-Adaptive Predictive Arithmetic Coding with Online Deterministic Adaptation
+        (docs/this_alg_changed_compression_3blue1brown.txt: Compression-is-Intelligence).
+
+        Uses 32-bit integer-renormalized interval arithmetic (Elias / Rissanen-Pascoe)
+        to turn a deterministic online symbol predictor into a lossless bitstream
+        approaching the Shannon cross-entropy bound -sum log2 P_model(s_t | s_<t).
+        Because encoder and decoder apply identical deterministic count updates after
+        each symbol, no frequency table needs to be transmitted when online_adapt=True.
+        """
+        if not symbols:
+            return b"", {
+                "type": "predictive_arithmetic",
+                "total_symbols": 0,
+                "total_bits": 0,
+                "alphabet": list(alphabet) if alphabet is not None else [],
+                "online_adapt": bool(online_adapt),
+                "prior_count": int(prior_count),
+                "shannon_cross_entropy": 0.0,
+                "bits_per_symbol": 0.0,
+                "online_adaptation_gain_bits": 0.0,
+            }
+
+        uniq_alpha = sorted(set(int(s) for s in (alphabet if alphabet is not None else symbols)))
+        sym_to_idx = {s: i for i, s in enumerate(uniq_alpha)}
+        m = len(uniq_alpha)
+        p_init = max(1, int(prior_count))
+
+        # 32-bit fixed-point integer range coder state
+        PRECISION = 32
+        FULL = 1 << PRECISION
+        HALF = FULL >> 1
+        QUARTER = HALF >> 1
+        THREE_QUARTERS = HALF + QUARTER
+        MASK = FULL - 1
+
+        counts = [p_init] * m
+        total_count = p_init * m
+        static_cross_entropy_bits = 0.0
+        adaptive_cross_entropy_bits = 0.0
+        uniform_prob = 1.0 / float(max(1, m))
+
+        low = 0
+        high = MASK
+        pending_bits = 0
+        bits_out: List[int] = []
+
+        def _emit_bit(bit: int):
+            nonlocal pending_bits
+            bits_out.append(bit)
+            while pending_bits > 0:
+                bits_out.append(1 - bit)
+                pending_bits -= 1
+
+        for raw_s in symbols:
+            s = int(raw_s)
+            idx = sym_to_idx[s]
+            cum_low = sum(counts[:idx])
+            sym_cnt = counts[idx]
+            cum_high = cum_low + sym_cnt
+
+            p_model = sym_cnt / float(total_count)
+            adaptive_cross_entropy_bits -= math.log2(max(p_model, 1e-12))
+            static_cross_entropy_bits -= math.log2(max(uniform_prob, 1e-12))
+
+            span = high - low + 1
+            high = low + (span * cum_high) // total_count - 1
+            low = low + (span * cum_low) // total_count
+
+            while True:
+                if high < HALF:
+                    _emit_bit(0)
+                elif low >= HALF:
+                    _emit_bit(1)
+                    low -= HALF
+                    high -= HALF
+                elif low >= QUARTER and high < THREE_QUARTERS:
+                    pending_bits += 1
+                    low -= QUARTER
+                    high -= QUARTER
+                else:
+                    break
+                low = (low << 1) & MASK
+                high = ((high << 1) | 1) & MASK
+
+            if online_adapt:
+                counts[idx] += 1
+                total_count += 1
+
+        # Flush final interval disambiguator
+        pending_bits += 1
+        if low < QUARTER:
+            _emit_bit(0)
+        else:
+            _emit_bit(1)
+
+        total_bits = len(bits_out)
+        padding = (8 - (total_bits % 8)) % 8
+        bits_out.extend([0] * padding)
+        packed = bytearray()
+        for i in range(0, len(bits_out), 8):
+            byte_val = 0
+            for b in bits_out[i:i + 8]:
+                byte_val = (byte_val << 1) | b
+            packed.append(byte_val)
+
+        n_sym = len(symbols)
+        metadata = {
+            "type": "predictive_arithmetic",
+            "total_symbols": n_sym,
+            "total_bits": total_bits,
+            "padding": padding,
+            "alphabet": uniq_alpha,
+            "online_adapt": bool(online_adapt),
+            "prior_count": p_init,
+            "shannon_cross_entropy": adaptive_cross_entropy_bits / float(n_sym),
+            "bits_per_symbol": total_bits / float(n_sym),
+            "online_adaptation_gain_bits": max(0.0, static_cross_entropy_bits - adaptive_cross_entropy_bits),
+        }
+        return bytes(packed), metadata
+
+    @classmethod
+    def decode_predictive_arithmetic(
+        cls,
+        packed_bytes: bytes,
+        metadata: Dict[str, Any],
+    ) -> List[int]:
+        """
+        Lossless decoder for Context-Adaptive Predictive Arithmetic Coding.
+        Replays the identical deterministic online predictor updates as the encoder.
+        """
+        total_symbols = int(metadata.get("total_symbols", 0))
+        uniq_alpha = [int(x) for x in metadata.get("alphabet", [])]
+        if total_symbols <= 0 or not uniq_alpha:
+            return []
+
+        online_adapt = bool(metadata.get("online_adapt", True))
+        p_init = max(1, int(metadata.get("prior_count", 1)))
+        total_bits = int(metadata.get("total_bits", len(packed_bytes) * 8))
+
+        PRECISION = 32
+        FULL = 1 << PRECISION
+        HALF = FULL >> 1
+        QUARTER = HALF >> 1
+        THREE_QUARTERS = HALF + QUARTER
+        MASK = FULL - 1
+
+        bit_stream: List[int] = []
+        for b in packed_bytes:
+            for shift in range(7, -1, -1):
+                bit_stream.append((b >> shift) & 1)
+        bit_stream = bit_stream[:total_bits]
+        bit_pos = 0
+
+        def _read_bit() -> int:
+            nonlocal bit_pos
+            if bit_pos < len(bit_stream):
+                val = bit_stream[bit_pos]
+                bit_pos += 1
+                return val
+            return 0
+
+        code = 0
+        for _ in range(PRECISION):
+            code = (code << 1) | _read_bit()
+
+        m = len(uniq_alpha)
+        counts = [p_init] * m
+        total_count = p_init * m
+        low = 0
+        high = MASK
+        decoded: List[int] = []
+
+        for _ in range(total_symbols):
+            span = high - low + 1
+            scaled = ((code - low + 1) * total_count - 1) // span
+
+            cum = 0
+            idx = 0
+            for i, c in enumerate(counts):
+                if cum + c > scaled:
+                    idx = i
+                    break
+                cum += c
+
+            cum_low = cum
+            cum_high = cum + counts[idx]
+            decoded.append(uniq_alpha[idx])
+
+            high = low + (span * cum_high) // total_count - 1
+            low = low + (span * cum_low) // total_count
+
+            while True:
+                if high < HALF:
+                    pass
+                elif low >= HALF:
+                    low -= HALF
+                    high -= HALF
+                    code -= HALF
+                elif low >= QUARTER and high < THREE_QUARTERS:
+                    low -= QUARTER
+                    high -= QUARTER
+                    code -= QUARTER
+                else:
+                    break
+                low = (low << 1) & MASK
+                high = ((high << 1) | 1) & MASK
+                code = ((code << 1) | _read_bit()) & MASK
+
+            if online_adapt:
+                counts[idx] += 1
+                total_count += 1
+
+        return decoded
+
+

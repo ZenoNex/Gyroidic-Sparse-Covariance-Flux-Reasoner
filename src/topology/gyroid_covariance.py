@@ -114,8 +114,15 @@ class SparseGyroidCovarianceProbe(nn.Module):
         window_normalized = window - window.mean(dim=0, keepdim=True)
         window_normalized = window_normalized / (torch.norm(window_normalized, dim=1, keepdim=True) + 1e-8)
         
-        # Hardware sovereign GPU matrix multiplication via OpenCL Kernel 20
+        # Hardware sovereign GPU matrix multiplication via OpenCL Kernel 20 (gated on GPU_SOVEREIGN + THERMAL)
+        use_opencl_cov = False
         if hasattr(self, 'engine') and self.engine is not None and hasattr(self.engine, 'hardware_sovereign_matmul'):
+            try:
+                from src.core.hardware_monitor import should_offload_gpu_sovereign
+                use_opencl_cov, _ = should_offload_gpu_sovereign(dim=actual_window, min_dim=4)
+            except Exception:
+                use_opencl_cov = True
+        if use_opencl_cov:
             try:
                 C_loc = self.engine.hardware_sovereign_matmul(window_normalized, window_normalized.t()).to(window.device)
             except Exception:

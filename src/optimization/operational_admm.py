@@ -145,8 +145,25 @@ class OperationalAdmmPrimitive(autograd.Function):
             from src.core.fgrt_primitives import GyroidManifold
             gyroid = GyroidManifold().to(initial_c.device)
             
+            # Affordance-governed iteration budget (ALGORITHMIC + THERMAL)
+            eff_max_iters = max_iters
+            eff_probe_iters = 3
+            try:
+                from src.core.hardware_monitor import ComputeAffordanceType, get_affordance_budget, HardwareMonitor
+                eff_max_iters, _ = get_affordance_budget(
+                    ComputeAffordanceType.ALGORITHMIC, max_iters, min_steps=max(1, min(3, max_iters))
+                )
+                eff_probe_iters, _ = get_affordance_budget(
+                    ComputeAffordanceType.THERMAL, 3, min_steps=1
+                )
+                _hw_admm = HardwareMonitor.get_instance()
+            except Exception:
+                _hw_admm = None
+
             # Evolution Loop with Curvature-Prioritized Constraint Traversal
-            for t in range(max_iters):
+            for t in range(eff_max_iters):
+                if _hw_admm is not None and _hw_admm.thermal_runaway:
+                    break
                 # Phase 5: High-Curvature Prioritization
                 # We prioritize constraints in high-curvature topological zones.
                 if t % 10 == 0: # Recalculate weights less frequently
@@ -169,7 +186,7 @@ class OperationalAdmmPrimitive(autograd.Function):
                     residue=c_phys,
                     lambda_k=lambda_multipliers[k],
                     initial_constraint=c_phys if t == 0 else None,
-                    max_probe_iters=3,  # Local probe iterations
+                    max_probe_iters=eff_probe_iters,  # Affordance-governed local probe iterations
                     probe_step_size=0.1
                 )
                 

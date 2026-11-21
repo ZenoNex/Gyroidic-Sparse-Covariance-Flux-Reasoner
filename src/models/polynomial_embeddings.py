@@ -431,4 +431,59 @@ class PolynomialFunctionalEmbedder(nn.Module):
             shell_depth=shell_depth
         )
 
+    def compute_hutter_prequential_mdl(
+        self,
+        residue_distributions: torch.Tensor,
+        quant_levels: int = 16,
+    ) -> Dict[str, Any]:
+        """
+        Computes Hutter-style two-part MDL (decoder parameter bits + prequential online data
+        codelength) and Surplus Description Length (SDL) on polynomial functional residues
+        via `HuffmanEntropyCodec.encode_predictive_arithmetic` gated by
+        `ComputeAffordanceType.ALGORITHMIC`.
+        """
+        from ..core.huffman_entropy import HuffmanEntropyCodec
+        from ..core.hardware_monitor import ComputeAffordanceType, get_affordance_budget
+
+        q_levels = max(2, int(quant_levels))
+        eff_max_syms, aff = get_affordance_budget(
+            ComputeAffordanceType.ALGORITHMIC, base_steps=256, min_steps=16
+        )
+        flat = residue_distributions.detach().float().reshape(-1)
+        if flat.numel() > eff_max_syms:
+            stride = max(1, flat.numel() // eff_max_syms)
+            flat = flat[::stride][:eff_max_syms]
+
+        r_min = float(flat.min().item()) if flat.numel() > 0 else 0.0
+        r_max = float(flat.max().item()) if flat.numel() > 0 else 1.0
+        span = max(r_max - r_min, 1e-8)
+        syms = ((flat - r_min) / span * (q_levels - 1)).round().clamp(0, q_levels - 1).long().cpu().tolist()
+
+        _, meta = HuffmanEntropyCodec.encode_predictive_arithmetic(
+            syms, alphabet=list(range(q_levels)), online_adapt=True
+        )
+        n_sym = max(1, len(syms))
+        data_bits = float(meta.get("shannon_cross_entropy", meta.get("total_bits", 0.0)))
+        gain_bits = float(meta.get("online_adaptation_gain_bits", 0.0))
+
+        counts: Dict[int, int] = {}
+        for s in syms:
+            counts[s] = counts.get(s, 0) + 1
+        h_emp = sum(-c * math.log2(max(c / float(n_sym), 1e-12)) for c in counts.values())
+        sdl_bits = max(0.0, data_bits - h_emp)
+
+        decoder_param_bits = float(
+            sum(p.numel() * 32 for p in self.coeff_heads.parameters())
+            + sum(p.numel() * 32 for p in self.primitive_perturbation.parameters())
+        )
+        return {
+            "data_codelength_bits": data_bits,
+            "bits_per_symbol": float(meta.get("bits_per_symbol", data_bits / n_sym)),
+            "online_adaptation_gain_bits": gain_bits,
+            "surplus_description_length_bits": sdl_bits,
+            "decoder_param_bits": decoder_param_bits,
+            "hutter_total_mdl_bits": decoder_param_bits + data_bits,
+            "affordance_gauge": float(getattr(aff, "gauge", 1.0)),
+        }
+
 

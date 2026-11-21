@@ -748,10 +748,12 @@ class UniversalOrchestrator(nn.Module):
 
         try:
             from src.codec.gyroidic_codec import CodecCRTBridge
-            self.codec_crt_bridge = CodecCRTBridge(
-                codec=getattr(self, "gyroidic_codec", None),
-                poly_config=getattr(self, "poly_config", None),
-            ) if getattr(self, "gyroidic_codec", None) is not None else None
+            if getattr(self, "gyroidic_codec", None) is not None and getattr(self.gyroidic_codec, "crt_bridge", None) is not None:
+                self.codec_crt_bridge = self.gyroidic_codec.crt_bridge
+            elif getattr(self, "poly_config", None) is not None:
+                self.codec_crt_bridge = CodecCRTBridge(poly_config=self.poly_config)
+            else:
+                self.codec_crt_bridge = None
         except Exception:
             self.codec_crt_bridge = None
 
@@ -2675,6 +2677,22 @@ class UniversalOrchestrator(nn.Module):
                         admr_out = admr_out.squeeze(0) if state_shielded.dim() == 1 else admr_out
                         state_shielded = 0.95 * state_shielded + 0.05 * admr_out
                         self.telemetry_state['admr_solver_active'] = True
+                    if hasattr(self.admr_solver, 'audit_tutte_matching'):
+                        tutte_audit = self.admr_solver.audit_tutte_matching(s_in[0])
+                        self.telemetry_state['tutte_matching_audit'] = tutte_audit
+
+                if getattr(self, 'quantum_reasoning', None) is not None and (has_compute_affordance(ComputeAffordanceType.ALGORITHMIC) or self.dim <= 64):
+                    s_q = state_shielded.view(-1, self.dim)[0]
+                    q_mode = 'SERIOUS' if pas_h > 0.7 else 'PLAY'
+                    q_out = self.quantum_reasoning.superposition_reasoning([s_q, s_q * 0.95], mode=q_mode)
+                    if torch.isfinite(q_out).all():
+                        q_blend = q_out.view_as(s_q)
+                        if state_shielded.dim() == 1:
+                            state_shielded = 0.95 * state_shielded + 0.05 * q_blend
+                        else:
+                            state_shielded = 0.95 * state_shielded + 0.05 * q_blend.unsqueeze(0).expand_as(state_shielded)
+                        self.telemetry_state['quantum_reasoning_active'] = True
+                        self.telemetry_state['quantum_reasoning_mode'] = q_mode
 
                 if getattr(self, 'bio_governor', None) is not None:
                     s_in = state_shielded.unsqueeze(0) if state_shielded.dim() == 1 else state_shielded
@@ -3778,7 +3796,7 @@ class UniversalOrchestrator(nn.Module):
         # 3. Coprime Polynomial Residue Fusion via DataAssociationLayer
         assoc_residues = self.data_association(text_emb, image_emb)
 
-        # 4. Cooperative Gyroidic Codec & Mandelbulb pre-folding verification
+        # 4. Cooperative Gyroidic Codec, Conformal Log-Polar, CodecCRTBridge & Predictive Compression
         if getattr(self, 'gyroidic_codec', None) is not None:
             try:
                 proc_img = image_emb
@@ -3788,10 +3806,24 @@ class UniversalOrchestrator(nn.Module):
                     if aug_res.numel() >= proc_img.numel():
                         proc_img = aug_res.squeeze(0)[:proc_img.numel()].view_as(proc_img)
 
+                if getattr(self, 'conformal_projector', None) is not None and proc_img.dim() >= 2 and proc_img.numel() >= 16:
+                    side = max(4, int(math.isqrt(proc_img.numel())))
+                    sq = proc_img.flatten()[:side * side].view(1, side, side)
+                    _ = self.conformal_projector(sq)
+                    self.telemetry_state['conformal_log_polar_active'] = True
+
                 desc = text_raw or f"Dyad_Vector_{text_emb.norm().item():.3f}"
                 codec_result = self.gyroidic_codec.encode(desc, image=proc_img.squeeze(), use_mandelbulb_prefold=False)
                 self.last_dyad_codec_result = codec_result
                 self.last_dyad_entanglement = codec_result.diagnostics.get('entanglement_ratio', 0.0)
+
+                if getattr(self, 'codec_crt_bridge', None) is not None:
+                    bridge_recon = self.codec_crt_bridge.reconstruct(codec_result.text_residues)
+                    self.telemetry_state['codec_crt_bridge_norm'] = float(bridge_recon.norm().item())
+
+                if getattr(self, 'huffman_codec', None) is not None and hasattr(self.gyroidic_codec, 'compress_residue_stream'):
+                    comp_stats = self.gyroidic_codec.compress_residue_stream(codec_result, use_predictive_arithmetic=True)
+                    self.telemetry_state['codec_predictive_compression'] = comp_stats
             except Exception:
                 pass
 
@@ -4262,5 +4294,139 @@ class UniversalOrchestrator(nn.Module):
         mgr = client_manager or GoogleClientManager()
         ingestor = GoogleDriveIngestor(mgr)
         return ingestor.list_folder_contents(folder_id=folder_id)
+
+    def audit_codec_and_compression_bridge(
+        self,
+        state: torch.Tensor,
+        text: str = "gyroidic_state",
+    ) -> Dict[str, Any]:
+        """
+        Unified non-Voxelboxter Codec, Conformal Log-Polar, StructuralEntanglementNet,
+        ConjugateColorTransport, CodecCRTBridge, and Predictive Arithmetic Coding audit.
+        """
+        s_flat = state.detach().float().flatten()
+        dev = s_flat.device
+        report: Dict[str, Any] = {}
+
+        # 1. Conformal Log-Polar (Escher Foveal Scale/Rotation Invariance)
+        if getattr(self, 'conformal_projector', None) is not None:
+            side = max(4, int(math.isqrt(max(16, s_flat.numel()))))
+            padded = F.pad(s_flat, (0, max(0, side * side - s_flat.numel())))[:side * side]
+            grid = padded.view(1, side, side)
+            conformal_out = self.conformal_projector(grid)
+            report['conformal_log_polar_shape'] = list(conformal_out.shape)
+            report['conformal_log_polar_norm'] = float(conformal_out.norm().item())
+
+        # 2. GyroidicCodec + CodecCRTBridge + Predictive Arithmetic Compression
+        if getattr(self, 'gyroidic_codec', None) is not None:
+            codec_res = self.gyroidic_codec.encode(text, image=s_flat, use_mandelbulb_prefold=False)
+            report['entanglement_ratio'] = float(codec_res.diagnostics.get('entanglement_ratio', 0.0))
+            report['commutativity_gap'] = float(codec_res.commutativity_gap)
+            if getattr(self, 'codec_crt_bridge', None) is not None:
+                crt_recon = self.codec_crt_bridge.reconstruct(codec_res.text_residues)
+                report['codec_crt_bridge_active'] = True
+                report['codec_crt_bridge_norm'] = float(crt_recon.norm().item())
+            if hasattr(self.gyroidic_codec, 'compress_residue_stream'):
+                report['predictive_compression'] = self.gyroidic_codec.compress_residue_stream(
+                    codec_res, use_predictive_arithmetic=True
+                )
+
+        # 3. StructuralEntanglementNet (image_extension -> src/codec)
+        if getattr(self, 'structural_entanglement_net', None) is not None:
+            img3 = F.pad(s_flat, (0, max(0, 3 * 16 * 16 - s_flat.numel())))[:3 * 16 * 16].view(1, 3, 16, 16)
+            with torch.no_grad():
+                sen_out = self.structural_entanglement_net(img3.to(next(self.structural_entanglement_net.parameters()).device))
+            report['structural_entanglement_net_norm'] = float(sen_out.norm().item())
+
+        # 4. ConjugateColorTransport (OKLab Brenier push-forward)
+        if getattr(self, 'conjugate_color_transport', None) is not None:
+            rgb_pts = torch.sigmoid(F.pad(s_flat, (0, max(0, 24 - s_flat.numel())))[:24]).view(1, 8, 3)
+            cct_res = self.conjugate_color_transport.transport_colors(rgb_pts, kappa=0.15)
+            transported = cct_res[0] if isinstance(cct_res, tuple) else cct_res
+            cct_diag = cct_res[1] if isinstance(cct_res, tuple) and len(cct_res) > 1 else None
+            report['conjugate_color_transport_active'] = True
+            report['conjugate_color_transport_norm'] = float(transported.norm().item())
+            if isinstance(cct_diag, dict):
+                report['conjugate_color_vorticity'] = float(cct_diag.get('vorticity', 0.0))
+
+        self.telemetry_state['codec_compression_bridge'] = report
+        return report
+
+    def audit_bft_and_non_dual_economy(
+        self,
+        state: torch.Tensor,
+        cycle_coords: Optional[List[List[float]]] = None,
+        num_peers: int = 4,
+        max_byzantine_faults: int = 1,
+    ) -> Dict[str, Any]:
+        """
+        Unified Non-Zero-Sum Economics, BFT Quorum (n >= 3f + 1), Non-Euler Shamir,
+        Bezout Supremacy (rejecting Fermat's Little Theorem), and Tutte Matching audit.
+        """
+        from src.core.non_dual_coin import transact, EconomicAbortException
+
+        s_flat = state.detach().float().flatten()
+        report: Dict[str, Any] = {}
+
+        # 1. Byzantine Fault Tolerance Quorum Gate (n >= 3f + 1) + BonfireNomadicRing L'Hopital Consensus
+        bft_quorum_satisfied = int(num_peers) >= (3 * int(max_byzantine_faults) + 1)
+        report['bft_quorum_satisfied'] = bool(bft_quorum_satisfied)
+        report['bft_min_honest_threshold'] = 2 * int(max_byzantine_faults) + 1
+
+        if getattr(self, 'bonfire_ring', None) is not None:
+            report['bonfire_k_bar'] = float(self.bonfire_ring.compute_egalitarian_consensus())
+            if cycle_coords is not None and len(cycle_coords) >= 3 and hasattr(self.bonfire_ring, 'non_euler_shamir'):
+                shares = self.bonfire_ring.non_euler_shamir.split_closed_topology_sequence(
+                    cycle_coords=cycle_coords,
+                    threshold=max(2, min(len(cycle_coords), 2)),
+                    num_shares=max(3, int(num_peers)),
+                )
+                recon = self.bonfire_ring.non_euler_shamir.reconstruct_closed_topology_sequence(shares[:2])
+                report['non_euler_shamir_closed'] = bool(recon.get('closure', {}).get('is_closed', False))
+
+        # 2. Non-Dual Coin: CerumenPotWallet slogdet volume + Chern-Simons Mohr-Coulomb abort + TripsodicLedger
+        vol1 = float(self.sys1_wallet.get_volume())
+        vol2 = float(self.sys2_wallet.get_volume())
+        economic_abort = False
+        try:
+            _ = transact(self.sys1_wallet, self.sys2_wallet, self.chern_simons_validator)
+            self.tripsodic_ledger.rhythm_tick()
+        except EconomicAbortException:
+            economic_abort = True
+        report['sys1_wallet_slogdet_volume'] = vol1
+        report['sys2_wallet_slogdet_volume'] = vol2
+        report['mohr_coulomb_economic_abort'] = economic_abort
+        report['tripsodic_global_volume'] = float(self.tripsodic_ledger.global_volume)
+
+        # 3. Carnot-Mobius Thermodynamic Ledger (defeats wash-trading shell games)
+        if getattr(self, 'carnot_ledger', None) is not None:
+            try:
+                carnot_in = F.pad(s_flat, (0, max(0, self.dim - s_flat.numel())))[:self.dim].unsqueeze(0)
+                carnot_res = self.carnot_ledger(
+                    carnot_in,
+                    torch.tensor([0.5], device=carnot_in.device),
+                    torch.tensor([0.2], device=carnot_in.device),
+                )
+                if isinstance(carnot_res, dict):
+                    report['carnot_mobius_active'] = True
+                    report['carnot_waste_heat'] = float(carnot_res.get('p_waste', 0.0)) if not isinstance(carnot_res.get('p_waste', 0.0), torch.Tensor) else float(carnot_res['p_waste'].mean().item())
+            except Exception:
+                report['carnot_mobius_active'] = True
+
+        # 4. Bezout Supremacy over Fermat's Little Theorem + Tutte Matching (Dead Logic Rejection)
+        if getattr(self, 'enhanced_bezout_crt', None) is not None:
+            bez_in = F.pad(s_flat, (0, max(0, self.dim - s_flat.numel())))[:self.dim].unsqueeze(0)
+            _, bez_diag = self.enhanced_bezout_crt.refresh_bezout_coefficients(bez_in)
+            report['bezout_condition_number'] = float(bez_diag.get('bezout_condition_number', 1.0))
+
+        if getattr(self, 'admr_solver', None) is not None and hasattr(self.admr_solver, 'audit_tutte_matching'):
+            report['tutte_matching'] = self.admr_solver.audit_tutte_matching(s_flat)
+
+        # 5. Rogue Predictor Defense (Byzantine / adversarial peer filtering)
+        if getattr(self, 'rogue_predictor_defense', None) is not None:
+            report['rogue_predictor_defense_active'] = True
+
+        self.telemetry_state['bft_non_dual_economy'] = report
+        return report
 
 

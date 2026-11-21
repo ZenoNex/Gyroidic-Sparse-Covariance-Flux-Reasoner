@@ -52,11 +52,14 @@ class NonCommutativityCurvature(nn.Module):
         """
         if A.dim() == 2 and B.dim() == 2 and A.shape == B.shape and A.shape[-1] >= 8:
             try:
-                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-                if not hasattr(self, "_silicon_engine"):
-                    self._silicon_engine = SiliconSovereigntyEngine()
-                comm, _ = self._silicon_engine.compute_noncommutativity_commutator(A, B)
-                return comm
+                from src.core.hardware_monitor import should_offload_gpu_sovereign
+                gpu_ok, _ = should_offload_gpu_sovereign(dim=A.shape[-1], min_dim=8)
+                if gpu_ok:
+                    from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+                    if not hasattr(self, "_silicon_engine"):
+                        self._silicon_engine = SiliconSovereigntyEngine()
+                    comm, _ = self._silicon_engine.compute_noncommutativity_commutator(A, B)
+                    return comm
             except Exception:
                 pass
         return torch.matmul(A, B) - torch.matmul(B, A)

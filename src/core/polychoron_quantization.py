@@ -78,11 +78,14 @@ class Polychoron600Quantizer(nn.Module):
         orig_shape = x.shape
         x_flat = x.view(-1, 4)
         try:
-            from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
-            if not hasattr(self, "_silicon_engine"):
-                self._silicon_engine = SiliconSovereigntyEngine()
-            quantized, _ = self._silicon_engine.quantize_600_cell_vertices(x_flat, self.vertices)
-            return quantized.view(orig_shape)
+            from src.core.hardware_monitor import should_offload_gpu_sovereign
+            gpu_ok, _ = should_offload_gpu_sovereign(dim=x_flat.shape[0], min_dim=4)
+            if gpu_ok:
+                from src.core.pyopencl_sovereignty import SiliconSovereigntyEngine
+                if not hasattr(self, "_silicon_engine"):
+                    self._silicon_engine = SiliconSovereigntyEngine()
+                quantized, _ = self._silicon_engine.quantize_600_cell_vertices(x_flat, self.vertices)
+                return quantized.view(orig_shape)
         except Exception:
             pass
         dist = torch.cdist(x_flat, self.vertices.to(device=x.device, dtype=x.dtype))

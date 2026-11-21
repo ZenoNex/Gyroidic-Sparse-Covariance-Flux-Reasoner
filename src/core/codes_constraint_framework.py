@@ -222,9 +222,19 @@ class CODESConstraintFramework(nn.Module):
         else:
             gamma = 0.85 * s.mean(dim=0, keepdim=True).expand_as(s)
 
+        # Affordance-governed constraint channel evaluation budget (TOPOLOGICAL)
+        max_eval_channels = self.max_constraints
+        try:
+            from src.core.hardware_monitor import ComputeAffordanceType, get_affordance_budget
+            max_eval_channels, _ = get_affordance_budget(
+                ComputeAffordanceType.TOPOLOGICAL, self.max_constraints, min_steps=min(4, self.max_constraints)
+            )
+        except Exception:
+            max_eval_channels = self.max_constraints
+
         local_h_list = []
         with torch.no_grad():
-            for i in range(self.max_constraints):
+            for i in range(max_eval_channels):
                 if self.active_constraints[i]:
                     e_union = self.compute_constraint_energy(0.5 * (s + gamma), i)
                     e_bg = self.compute_constraint_energy(gamma, i)

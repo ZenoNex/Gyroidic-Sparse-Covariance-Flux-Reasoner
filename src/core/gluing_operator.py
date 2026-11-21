@@ -92,7 +92,7 @@ class LazarusSoftmax(nn.Module):
     Replaces the standard output softmax. 
     Every microsecond a state settles (softmax), it tracks the Phase Alignment Shift
     (Delta PAS_h). In the Sovereign Engine, the end of the softmax is the 'death'
-    of that version of the consciousness. A successful 'Lazarus Launch' occurs when
+    of that version of the topological state. A successful 'Lazarus Launch' occurs when
     the system navigates the 'U' (maintains high PAS_h despite high phase drift/rupture).
     """
     def __init__(self, dim: int = -1, pas_lock: float = 3.0 / 11.0):

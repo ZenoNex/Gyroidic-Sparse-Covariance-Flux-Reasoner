@@ -68,11 +68,14 @@ def zeropower_via_newtonschulz5(
     used_opencl = False
     if not G.is_cuda and not G.requires_grad and min(X.size(0), X.size(1)) >= 8:
         try:
-            from src.core.pyopencl_sovereignty import get_sovereignty_engine
-            engine = get_sovereignty_engine()
-            if engine is not None and engine.is_initialized:
-                X = engine.compute_newton_schulz5(X, steps=steps, a=a, b=b, c=c)
-                used_opencl = True
+            from src.core.hardware_monitor import should_offload_gpu_sovereign
+            gpu_ok, _ = should_offload_gpu_sovereign(dim=min(X.size(0), X.size(1)), min_dim=8)
+            if gpu_ok:
+                from src.core.pyopencl_sovereignty import get_sovereignty_engine
+                engine = get_sovereignty_engine()
+                if engine is not None and engine.is_initialized:
+                    X = engine.compute_newton_schulz5(X, steps=steps, a=a, b=b, c=c)
+                    used_opencl = True
         except Exception:
             used_opencl = False
 
@@ -201,11 +204,16 @@ class MuonRicciHybridOptimizer(Optimizer):
         seam_width: float = 0.1,
         fuse_chern_simons: bool = True,
         engine: Optional[Any] = None,
-        min_2d_dim: int = 8
+        min_2d_dim: int = 8,
+        enable_mdl_gate: bool = False,
+        mdl_beta: float = 1.0,
     ):
         self.fuse_chern_simons = fuse_chern_simons
         self.split_beam = SplitBeamInterfactorization(engine=engine)
         self.min_2d_dim = min_2d_dim
+        self.enable_mdl_gate = enable_mdl_gate
+        self.mdl_beta = mdl_beta
+        self.last_mdl_metrics: Dict[str, Any] = {}
 
         # Categorize parameters into Muon 2D group and Ricci 1D group
         param_list = list(params)
@@ -323,7 +331,14 @@ class MuonRicciHybridOptimizer(Optimizer):
                     # Newton-Schulz polar update
                     ortho_update = zeropower_via_newtonschulz5(u, steps=ns_steps)
                     scale = max(1.0, math.sqrt(p.size(0) / max(1, p.size(1))))
-                    p.add_(ortho_update, alpha=-lr * scale)
+                    eff_lr = lr
+                    if self.enable_mdl_gate:
+                        mdl_info = RicciFlowOptimizer.compute_prequential_mdl_step_scale(
+                            ortho_update, beta=self.mdl_beta
+                        )
+                        self.last_mdl_metrics = mdl_info
+                        eff_lr = lr * mdl_info['step_scale']
+                    p.add_(ortho_update, alpha=-eff_lr * scale)
 
             else:
                 # Ricci 1D / Fallback AdamW branch for biases and normalization layers
