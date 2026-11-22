@@ -2486,6 +2486,25 @@ WORLDGEN_PRESETS: Dict[str, Dict[str, Any]] = {
             "bone_ratio": 0.78,
         },
     },
+    "limit_world_coxeter_fractal": {
+        "id": "limit_world_coxeter_fractal",
+        "name": "Limit World Coxeter {3,3,7} Fractal",
+        "tagline": "Hyperbolic Coxeter reflection fundamental domains with Blaschke conformal folds",
+        "description": (
+            "Inspired by LightHorus Limit Worlds: folds 3D voxel coordinates through hyperbolic "
+            "{3,3,7} Coxeter reflection planes and sphere inversions to carve isolated fractal limit-set chambers."
+        ),
+        "tags": ["coxeter", "limit_world", "hyperbolic", "fractal_isolation"],
+        "default_params": {
+            "world_radius": 10,
+            "frequency": 0.42,
+            "amplitude": 1.25,
+            "density_threshold": 0.32,
+            "vein_abundance": 0.35,
+            "life_activity": 0.50,
+            "bone_ratio": 0.80,
+        },
+    },
 }
 
 
@@ -2633,6 +2652,40 @@ class VoxelboxterWorldGenerator:
             solid = abs(spiral + 0.5 * terrace) <= (cfg.density_threshold * 1.35)
             mat_id = 9 if spiral >= 0 else 10
             return solid, mat_id, ["conformal", "escher", "log_polar"]
+
+        if preset == "limit_world_coxeter_fractal":
+            # Hyperbolic Coxeter {3,3,7} fundamental-domain reflection + sphere inversion
+            sx, sy, sz = (x * f + px * 0.1), (y * f + py * 0.1), (z * f + pz * 0.1)
+            cp = math.cos(math.pi / 3.0)
+            sp = math.sin(math.pi / 3.0)
+            R = 1.0 / math.cos(math.pi / 7.0)
+            k_c = R * cp / sp
+            r2_inv = R * R
+            refl = 0
+            for _ in range(8):
+                if sx < 0.0:
+                    sx = -sx
+                    refl += 1
+                dot_b = -cp * sx + sp * sy
+                if dot_b < 0.0:
+                    sx -= 2.0 * dot_b * (-cp)
+                    sy -= 2.0 * dot_b * sp
+                    refl += 1
+                if sz < 0.0:
+                    sz = -sz
+                    refl += 1
+                qy = sy - k_c
+                d2 = sx * sx + qy * qy + sz * sz + 1e-6
+                if r2_inv > d2:
+                    fac = r2_inv / d2
+                    sx *= fac
+                    sy = qy * fac + k_c
+                    sz *= fac
+                    refl += 1
+            dist_shell = abs(math.sqrt(sx * sx + sy * sy + sz * sz) - 1.0 * amp)
+            solid = dist_shell <= (cfg.density_threshold * 1.45) or (refl >= 6 and dist_shell <= cfg.density_threshold * 2.2)
+            mat_id = 11 if refl % 2 == 0 else 12
+            return solid, mat_id, ["coxeter", "limit_world", "fractal_isolation"]
 
         return False, 1, ["voxelboxter"]
 

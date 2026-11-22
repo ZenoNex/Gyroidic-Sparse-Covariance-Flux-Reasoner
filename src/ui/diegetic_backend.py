@@ -1851,8 +1851,12 @@ class DiegeticPhysicsEngine(nn.Module):
             # 1. Toplogical Seal Check (Chern-Simons Gasket)
             honesty = 1.0 / (1.0 + avg_loss_val)
             kappa = 1.0
-            if hasattr(self, 'chern_simons_gasket') and hasattr(self.chern_simons_gasket, 'kappa'):
-                kappa = self.chern_simons_gasket.kappa.item() if isinstance(self.chern_simons_gasket.kappa, torch.Tensor) else self.chern_simons_gasket.kappa
+            if hasattr(self, 'chern_simons_gasket') and self.chern_simons_gasket is not None:
+                raw_k = getattr(self.chern_simons_gasket, 'kappa', None)
+                if raw_k is not None:
+                    kappa = float(raw_k.item()) if isinstance(raw_k, torch.Tensor) else float(raw_k)
+                else:
+                    kappa = float(getattr(self.chern_simons_gasket, 'level_k', 1.0) or 1.0)
             seal = math.tanh(honesty * kappa)
             if abs(seal) < 1e-4:
                 # Logic leak detected: seal fails, refuse update
@@ -6156,8 +6160,12 @@ class DiegeticPhysicsEngine(nn.Module):
             # 2. Chern-Simons Gasket topological seal check
             honesty = 1.0 / (1.0 + max(0.0, total_loss_val))
             kappa = 1.0
-            if hasattr(self, 'chern_simons_gasket') and hasattr(self.chern_simons_gasket, 'kappa'):
-                kappa = self.chern_simons_gasket.kappa.item() if isinstance(self.chern_simons_gasket.kappa, torch.Tensor) else float(self.chern_simons_gasket.kappa)
+            if hasattr(self, 'chern_simons_gasket') and self.chern_simons_gasket is not None:
+                raw_k = getattr(self.chern_simons_gasket, 'kappa', None)
+                if raw_k is not None:
+                    kappa = float(raw_k.item()) if isinstance(raw_k, torch.Tensor) else float(raw_k)
+                else:
+                    kappa = float(getattr(self.chern_simons_gasket, 'level_k', 1.0) or 1.0)
             seal = math.tanh(honesty * kappa)
             if abs(seal) < 1e-4:
                 self.optimizer.zero_grad()

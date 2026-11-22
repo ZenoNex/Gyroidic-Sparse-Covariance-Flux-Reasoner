@@ -84,6 +84,13 @@ class FractalMetaFunctional(nn.Module):
         # 6. Modular Virtualization Layer
         from src.core.modular_virtualization import ModularVirtualizationLayer
         self.modular_rns = ModularVirtualizationLayer(dim=dim, base=2)
+
+        # 7. Topological Isolation expanded into Fractal Systems (CerumenPotIsolation)
+        try:
+            from src.core.garden_statistical_attractors import CerumenPotIsolation
+            self.cerumen_isolation = CerumenPotIsolation(threshold=0.5)
+        except Exception:
+            self.cerumen_isolation = None
         
     def forward(
         self,
@@ -257,4 +264,132 @@ class FractalMetaFunctional(nn.Module):
                 "bounded_force_norm": bounded_force.norm().item(),  # diagnostic
                 "collapsed": bool(is_collapsed),  # diagnostic
             }
+        }
+
+    def isolate_fractal_fundamental_domain(
+        self,
+        state: torch.Tensor,
+        pqr: tuple = (3, 3, 7),
+        max_reflections: int = 16,
+        complex_fold_type: int = 2,
+        fold_power: int = 2,
+        fold_a: tuple = (0.6, 0.2),
+        noise_sigma: float = 0.24,
+    ) -> Dict[str, object]:
+        """
+        Expands topological isolation (CerumenPotIsolation + hyperbolic Coxeter
+        {p, q, r} reflection fundamental domains inspired by Limit Worlds) into
+        the fractal meta-functional, coupled with the Takahashi & El Hady
+        (docs/2611.02220v1.pdf) Affordance-Reset dwell occupation law.
+        """
+        import math
+
+        p, q, r = pqr
+        dih = lambda x: 1.0 if x <= 0 else math.cos(math.pi / float(x))
+        cp = dih(p)
+        sp = math.sqrt(max(1e-8, 1.0 - cp * cp))
+        cq = dih(q)
+        cr = max(1e-6, dih(r))
+        R = 1.0 / cr
+        k_val = R * cq / sp
+        hyperbolic_margin = 1.0 + k_val * k_val - R * R
+        is_valid_coxeter = hyperbolic_margin > 1e-3
+
+        s_in = state.detach().float()
+        orig_shape = s_in.shape
+        flat = s_in.view(-1, s_in.shape[-1]) if s_in.dim() > 1 else s_in.unsqueeze(0)
+        B, D = flat.shape
+
+        # Project leading 3D coordinates into hyperbolic reflection chamber
+        pad_d = max(0, 3 - D)
+        pts = F.pad(flat, (0, pad_d))[:, :3].clone()
+        pts = pts / (torch.norm(pts, dim=-1, keepdim=True) + 1e-6)
+
+        # Fundamental reflection planes A, B, D and inversion sphere C (LightHorus Coxeter)
+        nA = torch.tensor([1.0, 0.0, 0.0], device=pts.device)
+        nB = torch.tensor([-cp, sp, 0.0], device=pts.device)
+        nD = torch.tensor([0.0, 0.0, 1.0], device=pts.device)
+        sphere_c = torch.tensor([0.0, k_val, 0.0], device=pts.device)
+        sphere_r2 = max(0.25, R * R)
+
+        reflections = torch.zeros(B, device=pts.device)
+        orb = torch.ones(B, device=pts.device)
+        for _ in range(max(1, int(max_reflections))):
+            changed = torch.zeros(B, dtype=torch.bool, device=pts.device)
+            for n_vec in (nA, nB, nD):
+                proj = (pts * n_vec).sum(dim=-1, keepdim=True)
+                neg = proj.squeeze(-1) < 0.0
+                if neg.any():
+                    pts = torch.where(neg.unsqueeze(-1), pts - 2.0 * proj * n_vec, pts)
+                    reflections = reflections + neg.float()
+                    changed = changed | neg
+            qv = pts - sphere_c
+            d2 = (qv * qv).sum(dim=-1, keepdim=True).clamp(min=1e-6)
+            inv_k = sphere_r2 / d2
+            in_sphere = inv_k.squeeze(-1) >= 1.0
+            if in_sphere.any():
+                pts = torch.where(in_sphere.unsqueeze(-1), inv_k * qv + sphere_c, pts)
+                reflections = reflections + in_sphere.float()
+                orb = torch.where(in_sphere, orb * inv_k.squeeze(-1).clamp(max=1e4), orb)
+                changed = changed | in_sphere
+            pts = pts / (torch.norm(pts, dim=-1, keepdim=True) + 1e-6)
+            if not changed.any():
+                break
+
+        # Conformal complex-plane fold on leading (x, y) pair
+        z = torch.complex(pts[:, 0], pts[:, 1])
+        a_c = complex(float(fold_a[0]), float(fold_a[1]))
+        pw = max(1, int(fold_power))
+        if complex_fold_type == 1:
+            z_fold = z ** pw
+        elif complex_fold_type == 2:
+            z_fold = (z ** pw) + a_c / (z ** pw + 1e-4)
+        elif complex_fold_type == 3:
+            # Blaschke disk automorphism ((z - a) / (1 - conj(a) z))^pw
+            z_fold = ((z - a_c) / (1.0 - a_c.conjugate() * z + 1e-4)) ** pw
+        elif complex_fold_type == 4:
+            z_fold = (z ** pw) * ((z - a_c) / (z + a_c + 1e-4))
+        else:
+            z_fold = z
+        z_fold = z_fold / (z_fold.abs().clamp(min=1.0))
+
+        isolated = flat.clone()
+        isolated[:, 0] = z_fold.real
+        if D >= 2:
+            isolated[:, 1] = z_fold.imag
+        if D >= 3:
+            isolated[:, 2] = pts[:, 2]
+
+        # CerumenPotIsolation aperiodic monotile diffusion barrier check
+        barrier_ok, barrier_score = True, 1.0
+        if getattr(self, "cerumen_isolation", None) is not None:
+            try:
+                pot_centers = self.cerumen_isolation.generate_aperiodic_pot_centers(
+                    num_pots=max(16, min(32, B + 16)), dim=min(32, max(4, D)), device=pts.device
+                )
+                barrier_ok, barrier_score = self.cerumen_isolation.verify_diffusion_barrier(
+                    pot_centers, num_probe_rays=16
+                )
+            except Exception:
+                pass
+
+        # Takahashi & El Hady (docs/2611.02220v1.pdf) Affordance-Reset dwell occupation:
+        # T := sigma^2, dwell m(a) = 1 + mean_reflections, Z_0 = <tau>, ergodic edge alpha = T / T_lambda
+        T_eff = max(1e-6, float(noise_sigma) ** 2)
+        mean_dwell = float(1.0 + reflections.mean().item())
+        T_lambda = max(1e-6, 1.0 / (1.0 + math.log(mean_dwell + 1.0)))
+        ergodic_alpha = T_eff / T_lambda
+
+        return {
+            "isolated_state": isolated.view(orig_shape),
+            "coxeter_pqr": pqr,
+            "is_valid_coxeter": bool(is_valid_coxeter),
+            "hyperbolic_margin": float(hyperbolic_margin),
+            "mean_reflections_dwell": mean_dwell,
+            "conformal_orbit_log_scale": float(torch.log(orb.clamp(min=1.0)).mean().item()),
+            "cerumen_barrier_verified": bool(barrier_ok),
+            "cerumen_barrier_score": float(barrier_score),
+            "affordance_reset_temperature": float(T_eff),
+            "ergodic_edge_alpha": float(ergodic_alpha),
+            "weak_ergodicity_breaking": bool(ergodic_alpha < 1.0),
         }

@@ -4580,6 +4580,18 @@ class UniversalOrchestrator(nn.Module):
             except Exception:
                 report["soliton_healer_active"] = False
 
+        # 4d. Fractal Fundamental-Domain Isolation (LightHorus Coxeter {3,3,7} + CerumenPot + Affordance-Reset Dwell)
+        if getattr(self, "fractal_meta_functional", None) is not None and hasattr(
+            self.fractal_meta_functional, "isolate_fractal_fundamental_domain"
+        ):
+            try:
+                fi = self.fractal_meta_functional.isolate_fractal_fundamental_domain(s_in)
+                report["fractal_isolation"] = {
+                    k: v for k, v in fi.items() if k != "isolated_state"
+                }
+            except Exception as e:
+                report["fractal_isolation_error"] = str(e)
+
         self.telemetry_state["domain_transversality_survival"] = report
         return report
 

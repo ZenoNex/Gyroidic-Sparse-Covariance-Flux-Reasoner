@@ -1098,6 +1098,9 @@ class DyadFossilizer:
                             del self._fossil_memory_cache[oldest_k]
                         self._fossil_memory_cache[f] = data
                 else:
+                    # Never delete sovereign non-dyad system snapshots (e.g. soliton_smith.pt)
+                    if f in ("soliton_smith.pt", "neglecton_snapshot.pt", "gyroid_state.pt") or not str(f).startswith("encoding_"):
+                        continue
                     print(f"[RECOVERY] Deleting invalid fossil (missing residue_vector): {f}")
                     self._delete_fossil(f, save_index=True)
             except Exception as e:

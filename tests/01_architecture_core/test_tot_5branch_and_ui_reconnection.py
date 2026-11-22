@@ -777,6 +777,20 @@ def test_domain_transversality_on3_amelioration_and_survival_systems(tmp_path):
     assert surv_rep["survival_lattice_triggered"] is True
     assert surv_rep["utc_has_video_dyad_atoms"] is True
     assert "affordance_gauge_transform" in surv_rep
+    assert "fractal_isolation" in surv_rep
+    assert surv_rep["fractal_isolation"]["is_valid_coxeter"] is True
+    assert isinstance(surv_rep["fractal_isolation"]["cerumen_barrier_verified"], bool)
+    assert surv_rep["fractal_isolation"]["cerumen_barrier_score"] >= 0.0
+    assert surv_rep["fractal_isolation"]["ergodic_edge_alpha"] > 0.0
+
+    # 6. Limit Worlds Coxeter {3,3,7} Fractal Preset in VoxelboxterEngine
+    from src.ui.voxelboxter_simulation import VoxelboxterEngine, WorldGenConfig, WORLDGEN_PRESETS
+    assert "limit_world_coxeter_fractal" in WORLDGEN_PRESETS
+    vb_lw = VoxelboxterEngine()
+    lw_summary = vb_lw.generate_world(
+        WorldGenConfig.from_dict({"preset": "limit_world_coxeter_fractal", "seed": 7919, "world_radius": 4})
+    )
+    assert lw_summary.get("block_count", 0) > 0
 
 
 def test_compute_affordance_budget_and_cross_class_gating():

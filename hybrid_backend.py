@@ -1688,9 +1688,9 @@ class HybridAI:
                             self.engine.speculative_homology.homology_gaps = codes_state['speculative_homology']['homology_gaps']
                             
                     if 'chern_simons_gasket' in codes_state and hasattr(self.engine, 'chern_simons_gasket') and self.engine.chern_simons_gasket:
-                        if 'kappa' in codes_state['chern_simons_gasket']:
+                        if codes_state['chern_simons_gasket'].get('kappa') is not None:
                             self.engine.chern_simons_gasket.kappa = codes_state['chern_simons_gasket']['kappa']
-                        if 'curvature_history' in codes_state['chern_simons_gasket']:
+                        if codes_state['chern_simons_gasket'].get('curvature_history') is not None:
                             self.engine.chern_simons_gasket.curvature_history = codes_state['chern_simons_gasket']['curvature_history']
                             
                     if 'love_protector' in codes_state and hasattr(self.engine, 'love_protector') and self.engine.love_protector:
