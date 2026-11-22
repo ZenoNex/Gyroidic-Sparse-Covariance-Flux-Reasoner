@@ -1065,6 +1065,15 @@ class HybridAI:
             from src.ui.diegetic_backend import DiegeticPhysicsEngine
             # Initialize with compatible dimension (256 matches hybrid state)
             self.engine = DiegeticPhysicsEngine(dim=256, device=self.torch_device, config=config)
+            if hasattr(self, 'orchestrator') and self.orchestrator is not None:
+                self.engine.orchestrator = self.orchestrator
+            # Restore persisted Larynx/manifold weights when a saved state exists
+            try:
+                import src.ui.diegetic_backend as _db_mod
+                if os.path.exists(getattr(_db_mod, 'STATE_PATH', '')):
+                    self.engine.load_state()
+            except Exception as _load_err:
+                print(f"[WARN] Non-fatal Diegetic state restore skipped: {_load_err}")
             import src.ui.diegetic_backend
             src.ui.diegetic_backend.ENGINE = self.engine
             print("[OK] Diegetic Physics Engine attached (CALM/KAGH/FGRT/Larynx Active)")
@@ -1079,6 +1088,19 @@ class HybridAI:
             self.tail_slayer_image_gen = getattr(self.engine, 'tail_slayer_image_gen', None) or TailSlayerImageGenerator(engine=sov_engine)
         except Exception:
             self.tail_slayer_image_gen = None
+
+        # Attach SiliconDieImageIngestor (automated expired-patent / free-content filter + structural blueprints)
+        try:
+            from src.data.silicon_die_ingestor import SiliconDieImageIngestor
+            self.silicon_die_ingestor = getattr(self.engine, 'silicon_die_ingestor', None) or SiliconDieImageIngestor(
+                device=str(self.torch_device),
+                graph_manager=getattr(self, 'graph_manager', None),
+                lightweight=True,
+            )
+            if self.silicon_die_ingestor.graph_manager is None and getattr(self, 'graph_manager', None) is not None:
+                self.silicon_die_ingestor.graph_manager = self.graph_manager
+        except Exception:
+            self.silicon_die_ingestor = None
 
         # =========================================================
         # UNICORN SYNTHESIS: MULTIPLEXED SPATIAL, SCIENTIFIC & FINANCIAL FEEDS
@@ -2580,6 +2602,67 @@ class HybridAI:
         self._science_thread = threading.Thread(target=_loop, daemon=True, name="BgScienceThread")
         self._science_thread.start()
 
+    def ingest_silicon_die(
+        self,
+        image_input,
+        metadata: dict,
+        as_of=None,
+        save_fossil: bool = False,
+    ) -> dict:
+        """
+        Ingests an open silicon die image through SiliconDieImageIngestor (enforcing
+        automated expired-patent / SCPA mask-work / free-content license filtering),
+        compiles structural blueprints, mounts into terrain_octree & voxelboxter if available,
+        and registers a verified KnowledgeFossilNode in graph_manager.
+        """
+        if getattr(self, 'silicon_die_ingestor', None) is None:
+            from src.data.silicon_die_ingestor import SiliconDieImageIngestor
+            self.silicon_die_ingestor = SiliconDieImageIngestor(
+                device=str(self.torch_device),
+                graph_manager=getattr(self, 'graph_manager', None),
+                lightweight=True,
+            )
+
+        result = self.silicon_die_ingestor.ingest_die_image(
+            image_input=image_input,
+            metadata=metadata,
+            as_of=as_of,
+            compile_blueprint=True,
+            fossilize=False,
+            register_graph=bool(getattr(self, 'graph_manager', None) is not None),
+        )
+        if not result.get("admissible", False):
+            return result
+
+        bp = result.get("blueprint") or {}
+        if self.engine is not None:
+            if hasattr(self.engine, 'mount_silicon_die_octree'):
+                try:
+                    self.engine.mount_silicon_die_octree(bp)
+                    result.setdefault("connected_subsystems", []).append("diegetic_physics_octree")
+                except Exception:
+                    pass
+            vb = getattr(self.engine, '_voxelboxter_vocal_bridge', None)
+            if vb is not None and hasattr(vb, 'mount_silicon_die_blueprint'):
+                try:
+                    vb.mount_silicon_die_blueprint(bp.get("die_id", "silicon_die"), bp)
+                    result.setdefault("connected_subsystems", []).append("voxelboxter_engine")
+                except Exception:
+                    pass
+
+        if save_fossil and isinstance(bp.get("entangled_state"), torch.Tensor):
+            self._save_fossil(
+                text=f"silicon_die:{bp.get('die_id', 'unknown')}",
+                state=bp["entangled_state"].squeeze(0),
+                metrics={
+                    "public_domain_tags": bp.get("public_domain_tags", []),
+                    "silicon_die_blueprint": True,
+                },
+            )
+            result.setdefault("connected_subsystems", []).append("hybrid_ai_fossil")
+
+        return result
+
     def _save_fossil(self, text: str, state: torch.Tensor, metrics: dict):
         """Persist interaction state as a .pt file for the graph manager."""
         if not self.graph_manager:
@@ -2824,6 +2907,12 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
             
         if parsed_path.path == '/':
             self._serve_terminal_interface()
+        elif parsed_path.path == '/api/silicon_die/repos':
+            from src.data.silicon_die_ingestor import SILICON_DIE_REPOSITORIES
+            self._send_json({
+                "status": "ok",
+                "repositories": SILICON_DIE_REPOSITORIES,
+            })
         elif parsed_path.path in ('/graph', '/api/graph'):
             if AI_SYSTEM and AI_SYSTEM.graph_manager:
                 try:
@@ -3833,10 +3922,10 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     response_text = data.get('response', '')
                     relationship = data.get('relationship', 'definition')
                     
-                    # Process through AI system
+                    # Process through AI system via canonical ASSOCIATE: dyad syntax so
+                    # DiegeticPhysicsEngine._handle_association_learning -> _train_mimicry executes
                     if AI_SYSTEM:
-                        # Create association text for processing
-                        association_text = f"Learning {relationship}: {input_text} relates to {response_text}"
+                        association_text = f"ASSOCIATE: {input_text} <-> {response_text}"
                         result = AI_SYSTEM.process_text(association_text)
                         
                         self._send_json({

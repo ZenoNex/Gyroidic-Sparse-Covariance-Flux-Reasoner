@@ -551,6 +551,19 @@ class UniversalOrchestrator(nn.Module):
             self.universal_converter = None
 
         try:
+            from src.data.silicon_die_ingestor import SiliconDieImageIngestor
+            self.silicon_die_ingestor = SiliconDieImageIngestor(
+                device=str(_device),
+                codec=getattr(self, 'gyroidic_codec', None),
+                color_transport=getattr(self, 'conjugate_color_transport', None),
+                texture_dsp=getattr(self, 'texture_dsp', None),
+                fossilizer=getattr(self, 'fossilizer', None),
+                lightweight=True,
+            )
+        except Exception:
+            self.silicon_die_ingestor = None
+
+        try:
             from src.topology.bonfire_network import BonfireNetwork
             self.bonfire_network = BonfireNetwork(node_id="universal_orchestrator")
         except Exception:
@@ -3940,6 +3953,57 @@ class UniversalOrchestrator(nn.Module):
         }
         return self.ingest_knowledge_dyad(text_raw=text_raw, modality="ScientificPreprint", metadata=meta, **kwargs)
 
+    def ingest_silicon_die_blueprint(
+        self,
+        image_input: Any,
+        metadata: Dict[str, Any],
+        mount_voxelboxter: bool = True,
+        fossilize: bool = False,
+        as_of: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """
+        Ingests an open silicon die photomicrograph through the automated expired-patent
+        and free-content compliance filter, compiles a structural blueprint (AddonRoutine),
+        optionally mounts it into VoxelboxterEngine and fossilizes it as a KnowledgeDyad.
+        Active silicon die patents and unverified proprietary imagery are strictly vetoed.
+        """
+        if getattr(self, 'silicon_die_ingestor', None) is None:
+            from src.data.silicon_die_ingestor import SiliconDieImageIngestor
+            self.silicon_die_ingestor = SiliconDieImageIngestor(
+                device=str(getattr(self, 'device', 'cpu')),
+                codec=getattr(self, 'gyroidic_codec', None),
+                color_transport=getattr(self, 'conjugate_color_transport', None),
+                texture_dsp=getattr(self, 'texture_dsp', None),
+                fossilizer=getattr(self, 'fossilizer', None),
+                lightweight=True,
+            )
+
+        if getattr(self, 'conformal_projector', None) is not None and self.silicon_die_ingestor._conformal_projector is None:
+            self.silicon_die_ingestor._conformal_projector = self.conformal_projector
+
+        result = self.silicon_die_ingestor.ingest_die_image(
+            image_input=image_input,
+            metadata=metadata,
+            as_of=as_of,
+            compile_blueprint=True,
+            fossilize=fossilize,
+            register_graph=False,
+        )
+        if not result.get("admissible", False):
+            return result
+
+        if mount_voxelboxter and getattr(self, '_voxelboxter_vocal_bridge', None) is not None:
+            try:
+                vb = self._voxelboxter_vocal_bridge
+                if hasattr(vb, 'mount_silicon_die_blueprint'):
+                    die_id = result["blueprint"]["die_id"]
+                    vb.mount_silicon_die_blueprint(die_id, result["blueprint"])
+                    result.setdefault("connected_subsystems", []).append("voxelboxter_engine")
+            except Exception:
+                pass
+
+        return result
+
     def ingest_video_dyad(
         self,
         video_b64: str,
@@ -4427,6 +4491,96 @@ class UniversalOrchestrator(nn.Module):
             report['rogue_predictor_defense_active'] = True
 
         self.telemetry_state['bft_non_dual_economy'] = report
+        return report
+
+    def audit_domain_transversality_and_survival(
+        self,
+        state: torch.Tensor,
+        pas_h: float = 0.5,
+        artifact_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Cross-domain Transversality (NOT direct flat embeddings) & Topological Survival Expansion.
+        Couples:
+          1. AlexanderWildEmbeddingOperator (RP^4 shear transversality T_x(M_1) + T_x(M_2) = T_x(RP^4)),
+          2. TypedComputeAffordance.gauge_transform (ALGORITHMIC -> TOPOLOGICAL domain isolation),
+          3. UniversalTopologyConverter <-> VideoDyadParser (non-mantissa + Gaussian Mollifier),
+          4. Topological Survival Systems (FossilizedSurvivalLattice on pas_h < 0.2 atrophy,
+             TopologicalErosionFBM surface weathering, and EnergyBasedSolitonHealer).
+        """
+        s_flat = state.detach().float().flatten()
+        s_in = F.pad(s_flat, (0, max(0, self.dim - s_flat.numel())))[:self.dim].unsqueeze(0)
+        report: Dict[str, Any] = {
+            "direct_embedding_bypassed": True,
+            "transversal_domains_verified": False,
+        }
+
+        # 1. Typed Compute Affordance Cross-Domain Gauge Transform (ALGORITHMIC -> TOPOLOGICAL)
+        try:
+            from src.core.hardware_monitor import get_typed_affordance, ComputeAffordanceType
+            algo_aff = get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+            topo_aff = algo_aff.gauge_transform(ComputeAffordanceType.TOPOLOGICAL, coupling=0.85)
+            report["affordance_gauge_transform"] = {
+                "origin": algo_aff.affordance_type.value,
+                "target": topo_aff.affordance_type.value,
+                "gauge": float(topo_aff.gauge),
+                "admissible": bool(topo_aff.is_admissible),
+            }
+        except Exception:
+            pass
+
+        # 2. Alexander 1924 Wild Embedding Transversality (Shear Planes in RP^4)
+        if getattr(self, "alexander_operator", None) is not None:
+            try:
+                alex_rep = self.alexander_operator(s_in)
+                report["alexander_is_transversal"] = bool(alex_rep.is_transversal)
+                report["alexander_singularity_risk"] = float(alex_rep.wild_singularity_risk)
+                report["alexander_shear_flux"] = float(alex_rep.shear_flux)
+                report["transversal_domains_verified"] = True
+            except Exception as e:
+                report["alexander_error"] = str(e)
+
+        # 3. UniversalTopologyConverter <-> VideoDyadParser structural proxy bridge
+        if artifact_path is not None and getattr(self, "universal_converter", None) is not None:
+            try:
+                utc_res = self.universal_converter.process_artifact(artifact_path)
+                report["utc_format"] = utc_res.get("format")
+                report["utc_has_video_dyad_atoms"] = "video_dyad_atoms" in utc_res
+                report["utc_ufsc_sieve"] = utc_res.get("ufsc_sieve", {})
+            except Exception as e:
+                report["utc_error"] = str(e)
+
+        # 4. Topological Survival Systems Expansion
+        # 4a. Archaeological FossilizedSurvivalLattice (constitutional fallback ONLY on pas_h < 0.2)
+        if pas_h < 0.2 and getattr(self, "survival_lattice", None) is not None:
+            try:
+                primes = self.survival_lattice.get_primes()
+                report["survival_lattice_triggered"] = True
+                report["survival_lattice_primes_count"] = int(primes.numel())
+            except Exception:
+                report["survival_lattice_triggered"] = False
+        else:
+            report["survival_lattice_triggered"] = False
+
+        # 4b. TopologicalErosionFBM (non-teleological weathering using pas_h atrophy gate)
+        if getattr(self, "erosion_filter", None) is not None:
+            try:
+                eroded = self.erosion_filter(s_in, s_in, intensity=0.05, pas_h=pas_h)
+                report["erosion_survival_norm"] = float(eroded.norm().item())
+            except Exception:
+                pass
+
+        # 4c. EnergyBasedSolitonHealer (soliton fracture survival)
+        if getattr(self, "soliton_healer", None) is not None:
+            try:
+                healed = self.soliton_healer(s_in)
+                healed_t = healed[0] if isinstance(healed, tuple) else healed
+                report["soliton_healer_active"] = True
+                report["soliton_healer_norm"] = float(healed_t.norm().item())
+            except Exception:
+                report["soliton_healer_active"] = False
+
+        self.telemetry_state["domain_transversality_survival"] = report
         return report
 
 

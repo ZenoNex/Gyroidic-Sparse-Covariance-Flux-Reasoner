@@ -717,6 +717,68 @@ def test_voxelboxter_worldgen_presets_boot_and_mindmap_ui_contracts():
     assert "mangosteen_fl0w_life" in html
 
 
+def test_domain_transversality_on3_amelioration_and_survival_systems(tmp_path):
+    """
+    Verifies:
+      1. O(N^3) ameliorations (VideoDyadParser 128x128 svd_lowrank, AlexanderWildEmbeddingOperator,
+         PersistentHomologyComputer Union-Find/Euler fallback, JSpacePCAMapper lowrank SVD).
+      2. UniversalTopologyConverter <-> VideoDyadParser reconnection on video bitstreams.
+      3. UniversalOrchestrator.audit_domain_transversality_and_survival (RP^4 transversality +
+         FossilizedSurvivalLattice on pas_h < 0.2 + TopologicalErosionFBM + SolitonHealer).
+    """
+    os.environ["Sovereign_Disable_Background"] = "1"
+    import torch
+    from src.core.video_dyad_parser import VideoDyadParser
+    from src.data.universal_topology_converter import UniversalTopologyConverter
+    from src.topology.persistence_obstruction import PersistentHomologyComputer
+    from src.core.jspace_pca_mapper import JSpacePCAMapper
+    from src.core.orchestrator import UniversalOrchestrator
+
+    # 1. VideoDyadParser O(N^3) amelioration on 128x128 sparse_cov (> 64 triggers svd_lowrank)
+    vdp = VideoDyadParser(chunk_size=128, max_chunks=8, device="cpu")
+    A = torch.randn(128, 16)
+    v_metrics = {
+        "sparse_covariance": A @ A.T + torch.eye(128) * 0.01,
+        "fractal_entropy": torch.tensor(0.7),
+        "substream_residue": torch.zeros(6),
+        "honest_jitter": torch.tensor(0.1),
+        "signal_length": torch.tensor(1024.0),
+        "substream_entropy": torch.tensor(0.5),
+    }
+    sig96 = vdp.extract_96_spectral_signature(v_metrics)
+    assert sig96.shape[-1] == 96 and torch.isfinite(sig96).all()
+
+    # 2. UniversalTopologyConverter <-> VideoDyadParser on .mp4 bitstream
+    fake_mp4 = tmp_path / "sample_dyad.mp4"
+    fake_mp4.write_bytes(b"\x00\x00\x00\x18ftypmp42moovmdatavc1mp4a" + bytes(range(256)) * 4)
+    utc = UniversalTopologyConverter(target_dim=64)
+    utc_res = utc.process_artifact(fake_mp4)
+    assert utc_res["format"] == ".mp4"
+    assert "video_dyad_atoms" in utc_res and utc_res["spectral_tensor"].shape == (1, 64)
+
+    # 3. PersistentHomologyComputer O(N^3) Union-Find/Euler fallback for > 64 vertices
+    ph = PersistentHomologyComputer(max_dimension=1)
+    cpx_large = {0: [(i,) for i in range(70)], 1: [(i, i + 1) for i in range(68)], 2: []}
+    betti = ph.compute_betti_numbers(cpx_large)
+    assert betti[0] == 2 and betti[1] == 0
+
+    # 4. JSpacePCAMapper O(N^3) lowrank SVD path for > 64 dims
+    jmap = JSpacePCAMapper(n_components=4)
+    U = jmap.fit_transform(torch.randn(70, 70), torch.randn(70, 70))
+    assert U.shape[0] == 70 and torch.isfinite(U).all()
+
+    # 5. UniversalOrchestrator Domain Transversality & Topological Survival expansion
+    orch = UniversalOrchestrator(dim=16, device="cpu")
+    surv_rep = orch.audit_domain_transversality_and_survival(
+        torch.randn(16), pas_h=0.1, artifact_path=str(fake_mp4)
+    )
+    assert surv_rep["direct_embedding_bypassed"] is True
+    assert surv_rep["transversal_domains_verified"] is True
+    assert surv_rep["survival_lattice_triggered"] is True
+    assert surv_rep["utc_has_video_dyad_atoms"] is True
+    assert "affordance_gauge_transform" in surv_rep
+
+
 def test_compute_affordance_budget_and_cross_class_gating():
     """Verify typed Compute Affordance scaling and thermal-runaway degradation across classes."""
     import torch
@@ -827,6 +889,304 @@ def test_spliced_prequential_mdl_optimization_and_models():
     assert poly_mdl["data_codelength_bits"] > 0.0
     assert poly_mdl["hutter_total_mdl_bits"] == poly_mdl["decoder_param_bits"] + poly_mdl["data_codelength_bits"]
     assert poly_mdl["surplus_description_length_bits"] >= 0.0
+
+
+def test_train_mimicry_connections_and_diegetic_how_are_you_response():
+    os.environ["Sovereign_Disable_Background"] = "1"
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+    # 1. Verify documentation cross-links for train mimicry
+    doc_checks = [
+        os.path.join(root, 'docs', 'stepping_stairs_tier_0_vestibule', '01_architecture_core', 'MODULE_INVENTORY.md'),
+        os.path.join(root, 'docs', 'stepping_stairs_tier_0_vestibule', '01_architecture_core', 'SYSTEM_ARCHITECTURE.md'),
+        os.path.join(root, 'docs', 'stepping_stairs_tier_0_vestibule', 'stepping_stairs_tier_1_mezzanine', '04_components_and_mechanics', 'DIEGETIC_INTEGRATION.md'),
+        os.path.join(root, 'docs', 'stepping_stairs_tier_0_vestibule', 'stepping_stairs_tier_1_mezzanine', 'stepping_stairs_tier_2_crypt', '05_implementation_and_guides', 'how to make a voynich talk human-walkthrough.md'),
+    ]
+    for doc_path in doc_checks:
+        with open(doc_path, 'r', encoding='utf-8') as f:
+            doc_txt = f.read()
+        assert "_train_mimicry" in doc_txt, f"Missing _train_mimicry reference in {doc_path}"
+        assert "_train_mimicry_step" in doc_txt, f"Missing _train_mimicry_step reference in {doc_path}"
+
+    from hybrid_backend import HybridAI
+    ai = HybridAI(lightweight=True)
+    assert ai.engine is not None, "DiegeticPhysicsEngine must be attached to HybridAI"
+
+    # 2. Verify _train_mimicry_step canonical connections (Voynich seam cuts, TrustVault, Hebbian, JEPA, PROVE DrGRPO, MDL)
+    step_loss = ai.engine._train_mimicry_step("Resonance flows across the gyroid manifold with steady coherence.")
+    assert step_loss is not None and math.isfinite(step_loss)
+    step_tel = getattr(ai.engine, 'last_mimicry_telemetry', {})
+    assert step_tel.get('method') == '_train_mimicry_step'
+    assert step_tel.get('seam_cuts_count', 0) > 0
+    assert step_tel.get('hebbian_updated') is True
+    assert step_tel.get('jepa_energy') is not None
+    assert step_tel.get('prove_executed') is True, "PROVE DrGRPO must execute without curr_state NameError"
+    assert 0.15 <= step_tel.get('trust_damp', 0.0) <= 1.0
+    assert step_tel.get('mdl_codelength_bits') is not None
+
+    # 3. Verify inline _train_mimicry canonical connections
+    seed_vec = ai.engine._text_to_tensor("Manifold harmonics guide legible vocalization.").to(ai.engine.device)
+    ai.engine._train_mimicry(seed_vec, "Manifold harmonics guide legible vocalization.")
+    inline_tel = getattr(ai.engine, 'last_mimicry_telemetry', {})
+    assert inline_tel.get('method') == '_train_mimicry'
+    assert inline_tel.get('seam_cuts_count', 0) > 0
+    assert inline_tel.get('hebbian_updated') is True
+    assert inline_tel.get('jepa_energy') is not None
+    assert 0.15 <= inline_tel.get('trust_damp', 0.0) <= 1.0
+    assert inline_tel.get('mdl_codelength_bits') is not None
+
+    # 4. Verify "how are you doing?" flows cleanly without math/Greek symbol soup or pathological garble
+    res = ai.process_text("PROMPT: how are you doing?")
+    assert "error" not in res, f"Unexpected error: {res}"
+    raw_resp = str(res.get("response", "")).strip()
+    assert len(raw_resp) > 0, "Empty response for 'how are you doing?'"
+    assert all(ord(c) < 128 for c in raw_resp), f"Unprompted non-ASCII math/Greek glyphs in response: {raw_resp!r}"
+    # Check larynx-decoded trace cleanly whether routed through [CONVERGED RESPONSE] or [LAZARUS_DREAM]
+    import re
+    dream_match = re.search(r"audience filter:\s*'([^']+)'", raw_resp)
+    if dream_match:
+        larynx_body = dream_match.group(1).strip()
+    else:
+        larynx_body = raw_resp.split("\n", 1)[1].strip() if "\n" in raw_resp and raw_resp.startswith("[") else raw_resp
+    assert len(larynx_body) >= 12, f"Larynx body too short: {larynx_body!r}"
+    assert set("{}[]\\|^~$#@&*+=<>").isdisjoint(larynx_body), f"Unprompted code/symbol soup in larynx body: {larynx_body!r}"
+    alpha_ratio = sum(1 for c in larynx_body if c.isalpha()) / max(1, len(larynx_body))
+    assert alpha_ratio >= 0.70, f"Low alphabetic density ({alpha_ratio:.2f}) in larynx body: {larynx_body!r}"
+    is_garble, garble_reason = ai.engine.voynich_linguist._is_pathological_garble(larynx_body)
+    assert is_garble is False, f"Pathological garble detected ({garble_reason}): {larynx_body!r}"
+
+    # 5. Also verify direct _generate_converged_response path for "how are you doing?"
+    conv_raw = ai.engine._generate_converged_response(
+        text_input="PROMPT: how are you doing?",
+        seed_state=ai.engine._text_to_tensor("how are you doing?").to(ai.engine.device),
+        fingerprint=None,
+        affordance_gradients={"executability_pressure": 0.05, "conversational_embedding_pressure": 0.4},
+    )
+    conv_body = conv_raw.split("\n", 1)[1].strip() if "\n" in conv_raw else conv_raw.strip()
+    assert len(conv_body) >= 12, f"Converged body too short: {conv_body!r}"
+    assert all(ord(c) < 128 for c in conv_body), f"Non-ASCII glyphs in converged body: {conv_body!r}"
+    assert set("{}[]\\|^~$#@&*+=<>").isdisjoint(conv_body), f"Symbol soup in converged body: {conv_body!r}"
+    conv_alpha = sum(1 for c in conv_body if c.isalpha()) / max(1, len(conv_body))
+    assert conv_alpha >= 0.70, f"Low alphabetic density ({conv_alpha:.2f}) in converged body: {conv_body!r}"
+    conv_garble, conv_reason = ai.engine.voynich_linguist._is_pathological_garble(conv_body)
+    assert conv_garble is False, f"Pathological garble in converged body ({conv_reason}): {conv_body!r}"
+
+
+def test_silicon_die_patent_filter_and_structural_blueprint_connections(tmp_path):
+    """
+    Verifies Silicon Die Image Ingestion with Automated Expired-Patent / Free-Content Filtering:
+      (a) Active patent / NC-ND / ARR / unverified modern die veto vs expired patent
+          (pre-1995 17y grant, post-1995 20y filing, maintenance-fee lapse, SCPA 10y+EOY mask work)
+          and CC-BY / CC0 / TinyTapeout OSHW allow.
+      (b) Structural blueprint generation (conformal log-polar + CRT residues + sparse covariance
+          + AddonRoutine / SiliconDieBlueprintLayer).
+      (c) All 15+ (18) wired connection sites across src/ and hybrid_backend.py.
+    """
+    os.environ["Sovereign_Disable_Background"] = "1"
+    from datetime import date
+    import json
+    from PIL import Image
+    from src.data.silicon_die_ingestor import (
+        SILICON_DIE_REPOSITORIES,
+        SiliconDiePatentFilter,
+        SiliconDieImageIngestor,
+        build_siliconprawn_urls,
+        build_wikimedia_commons_api_url,
+        build_patent_lookup_endpoints,
+    )
+    from src.core.agent_substrate_bridge import AgentSubstrateBridge
+    from src.core.structural_blueprints import AddonRoutine
+    from src.data.universal_topology_converter import UniversalTopologyConverter
+    from src.data.local_dataset_ingestor import LocalDatasetIngestor
+    from src.core.knowledge_dyad_fossilizer import KnowledgeDyadFossilizer
+    from src.topology.embedding_graph import GyroidicGraphManager
+    from src.ui.voxelboxter_simulation import VoxelboxterEngine
+    from src.core.diegetic_physics_engine import DiegeticPhysicsEngine as CoreDiegeticPhysicsEngine
+    from src.core.orchestrator import UniversalOrchestrator
+
+    today = date(2026, 11, 22)
+    pf = SiliconDiePatentFilter()
+
+    # 1. Verify open repository catalog & URL/tile/API builders
+    for key in ("siliconprawn", "zeptobars", "wikimedia_commons", "tinytapeout", "righto", "visual6502", "silicon_zoo", "chipdb"):
+        assert key in SILICON_DIE_REPOSITORIES
+    sp_urls = build_siliconprawn_urls("intel", "4004", layer="top_metal", z=3, x=2, y=1)
+    assert sp_urls["config_url"] == "https://siliconprawn.org/map/intel/4004/config.json"
+    assert sp_urls["tile_url"] == "https://siliconprawn.org/map/intel/4004/3/2/1.jpg"
+    assert "Category%3AIntegrated_circuit_dies" in build_wikimedia_commons_api_url()
+    ep_urls = build_patent_lookup_endpoints("US4764846A")
+    assert "api.uspto.gov" in ep_urls["uspto_odp_search"]
+    assert "ops.epo.org" in ep_urls["epo_ops_inpadoc_legal"]
+
+    # 2. Verify patent ID parsing (US / EP / WO / JP)
+    parsed = pf.parse_patent_ids("Covers US 4,764,846 A, EP1234567B1, WO2020123456A1, and JP2019123456A.")
+    parsed_ids = {p["patent_id"] for p in parsed}
+    assert {"US4764846A", "EP1234567B1", "WO2020123456A1", "JP2019123456A"}.issubset(parsed_ids)
+
+    # 3. STRICT VETO cases: active utility patent, active SCPA mask work, NC/ND license, ARR, bot-wall
+    active_patent_meta = {
+        "repo_id": "siliconprawn",
+        "vendor": "acme",
+        "chipname": "modern_npu_2022",
+        "license": "CC-BY-4.0",
+        "fab_or_release_year": 2022,
+        "patents": [{"patent_id": "US11999999B2", "filing_date": "2020-05-01", "grant_date": "2022-03-01"}],
+    }
+    rep_active = pf.verify_admissibility(active_patent_meta, as_of=today)
+    assert rep_active.admissible is False
+    assert any("active_or_unverified_patent" in r for r in rep_active.veto_reasons)
+
+    nc_nd_meta = {
+        "repo_id": "visual6502",
+        "vendor": "mos",
+        "chipname": "6502",
+        "license": "CC-BY-NC-ND-3.0",
+        "fab_or_release_year": 1975,
+    }
+    rep_nc = pf.verify_admissibility(nc_nd_meta, as_of=today)
+    assert rep_nc.admissible is False
+    assert any("license_veto" in r for r in rep_nc.veto_reasons)
+
+    bot_wall_meta = {
+        "repo_id": "siliconprawn",
+        "vendor": "intel",
+        "chipname": "4004",
+        "license": "CC0-1.0",
+        "fab_or_release_year": 1971,
+        "description": "Access is temporarily restricted. Please verify you are a human.",
+    }
+    rep_wall = pf.verify_admissibility(bot_wall_meta, as_of=today)
+    assert rep_wall.admissible is False
+    assert "restriction_or_bot_wall_detected" in rep_wall.veto_reasons
+
+    # 4. ALLOW cases: expired pre-1995 patent + CC-BY-4.0, maintenance-fee-lapsed patent, and TinyTapeout OSHW
+    expired_die_meta = {
+        "repo_id": "siliconprawn",
+        "vendor": "intel",
+        "chipname": "4004",
+        "license": "CC-BY-4.0",
+        "fab_or_release_year": 1971,
+        "first_commercial_exploitation_date": "1971-11-15",
+        "patents": [
+            {"patent_id": "US3821715A", "filing_date": "1972-03-06", "grant_date": "1974-06-28"},
+            {"patent_id": "US9000001B2", "filing_date": "2012-01-01", "grant_date": "2015-01-01", "unpaid_maintenance_fee_year": 3.5},
+        ],
+    }
+    rep_ok = pf.verify_admissibility(expired_die_meta, as_of=today)
+    assert rep_ok.admissible is True, f"Unexpected veto: {rep_ok.veto_reasons}"
+    assert "silicon_die:intel_4004" in rep_ok.public_domain_tags
+    assert "patent_expired:us3821715a" in rep_ok.public_domain_tags
+    assert "patent_expired:us9000001b2" in rep_ok.public_domain_tags
+    assert "cc-by:cc-by-4.0" in rep_ok.public_domain_tags
+    assert all(AgentSubstrateBridge.is_public_domain_or_structural_tag(t) for t in rep_ok.public_domain_tags)
+
+    oshw_meta = {
+        "repo_id": "tinytapeout",
+        "vendor": "tinytapeout",
+        "chipname": "tt06_alu",
+        "license": "Apache-2.0",
+        "fab_or_release_year": 2024,
+    }
+    rep_oshw = pf.verify_admissibility(oshw_meta, as_of=today)
+    assert rep_oshw.admissible is True, f"OSHW TinyTapeout should pass: {rep_oshw.veto_reasons}"
+
+    # 5. Prepare deterministic synthetic silicon die photomicrograph on disk
+    die_img_path = tmp_path / "intel_4004_die.png"
+    die_meta_path = tmp_path / "intel_4004_die.json"
+    grid = torch.linspace(0.0, 1.0, 64 * 64).reshape(64, 64)
+    rgb = torch.stack([grid, torch.sin(grid * 6.28).abs(), 1.0 - grid], dim=-1)
+    Image.fromarray((rgb.numpy() * 255).astype("uint8")).save(die_img_path)
+    die_meta_path.write_text(json.dumps(expired_die_meta), encoding="utf-8")
+
+    # 6. Full SiliconDieImageIngestor pipeline (active patent veto vs expired blueprint + fossilizer + graph)
+    fossilizer = KnowledgeDyadFossilizer(storage_dir=str(tmp_path / "fossils"), feature_dim=64)
+    graph_mgr = GyroidicGraphManager(data_dir=str(tmp_path / "graph"), dim=64)
+    ingestor = SiliconDieImageIngestor(
+        device="cpu",
+        fossilizer=fossilizer,
+        graph_manager=graph_mgr,
+        lightweight=True,
+    )
+
+    vetoed_res = ingestor.ingest_die_image(die_img_path, active_patent_meta, as_of=today)
+    assert vetoed_res["vetoed"] is True and vetoed_res["admissible"] is False
+    assert vetoed_res["blueprint"] is None
+
+    ok_res = ingestor.ingest_die_image(
+        die_img_path,
+        expired_die_meta,
+        as_of=today,
+        compile_blueprint=True,
+        fossilize=True,
+        register_graph=True,
+    )
+    assert ok_res["admissible"] is True and ok_res["vetoed"] is False
+    bp = ok_res["blueprint"]
+    assert bp["fingerprint_96"].shape == (96,)
+    assert bp["crt_residues"].ndim >= 2
+    assert bp["sparse_covariance_3x3"].shape == (3, 3)
+    assert ok_res["structural_graph"] is not None and len(ok_res["structural_graph"].blocks) == 64
+    assert ok_res["graph_node"] is not None and len(graph_mgr.nodes) == 1
+    expected_subsystems = {
+        "silicon_die_patent_filter",
+        "conformal_log_polar",
+        "conjugate_color_transport",
+        "texture_dsp",
+        "vision_utilities",
+        "gyroidic_codec",
+        "image_processor",
+        "structural_entanglement_net",
+        "canonical_projector",
+        "agent_substrate_bridge",
+        "structural_blueprints",
+        "embedding_graph",
+    }
+    assert expected_subsystems.issubset(set(ok_res["connected_subsystems"])), (
+        f"Missing subsystems: {expected_subsystems - set(ok_res['connected_subsystems'])}"
+    )
+
+    # 7. Connection Site: UniversalTopologyConverter.process_artifact with die_metadata gate
+    utc = UniversalTopologyConverter(target_dim=64)
+    utc_vetoed = utc.process_artifact(die_img_path, die_metadata=active_patent_meta)
+    assert utc_vetoed.get("vetoed") is True and utc_vetoed.get("admissible") is False
+    utc_ok = utc.process_artifact(die_img_path, die_metadata=expired_die_meta)
+    assert utc_ok.get("vetoed") is not True
+    assert "silicon_die:intel_4004" in utc_ok.get("public_domain_tags", [])
+
+    # 8. Connection Site: LocalDatasetIngestor.silicon_die_generator
+    ldi = LocalDatasetIngestor(datasets_root=str(tmp_path), device="cpu")
+    die_convs = list(ldi.silicon_die_generator(die_dir=tmp_path, limit=5, as_of=today))
+    assert len(die_convs) == 1
+    assert "silicon_die:intel_4004" in die_convs[0].context["public_domain_tags"]
+
+    # 9. Connection Site: VoxelboxterEngine.mount_silicon_die_blueprint & export_world_state
+    vb = VoxelboxterEngine()
+    vb_mount = vb.mount_silicon_die_blueprint(bp["die_id"], bp)
+    assert vb_mount["block_count"] == 64
+    assert "silicon_die:intel_4004" in vb.get_public_domain_tags()
+    assert "silicon_die:intel_4004" in vb.export_world_state()["public_domain_tags"]
+
+    # 10. Connection Site: Core DiegeticPhysicsEngine.mount_silicon_die_octree (PointerlessOctree)
+    core_phys = CoreDiegeticPhysicsEngine(state_dim=64, device="cpu")
+    oct_res = core_phys.mount_silicon_die_octree(bp)
+    assert oct_res["mounted_nodes"] == 64
+
+    # 11. Connection Site: UniversalOrchestrator.ingest_silicon_die_blueprint
+    orch = UniversalOrchestrator(dim=64, device="cpu")
+    orch_veto = orch.ingest_silicon_die_blueprint(die_img_path, active_patent_meta, as_of=today)
+    assert orch_veto["vetoed"] is True
+    orch_ok = orch.ingest_silicon_die_blueprint(die_img_path, expired_die_meta, as_of=today)
+    assert orch_ok["admissible"] is True and orch_ok["blueprint"]["die_id"] == "intel_4004"
+
+    # 12. Connection Site: HybridAI + UI DiegeticPhysicsEngine (lightweight=True)
+    from hybrid_backend import HybridAI
+    ai = HybridAI(lightweight=True)
+    assert getattr(ai, "silicon_die_ingestor", None) is not None
+    assert getattr(ai.engine, "silicon_die_ingestor", None) is not None
+    hyb_veto = ai.ingest_silicon_die(die_img_path, active_patent_meta, as_of=today)
+    assert hyb_veto["vetoed"] is True
+    hyb_ok = ai.ingest_silicon_die(die_img_path, expired_die_meta, as_of=today)
+    assert hyb_ok["admissible"] is True and hyb_ok["blueprint"]["die_id"] == "intel_4004"
 
 
 if __name__ == "__main__":

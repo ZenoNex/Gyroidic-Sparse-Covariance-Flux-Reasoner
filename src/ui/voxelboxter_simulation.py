@@ -3694,6 +3694,39 @@ class VoxelboxterEngine:
         self.last_worldgen_summary = summary
         return summary
 
+    def mount_silicon_die_blueprint(
+        self,
+        die_id: str,
+        die_blueprint: Dict[str, Any],
+        gcve_pressure: Optional[torch.Tensor] = None,
+    ) -> Dict[str, Any]:
+        """
+        Compiles a patent-verified silicon die blueprint via AddonRoutine into
+        self.constructs[die_id] and populates self.terrain_octree (PointerlessOctree)
+        while preserving all public_domain_tags.
+        """
+        from src.core.structural_blueprints import AddonRoutine
+        routine = AddonRoutine.compile_silicon_die_blueprint(die_blueprint)
+        graph = routine.generate_graph(gcve_pressure=gcve_pressure)
+        construct_key = f"silicon_die:{die_id}"
+        self.constructs[construct_key] = graph
+
+        if getattr(self, "terrain_octree", None) is not None:
+            for (x, y, z), blk in graph.blocks.items():
+                mat_code = 3 if blk.material_id == "metal_interconnect" else (2 if blk.material_id == "polysilicon_gate" else 1)
+                try:
+                    self.terrain_octree.add_adaptive_fractal_node(
+                        float(x), float(y), float(z), material=mat_code, complexity=0.5 + 0.1 * z
+                    )
+                except Exception:
+                    pass
+
+        return {
+            "construct_key": construct_key,
+            "block_count": len(graph.blocks),
+            "public_domain_tags": graph.get_public_domain_tags() if hasattr(graph, "get_public_domain_tags") else [],
+        }
+
     def export_world_state(self) -> Dict[str, Any]:
         """Exports world state summary with structural honesty, worldgen preset, and public domain tags."""
         constructs_summary = {}

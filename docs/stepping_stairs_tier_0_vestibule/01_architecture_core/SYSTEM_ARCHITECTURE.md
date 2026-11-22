@@ -841,7 +841,7 @@ The system operates in two distinct modes to balance depth of reasoning with spe
     *   **Skip Generation**: Returns immediately after embedding update.
     *   **Skip Repair**: No Spectral Coherence or Bezout Correction performed.
     *   **Memory Update**: Manifold location is updated (`memory_state`), ensuring the extracted concept is "remembered" topologically.
-    *   **Mimicry Training**: Larynx still trains on input to learn `embedding -> text` (state decryption) mapping.
+    *   **Mimicry Training (`_train_mimicry` & `_train_mimicry_step`)**: Larynx trains on input and resonant fossil trajectories to learn `embedding -> text` (state decryption) mapping, gated by `VoynichLinguist.split_sub_pairs` seam cuts, `ChernSimonsGasket` topological seal, `AntiSycophancyGate`, `LoveInvariantProtector` null-space gradient projection, `HeritableTrustVault` mutation damping ($\eta = \eta_0 (1 - \text{Trust})$) with `HuffmanEntropyCodec` prequential MDL weighting, `ResonanceLarynx.hebbian_update` / `compute_jepa_transition_energy`, PROVE DrGRPO self-play, and `DyadFossilizer.update_fossil_view_weight`. Coupled into `TrainingManager._training_loop` (`/api/start_training`) and `hybrid_backend.py:_handle_association` (`ASSOCIATE:`).
 *   **Use Case**: Batch Wikipedia extraction, bulk association learning, rapid reading.
 
 ### 8.3 Contextual Hinting
@@ -1205,5 +1205,17 @@ Following the unification of the linguistic resonance pipeline, the procedural S
    - `2611.25698v1.pdf` (*Rigidity of Ordinal Spaces*, Zhou, Zhuang, Zhang): Global homeomorphic partition rigidity ($R_2(\alpha) \iff \text{CU}_2(\alpha)$) for $k$-to-one open maps -> `gluing_operator.py`, `chern_simons_gasket.py`, `chiral_graph_compiler.py`.
    - `2611.25799v1.pdf` (*Computational Trust as Intuitionistic Knowledge*, Pezlar): Constructive modal trust monad $\mathsf{T}\varphi \equiv \varphi \vee \varepsilon$ (non-factive, fallible trust without collapsing $\mathsf{T}\varphi \equiv \varphi$) -> `failure_token.py`, `false_negative_subsystem.py`, `five_gate_pipeline.py`.
 
+## 9.16 Tri-Accelerator Sovereignty (PyBevy + TorchVision/CUDA + PyOpenCL), Silicon Die Blueprints & Domain Transversality Survival (November 2026)
 
-
+1. **Tri-Accelerator Efficiency Tier (`src/core/hardware_monitor.py`, `src/core/pyopencl_sovereignty.py`, `src/ui/voxelboxter_client.py`, `src/codec/image_extension.py`)**:
+   - Unifies three complementary hardware acceleration paths under typed `ComputeAffordanceType` governance:
+     - **PyBevy (Rust ECS + `wgpu`)**: Zero-copy `PointerlessOctree` spatial rendering, `BootStage` race-free lifecycle, and 5 selectable deterministic worldgen presets (`gyroidic_minimal_surface`, `mangosteen_fl0w_life`, `non_dual_cerumen_ecology`, `dmet_qsci_rbm_lattice`, `conformal_escher_logpolar`).
+     - **TorchVision + CUDA (`torch 2.5.1+cu121`)**: Vectorized batch CNN feature extraction (`StructuralEntanglementNet`), tensor-to-PIL sovereign rendering (`TailSlayerImageGenerator`), and spectral DSP (`TextureDSPEngine`).
+     - **PyOpenCL TailSlayer Dual-Queue (`SiliconSovereigntyEngine`)**: Queue A/B hardware-sovereign matmul, `compute_noncommutativity_commutator`, `quantize_600_cell_vertices`, `compute_chiral_gating_and_pat`, `compute_leontief_neumann_series`, and `compute_newton_schulz5`.
+   - `get_tri_accelerator_dense_limit(cpu_limit=64, gpu_limit=256)` raises dense linear-algebra ceilings up to 256 when GPU/OpenCL/CUDA headroom is admissible and falls back to $O(N^2 k)$ `torch.svd_lowrank` or $O(|E|\alpha(|V|))$ Union-Find/Euler Betti computation above ceiling or under thermal pressure.
+2. **Silicon Die Image Ingestion & Automated Patent/SCPA Free-Content Filter (`src/data/silicon_die_ingestor.py`)**:
+   - Catalogs open die-image archives (`siliconprawn.org/map/`, ZeptoBars, Wikimedia Commons, TinyTapeout, Ken Shirriff) while vetoing NC/ND/ARR archives (`Visual6502`, `Silicon Zoo`, `ChipDB`), active utility patents (35 U.S.C. 154), and active SCPA mask works (17 U.S.C. 904).
+   - Projects verified die imagery across 18 connected pathways into `SiliconDieBlueprintLayer` / `AddonRoutine` structural blueprints, `KnowledgeDyadFossilizer`, `GyroidicGraphManager`, `VoxelboxterEngine`, and `UniversalOrchestrator`.
+3. **Prequential MDL, Train Mimicry Unification & Domain Transversality Survival**:
+   - Connects 32-bit context-adaptive Predictive Arithmetic Coding (`HuffmanEntropyCodec`) into `GyroidicCodec`, `RicciFlowOptimizer`, `MuonRicciHybridOptimizer`, `HeritableTrustVault`, `CRTModularEmbeddingTable`, `PolynomialFunctionalEmbedder`, and `DiegeticPhysicsEngine._train_mimicry` / `_train_mimicry_step`.
+   - Reconnects `VideoDyadParser` into `UniversalTopologyConverter` for video bitstreams and expands `UniversalOrchestrator.audit_domain_transversality_and_survival` across `AlexanderWildEmbeddingOperator` ($\mathbb{RP}^4$ shear transversality), `FossilizedSurvivalLattice`, `TopologicalErosionFBM`, and `EnergyBasedSolitonHealer`.

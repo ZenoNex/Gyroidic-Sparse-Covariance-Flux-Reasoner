@@ -37,7 +37,11 @@ graph TD
 * [docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md)
   Conjugate color space and Morton Z-order curve bitwise kernel for PointerlessOctree spatial indexing.
 * [src/core/huffman_entropy.py](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/huffman_entropy.py)
-  Canonical Huffman entropy codec, Shannon source coding bounds, and variable-length prefix bitstream engine.
+  Canonical Huffman entropy codec, 32-bit context-adaptive Predictive Arithmetic Coding (online deterministic replay), and Prequential MDL codelength engine.
+* [src/data/silicon_die_ingestor.py](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/silicon_die_ingestor.py)
+  Silicon Die Image Ingestor (`siliconprawn.org/map/`, ZeptoBars, Wikimedia Commons, TinyTapeout) with automated USPTO/EPO/SCPA expired-patent & free-content filtering feeding `src/core/structural_blueprints.py` and 18 connected pathways.
+* [docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md)
+  Tri-Accelerator Hardware Sovereignty blueprint unifying PyOpenCL TailSlayer Queue A/B, TorchVision CUDA pipelines, and PyBevy Rust/wgpu `PointerlessOctree` zero-copy rendering.
 
 ### Step 01: Core Architecture
 * Path: [docs/stepping_stairs_tier_0_vestibule/01_architecture_core/](file:///D:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/)

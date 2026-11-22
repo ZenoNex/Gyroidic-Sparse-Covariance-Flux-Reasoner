@@ -88,6 +88,35 @@ class DiegeticPhysicsEngine(nn.Module):
                     complexity = rent * (1.0 + 0.1 * (x + y))
                     self.terrain_octree.add_adaptive_fractal_node(float(x), float(y), 0.0, material=2 if rent > 1.5 else 1, complexity=complexity)
 
+    def mount_silicon_die_octree(self, die_blueprint: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Maps a patent-verified silicon die blueprint's 8x8 structural heightmap directly
+        into self.terrain_octree (PointerlessOctree).
+        """
+        grid = (die_blueprint or {}).get("layer_grid_8x8")
+        if not isinstance(grid, torch.Tensor):
+            return {"mounted_nodes": 0, "die_id": (die_blueprint or {}).get("die_id", "unknown")}
+        g = grid.detach().cpu().float()
+        if g.ndim != 2:
+            g = g.reshape(8, 8) if g.numel() >= 64 else torch.zeros((8, 8), dtype=torch.float32)
+        g_min = float(g.min().item())
+        g_span = max(1e-6, float(g.max().item()) - g_min)
+        mounted = 0
+        for r in range(g.shape[0]):
+            for c in range(g.shape[1]):
+                norm_v = (float(g[r, c].item()) - g_min) / g_span
+                z_layer = 2.0 if norm_v > 0.66 else (1.0 if norm_v > 0.33 else 0.0)
+                mat_code = int(z_layer) + 1
+                self.terrain_octree.add_adaptive_fractal_node(
+                    float(r), float(c), z_layer, material=mat_code, complexity=0.3 + 0.4 * norm_v
+                )
+                mounted += 1
+        return {
+            "mounted_nodes": mounted,
+            "die_id": (die_blueprint or {}).get("die_id", "unknown"),
+            "public_domain_tags": list((die_blueprint or {}).get("public_domain_tags", [])),
+        }
+
     def process_input(self, 
                       vehicle_state: Dict[str, Any], 
                       track_state: Dict[str, Any],

@@ -447,21 +447,33 @@ class VideoDyadParser(nn.Module):
         sparse_cov = v_metrics['sparse_covariance']
         
         # 1. Spectral Dominance (Top 32 Eigenvalues)
-        # Use linalg.eigvalsh for symmetric matrix (covariance is symmetric)
-        # 1024 is manageable on GPU/CPU for a single ingestion event.
+        # Ameliorate O(N^3) dense eigvalsh by scaling ceiling with Tri-Accelerator headroom
+        # (PyOpenCL / TorchVision-CUDA / PyBevy up to 256, degrading to 64 on CPU/thermal),
+        # falling back to O(N^2 * k) torch.svd_lowrank above the ceiling.
         with torch.no_grad():
+            n_cov = int(sparse_cov.shape[0]) if sparse_cov.dim() == 2 else 0
+            dense_limit = 64
             try:
-                # Get eigenvalues and sort descending
-                eigvals = torch.linalg.eigvalsh(sparse_cov)
-                top_eigvals = torch.flip(eigvals, dims=(0,))[:32]
-                # Pad if covariance was smaller than 32x32 (unlikely but safe)
+                from src.core.hardware_monitor import get_tri_accelerator_dense_limit
+                dense_limit = get_tri_accelerator_dense_limit(cpu_limit=64, gpu_limit=256)
+            except Exception:
+                pass
+            use_dense_evd = n_cov <= dense_limit
+            try:
+                if use_dense_evd:
+                    eigvals = torch.linalg.eigvalsh(sparse_cov)
+                    top_eigvals = torch.flip(eigvals, dims=(0,))[:32]
+                    trace = eigvals.sum().abs() + 1e-8
+                else:
+                    q = min(32, n_cov)
+                    _, s_low, _ = torch.svd_lowrank(sparse_cov.float(), q=q, niter=2)
+                    top_eigvals = s_low[:32]
+                    trace = torch.diag(sparse_cov).abs().sum() + 1e-8
                 if top_eigvals.numel() < 32:
                     top_eigvals = torch.nn.functional.pad(top_eigvals, (0, 32 - top_eigvals.numel()))
-                # Normalize by trace to ensure structural honesty (relative energy)
-                trace = eigvals.sum().abs() + 1e-8
                 spectral_dominance = top_eigvals / trace
             except Exception:
-                # Fallback to diagonal if EVD fails
+                # Fallback to diagonal if EVD/SVD fails
                 diag = torch.diag(sparse_cov)
                 spectral_dominance = torch.sort(diag, descending=True)[0][:32]
                 if spectral_dominance.numel() < 32:

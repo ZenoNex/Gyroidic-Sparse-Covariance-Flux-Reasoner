@@ -202,6 +202,54 @@ class MirrorSymmetryLayer(AddonLayer):
         for b in new_blocks:
             graph.add_block(b)
 
+class SiliconDieBlueprintLayer(AddonLayer):
+    """
+    Compiles a patent-verified, free-content silicon die photomicrograph blueprint
+    (conformal log-polar heightmap + CRT residue + sparse covariance metadata)
+    into discrete StructuralGraph metal/poly/diffusion blocks carrying public_domain_tags.
+    """
+    def __init__(self, name: str, die_blueprint: Dict[str, Any]):
+        super().__init__(name)
+        self.die_blueprint = die_blueprint or {}
+
+    def execute(self, graph: StructuralGraph, gcve_pressure: Optional[torch.Tensor] = None):
+        if not self.enabled:
+            return
+        _, BlockCls, _, _ = _get_voxelboxter_classes()
+        grid = self.die_blueprint.get("layer_grid_8x8")
+        if not isinstance(grid, torch.Tensor):
+            grid = torch.zeros((8, 8), dtype=torch.float32)
+        grid = grid.detach().cpu().float()
+        if grid.ndim != 2:
+            grid = grid.reshape(8, 8) if grid.numel() >= 64 else torch.zeros((8, 8), dtype=torch.float32)
+
+        pd_tags = list(self.die_blueprint.get("public_domain_tags", ["silicon_die", "public_domain", "structural_honesty"]))
+        die_id = str(self.die_blueprint.get("die_id", self.name))
+        g_min = float(grid.min().item())
+        g_span = max(1e-6, float(grid.max().item()) - g_min)
+
+        rows, cols = grid.shape
+        for r in range(rows):
+            for c in range(cols):
+                val = (float(grid[r, c].item()) - g_min) / g_span
+                # Quantize into 3 silicon fab layers: 0=substrate/diffusion, 1=polysilicon, 2=metal
+                z_layer = 2 if val > 0.66 else (1 if val > 0.33 else 0)
+                mat_id = "metal_interconnect" if z_layer == 2 else ("polysilicon_gate" if z_layer == 1 else "silicon_substrate")
+                cell = (int(r), int(c), int(z_layer))
+                if cell not in graph.blocks:
+                    blk = BlockCls(
+                        local_cell=cell,
+                        rotation=(0, 0, 0, 1),
+                        material_id=mat_id,
+                        health=100.0,
+                        public_domain_tags=list(pd_tags),
+                    )
+                    graph.add_block(blk)
+        if hasattr(graph, "metadata") and isinstance(graph.metadata, dict):
+            graph.metadata["source_blueprint_name"] = f"silicon_die:{die_id}"
+            graph.metadata["public_domain_tags"] = pd_tags
+
+
 class AddonRoutine:
     """Manages the stack of layers (Blueprint)."""
     def __init__(self):
@@ -209,6 +257,14 @@ class AddonRoutine:
         
     def add_layer(self, layer: AddonLayer):
         self.layers.append(layer)
+
+    @classmethod
+    def compile_silicon_die_blueprint(cls, die_blueprint: Dict[str, Any]) -> "AddonRoutine":
+        """Compiles a verified silicon die blueprint dict into a runnable AddonRoutine."""
+        routine = cls()
+        die_id = str((die_blueprint or {}).get("die_id", "silicon_die"))
+        routine.add_layer(SiliconDieBlueprintLayer(name=f"die_layer_{die_id}", die_blueprint=die_blueprint))
+        return routine
 
     def execute(self, graph: StructuralGraph, gcve_pressure: Optional[torch.Tensor] = None) -> StructuralGraph:
         """Executes the entire layer stack on an existing StructuralGraph."""
@@ -218,7 +274,8 @@ class AddonRoutine:
 
     def generate_graph(self, gcve_pressure: Optional[torch.Tensor] = None) -> StructuralGraph:
         """Executes the entire layer stack non-destructively."""
-        graph = StructuralGraph()
+        StructuralGraphCls, _, _, _ = _get_voxelboxter_classes()
+        graph = StructuralGraphCls()
         return self.execute(graph, gcve_pressure=gcve_pressure)
         
     def try_add_layer(self, layer: AddonLayer, inventory: InventoryComponent, gcve_pressure: Optional[torch.Tensor] = None) -> bool:

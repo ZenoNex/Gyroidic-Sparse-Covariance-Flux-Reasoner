@@ -45,14 +45,17 @@ class AgentSubstrateBridge(nn.Module):
             "agent_smith", "structural_soliton", "p2p_nomadic_ring", "glyphlock",
             "atrophy_rehydrated", "non_semisimple_refreshed", "fossil", "live",
             "love_invariant", "pas_lock", "monge_ampere", "birkhoff", "lychrel_soliton",
-            "scientific_preprint", "public_domain", "structural_honesty"
+            "scientific_preprint", "public_domain", "structural_honesty",
+            "silicon_die", "expired_patent", "mask_work_expired"
         }
         if cleaned.lower() in known_structural:
             return True
         # Explicit public domain prefixes or open ontologies
         if cleaned.lower().startswith((
             "pd:", "public_domain:", "arxiv:", "wiki:", "ontology:",
-            "uberon:", "go:", "chembl:", "mesh:", "se:", "flora:", "fauna:", "tag:"
+            "uberon:", "go:", "chembl:", "mesh:", "se:", "flora:", "fauna:", "tag:",
+            "patent_expired:", "mask_work_expired:", "cc0:", "cc-by:", "cc-by-sa:",
+            "oshw:", "silicon_die:"
         )):
             return True
         # Public domain scientific, mathematical, biological, and technical concept slugs

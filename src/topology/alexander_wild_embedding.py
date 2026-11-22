@@ -125,7 +125,19 @@ class AlexanderWildEmbeddingOperator(nn.Module):
         using UnknowledgeDomain's spectral envelope and Bouligand tension.
         """
         flat_state = state.view(-1, self.dim) if state.dim() > 1 else state.unsqueeze(0)
-        u, s, v = torch.linalg.svd(flat_state.float(), full_matrices=False)
+        min_dim = min(int(flat_state.shape[0]), int(flat_state.shape[1]))
+        dense_limit = 64
+        try:
+            from src.core.hardware_monitor import get_tri_accelerator_dense_limit
+            dense_limit = get_tri_accelerator_dense_limit(cpu_limit=64, gpu_limit=256)
+        except Exception:
+            pass
+        use_dense_svd = min_dim <= dense_limit
+        if use_dense_svd or min_dim <= 2:
+            _, s, _ = torch.linalg.svd(flat_state.float(), full_matrices=False)
+        else:
+            q = min(16, min_dim)
+            _, s, _ = torch.svd_lowrank(flat_state.float(), q=q, niter=2)
         
         # Re-use UnknowledgeDomain hyperbolic shear and eccentricity
         elips_metrics = self.unknowledge_domain.get_elipsodistrophy_metrics(s)

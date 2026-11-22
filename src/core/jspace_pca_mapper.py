@@ -42,12 +42,22 @@ class JSpacePCAMapper:
         y_mean = y_batch.mean(dim=0, keepdim=True)
         y_centered = y_batch - y_mean
         
-        # SVD for PCA
-        # y_centered = U_svd * S * V^T
-        U_svd, S, Vh = torch.linalg.svd(y_centered, full_matrices=False)
-        
-        # Get the top components
-        V = Vh[:self.n_components].T  # [D, n_components]
+        # SVD for PCA (O(N^3) amelioration scaled by Tri-Accelerator headroom: 64 CPU -> 256 GPU/OpenCL)
+        min_nd = min(N, D)
+        dense_limit = 64
+        try:
+            from src.core.hardware_monitor import get_tri_accelerator_dense_limit
+            dense_limit = get_tri_accelerator_dense_limit(cpu_limit=64, gpu_limit=256)
+        except Exception:
+            pass
+        use_dense_svd = min_nd <= dense_limit
+        if use_dense_svd or min_nd <= 2:
+            U_svd, S, Vh = torch.linalg.svd(y_centered, full_matrices=False)
+            V = Vh[:self.n_components].T  # [D, n_components]
+        else:
+            q = min(max(self.n_components, 8), min_nd)
+            _, S, V_low = torch.svd_lowrank(y_centered.float(), q=q, niter=2)
+            V = V_low[:, :self.n_components].to(dtype=y_centered.dtype)
         self.V = V
         
         # Compute PCA coordinates for each sample

@@ -52,14 +52,61 @@ class UniversalTopologyConverter:
         # For mapping raw bytes to the high-dimensional phase space
         self.polynomial_basis = PolynomialBasis(degree=7, basis_type='chebyshev', domain=(-1.0, 1.0))
 
-    def process_artifact(self, filepath: Union[str, Path]) -> Dict[str, Any]:
+    def process_artifact(
+        self,
+        filepath: Union[str, Path],
+        die_metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         filepath = Path(filepath)
         if not filepath.exists():
             raise FileNotFoundError(f"Artifact not found: {filepath}")
 
         ext = filepath.suffix.lower()
+
+        # Silicon Die Automated Patent & Free-Content Compliance Gate (when die_metadata is supplied)
+        silicon_die_compliance = None
+        if die_metadata is not None:
+            from src.data.silicon_die_ingestor import SiliconDiePatentFilter
+            report = SiliconDiePatentFilter().verify_admissibility(die_metadata)
+            silicon_die_compliance = report.to_dict()
+            if not report.admissible:
+                return {
+                    "format": ext if ext else "unknown",
+                    "vetoed": True,
+                    "admissible": False,
+                    "silicon_die_compliance": silicon_die_compliance,
+                    "public_domain_tags": [],
+                }
         
-        # Media Delegation (IVSTEncoder)
+        # Media Delegation (VideoDyadParser for video bitstreams + IVSTEncoder)
+        if ext in ['.mp4', '.mkv', '.avi']:
+            try:
+                from src.core.video_dyad_parser import VideoDyadParser
+                if not hasattr(self, "video_dyad_parser") or self.video_dyad_parser is None:
+                    self.video_dyad_parser = VideoDyadParser(chunk_size=256, max_chunks=32, device="cpu")
+                atom_info = self.video_dyad_parser._scan_substream_atoms_from_file(str(filepath))
+                sig_np = self.video_dyad_parser._chunk_file_to_signal(str(filepath), chunk_size=256, max_chunks=32)
+                sig_t = torch.from_numpy(sig_np).float()
+                if sig_t.numel() > 0:
+                    mollified = self.video_dyad_parser._apply_topological_rotation(sig_t.flatten()[:self.target_dim])
+                    if mollified.numel() < self.target_dim:
+                        mollified = torch.nn.functional.pad(mollified, (0, self.target_dim - mollified.numel()))
+                    byte_map = self._compute_byte_histogram(filepath)
+                    return {
+                        "format": ext,
+                        "spectral_tensor": mollified[:self.target_dim].unsqueeze(0),
+                        "pressure_signature": self._compute_crt_pressure(byte_map),
+                        "defect_anomalies": self._scout_defects(byte_map),
+                        "love_tensor": torch.ones(1, self.target_dim) * (torch.norm(mollified).item() / max(1, self.target_dim)) * 0.1,
+                        "universal_signature": hashlib.sha256(f"videodyad_{filepath.name}_{atom_info['atom_entropy']:.6f}".encode()).hexdigest(),
+                        "honesty_jitter": float(atom_info.get("atom_entropy", 0.0)),
+                        "video_dyad_atoms": atom_info,
+                        "mollifier_diagnostics": dict(self.video_dyad_parser.last_mollifier_diagnostics),
+                        "ufsc_sieve": self.prime_stride_ufsc_sieve(byte_map),
+                    }
+            except Exception:
+                pass
+
         if ext in ['.mp4', '.mkv', '.avi', '.mp3', '.wav', '.jpg', '.jpeg', '.png', '.webp'] and self.ivst_encoder is not None:
             # Full IVST Integration: Extract topological footprint from media
             ivst_data = self.ivst_encoder.process_artifact(filepath)
@@ -97,6 +144,9 @@ class UniversalTopologyConverter:
                 if hidden_prompt_meta.get("extracted_prompts"):
                     res["hidden_prompts"] = hidden_prompt_meta["extracted_prompts"]
                     res["prompt_sha256"] = hidden_prompt_meta.get("prompt_sha256")
+                if silicon_die_compliance is not None:
+                    res["silicon_die_compliance"] = silicon_die_compliance
+                    res["public_domain_tags"] = silicon_die_compliance.get("public_domain_tags", [])
                 return res
 
         # 1. Compute Base Entropy Map (Raw Bytes -> Frequency Density)
@@ -146,6 +196,9 @@ class UniversalTopologyConverter:
             "ufsc_sieve": ufsc_sieve,
             "huffman_shannon_entropy": float(huffman_shannon_entropy)
         }
+        if silicon_die_compliance is not None:
+            topology_data["silicon_die_compliance"] = silicon_die_compliance
+            topology_data["public_domain_tags"] = silicon_die_compliance.get("public_domain_tags", [])
         
         return topology_data
 

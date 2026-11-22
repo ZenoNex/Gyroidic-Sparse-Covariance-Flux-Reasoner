@@ -334,6 +334,13 @@ class DiegeticPhysicsEngine(nn.Module):
         self.breather_mode = BreatherMode(num_breathers=min(8, dim), dim=dim)
         self.larynx = ResonanceLarynx(hidden_dim=dim) # Pure Topological
         self.autoeclectic_head = AutoeclecticResponderHead(hidden_dim=dim, output_dim=dim) # Manifold Roughness & Mischief Diegetic Head
+        self.orchestrator = None
+        self.last_mimicry_telemetry = {}
+        try:
+            from src.core.huffman_entropy import HuffmanEntropyCodec
+            self.huffman_codec = HuffmanEntropyCodec()
+        except Exception:
+            self.huffman_codec = None
         self.unicode_to_idx = {}
         self.idx_to_unicode = []
         # Centralized Extended Allowed Characters list (supporting ASCII, whitespace, math, Greek, and Voynich-adjacent symbols)
@@ -698,6 +705,16 @@ class DiegeticPhysicsEngine(nn.Module):
         except Exception:
             self.texture_dsp = None
             self.gabor_controller = None
+        try:
+            from src.data.silicon_die_ingestor import SiliconDieImageIngestor
+            self.silicon_die_ingestor = SiliconDieImageIngestor(
+                device=str(self.device),
+                image_processor=self.image_processor,
+                texture_dsp=self.texture_dsp,
+                lightweight=True,
+            )
+        except Exception:
+            self.silicon_die_ingestor = None
         try:
             from src.core.fgrt_rnn_cells import UnifiedFGRTRNNCell
             self.rnn_core = UnifiedFGRTRNNCell(input_dim=dim, hidden_dim=dim, regime='feature_scar').to(self.device)
@@ -1447,7 +1464,11 @@ class DiegeticPhysicsEngine(nn.Module):
             
             # Use zeitgeist router diagnostics if available
             zeitgeist_diag = self.zeitgeist_router.get_diagnostics() if self.zeitgeist_router else {}
-            braid_word = zeitgeist_diag.get('braid_word', 'identity')
+            raw_braid = zeitgeist_diag.get('braid_word', 'identity')
+            if isinstance(raw_braid, (list, tuple)):
+                braid_word = ", ".join(str(b) for b in raw_braid) if raw_braid else "identity"
+            else:
+                braid_word = str(raw_braid) if raw_braid else "identity"
 
         if system_collapsed:
             dream = f"[EGO_DEATH_DREAM] Manifold collapsed (Ra={ra:.4f}). "
@@ -1457,73 +1478,132 @@ class DiegeticPhysicsEngine(nn.Module):
             dream = f"[LAZARUS_DREAM] Internal manifold in {status} state (Ra={ra:.4f}). "
             
             # Create a Larynx-decoded dream sequence from the audience state or seed state
-            # This is a diegetic representation of the 'meaning' space (roughness preserving)
+            # Grounded by the manifold-resonant fossil/graph lexicon field (no symbol soup)
             with torch.no_grad(), self._processing_lock:
                 current_state = audience_state.clone() if audience_state is not None else seed_state.clone()
                 dream_chars = []
+                lex_t3, lex_t2, lex_t1, lex_starts, _, _ = self._build_resonant_lexicon_field(current_state, "")
+                prose_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,!?'-")
                 # Dynamic Expansion of Character Limits (Proficiency & Affordance Based)
-                base_len = 120
+                base_len = 90
                 affordance_expansion = 0
                 if affordance_gradients:
                     executability = affordance_gradients.get('executability_pressure', 0.0)
                     expandability = affordance_gradients.get('runtime_expandability', 0.0)
                     conversational = affordance_gradients.get('conversational_embedding_pressure', 0.0)
                     knowledge = affordance_gradients.get('knowledge_seeking', 0.0)
-                    affordance_expansion = int((executability + expandability + conversational + knowledge) * 100)
+                    affordance_expansion = int((executability + expandability + conversational + knowledge) * 60)
                 
                 proficiency_multiplier = 1.0 + (len(self.interaction_context) / max(1, self.max_context_len))
                 if hasattr(self, 'fossilizer') and self.fossilizer:
                     fossil_count = len(getattr(self.fossilizer, 'fossil_bed', []))
-                    proficiency_multiplier += min(1.0, fossil_count * 0.05)
+                    proficiency_multiplier += min(0.5, fossil_count * 0.02)
                     
                 dynamic_max_len = int((base_len + affordance_expansion) * proficiency_multiplier)
-                dynamic_max_len = max(50, min(dynamic_max_len, 250))
+                dynamic_max_len = max(45, min(dynamic_max_len, 160))
+                prev_pas_val = float(getattr(self, 'last_pas_h', getattr(self, 'last_pas', 0.5)))
 
                 # Autoregressive dream generation
                 for i in range(dynamic_max_len):
-                    # Phase 1: Apply Spectral Coherence Repair to current state to prevent garbling
-                    if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5:
-                        # Feed the last 20 characters to detect clustering
+                    # Phase 1: Apply Spectral Coherence Repair periodically
+                    if hasattr(self, 'spectral_corrector') and len(dream_chars) >= 5 and (i % 8 == 0):
                         recent_text = "".join(dream_chars[-20:])
                         current_state = self.spectral_corrector.adaptive_coherence_correction(
                             current_state, output_text=recent_text
                         )
                         
-                    logits, conf = self.larynx(current_state, temperature=1.2)
-                    
-                    # Clean Vocabulary Filtering: Mask out non-standard symbols to force human/Voynich readability
+                    logits, conf = self.larynx(current_state, temperature=1.0)
+                    conf_scalar = float(conf.item()) if isinstance(conf, torch.Tensor) and not torch.isnan(conf).any() else 0.5
+                    prev_c = dream_chars[-1] if dream_chars else ' '
+                    prev2_c = dream_chars[-2] if len(dream_chars) >= 2 else ' '
+                    prev_is_punct = (not prev_c.isalnum()) and (prev_c not in (' ', '\n'))
+                    two_consonants = (
+                        prev_c.isalpha() and (prev_c.lower() not in "aeiou")
+                        and prev2_c.isalpha() and (prev2_c.lower() not in "aeiou")
+                    )
+                    word_len = 0
+                    for _dc in reversed(dream_chars):
+                        if _dc in (' ', '\n'):
+                            break
+                        word_len += 1
+
+                    # Clean Prose Vocabulary Filter: mask control chars, code symbols, and unprompted math/Greek glyphs
                     for idx in range(logits.shape[-1]):
-                        char_from_idx = self._idx_to_char(idx)
-                        if idx < 128:
-                            if char_from_idx not in self.allowed_chars:
-                                logits[0, idx] = -1e9
+                        if idx < 32 or idx >= 127:
+                            logits[0, idx] = -1e9
                         else:
-                            # Allow dynamically registered unicode/emojis
-                            if idx - 128 >= len(self.idx_to_unicode):
+                            ch_ascii = chr(idx)
+                            if ch_ascii not in prose_chars:
                                 logits[0, idx] = -1e9
-                            
-                    # Apply Vowel Boosting with Coherent Legibility Awareness
-                    # Instead of unconditionally boosting vowels (which produces incoherent glossolalia),
-                    # we enforce coherent syllable structure by only boosting vowels after consonants,
-                    # and suppressing consecutive vowels to prevent word-salad.
+                            elif prev_c == ' ' and ch_ascii in " .,!?'-":
+                                logits[0, idx] = -1e9
+                            elif prev_is_punct and ch_ascii in ".,!?'-":
+                                logits[0, idx] = -1e9
+                            elif prev_c.isalpha() and ch_ascii.isupper() and word_len >= 1:
+                                logits[0, idx] -= 5.0
+
+                    # Manifold-Grounded Resonant Fossil Transition Projection (log-space)
+                    if lex_t1:
+                        dist = None
+                        if not dream_chars and lex_starts:
+                            dist = lex_starts
+                        else:
+                            if len(dream_chars) >= 3:
+                                dist = lex_t3.get("".join(dream_chars[-3:]))
+                            if not dist and len(dream_chars) >= 2:
+                                dist = lex_t2.get("".join(dream_chars[-2:]))
+                            if not dist and dream_chars:
+                                dist = lex_t1.get(dream_chars[-1])
+                            if not dist and lex_starts and prev_c == ' ':
+                                dist = lex_starts
+                        if dist:
+                            total_w = sum(dist.values()) + 1e-8
+                            lex_strength = 2.4 + 1.8 * max(0.0, 0.85 - conf_scalar)
+                            supported = set()
+                            for ch_k, w_val in dist.items():
+                                c_idx = ord(ch_k) if ord(ch_k) < 128 else -1
+                                if 0 <= c_idx < logits.shape[-1] and logits[0, c_idx] > -1e8:
+                                    logits[0, c_idx] += lex_strength * (math.log(w_val / total_w + 1e-6) + 4.5)
+                                    supported.add(c_idx)
+                            if supported:
+                                for idx_u in range(32, min(127, logits.shape[-1])):
+                                    if idx_u not in supported and logits[0, idx_u] > -1e8:
+                                        logits[0, idx_u] -= 3.2
+
+                    # Coherent syllable cadence
                     vowels = set("aeiouyAEIOUY")
-                    prev_char = dream_chars[-1] if dream_chars else ' '
-                    if prev_char.isalpha() and prev_char not in vowels:
-                        # Consonant just occurred, boost vowels additively in log-space to form a syllable
+                    if two_consonants:
                         for v in "aeiou":
-                            if ord(v) < logits.shape[-1]:
-                                logits[0, ord(v)] += 2.4
-                    elif prev_char in vowels:
-                        # Vowel just occurred, suppress consecutive vowels additively in log-space
+                            if logits[0, ord(v)] > -1e8:
+                                logits[0, ord(v)] += 3.0
+                    elif prev_c.isalpha() and prev_c not in vowels:
+                        for v in "aeiou":
+                            if logits[0, ord(v)] > -1e8:
+                                logits[0, ord(v)] += 1.4
+                    elif prev_c in vowels:
                         for v in vowels:
-                            if ord(v) < logits.shape[-1]:
-                                logits[0, ord(v)] -= 1.8
-                    
+                            if ord(v) < logits.shape[-1] and logits[0, ord(v)] > -1e8:
+                                logits[0, ord(v)] -= 1.2
+
+                    if word_len >= 7 and logits[0, ord(' ')] > -1e8:
+                        logits[0, ord(' ')] += 1.6 + 0.5 * (word_len - 7)
+
+                    # Top-k nucleus sharpening
+                    valid_count = int((logits[0] > -1e8).sum().item())
+                    top_k = min(8, max(1, valid_count))
+                    if valid_count > top_k:
+                        top_vals, _ = torch.topk(logits[0], top_k)
+                        logits[0] = torch.where(logits[0] < top_vals[-1], torch.full_like(logits[0], -1e9), logits[0])
+
+                    logits = torch.nan_to_num(logits, nan=0.0, posinf=40.0, neginf=-40.0).clamp(-40.0, 40.0)
                     from src.core.gluing_operator import LazarusSoftmax
-                    pas_val = float(getattr(self, 'last_pas_h', getattr(self, 'last_pas', 0.5)))
-                    prev_pas_val = float(getattr(self, 'prev_pas', pas_val))
+                    cur_pas_val = float(0.7 * getattr(self, 'last_pas_h', getattr(self, 'last_pas', 0.5)) + 0.3 * conf_scalar)
                     lazarus = LazarusSoftmax(dim=-1).to(logits.device)
-                    probs, _ = lazarus(logits, pas_val, prev_pas_val)
+                    probs, _ = lazarus(logits, cur_pas_val, prev_pas_val)
+                    prev_pas_val = cur_pas_val
+                    probs = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0)
+                    p_sum = probs[0].sum()
+                    probs = (probs / p_sum) if p_sum > 1e-8 else (torch.ones_like(probs) / probs.shape[-1])
                     char_idx = torch.multinomial(probs[0], 1).item()
                     char = self._idx_to_char(char_idx)
                     dream_chars.append(char)
@@ -1545,8 +1625,8 @@ class DiegeticPhysicsEngine(nn.Module):
                 # Use a deterministic chaotic index based on seed_state to pick a fossil
                 f_idx = int(seed_state[0, 0].abs().item() * 100) % len(self.fossil_cache)
                 fossil = self.fossil_cache[f_idx]
-                f_text = fossil.get('text', 'Unnamed Fragment')
-                dream += f"Recovered legacy fossil: '{f_text[:60]}...'\n"
+                f_text = fossil.get('text') or fossil.get('description') or fossil.get('target') or 'Unnamed Fragment'
+                dream += f"Recovered legacy fossil: '{str(f_text)[:60]}...'\n"
             
             # --- Dynamic Sovereign Refusal from Neglecton Graph (Mode A: Topological Repair) ---
             if self.graph_manager:
@@ -1703,9 +1783,14 @@ class DiegeticPhysicsEngine(nn.Module):
                     pass
 
             # 2. Dictionary-Free Seam Cuts via VoynichLinguist
+            seam_cuts = None
+            seam_boundary_indices = set()
             if hasattr(self, 'voynich_linguist') and hasattr(self.voynich_linguist, 'split_sub_pairs'):
                 try:
                     seam_cuts = self.voynich_linguist.split_sub_pairs(text[:32])
+                    for pref, suf in seam_cuts:
+                        if 0 < len(pref) < len(text[:32]) and suf:
+                            seam_boundary_indices.add(len(pref) - 1)
                 except Exception:
                     seam_cuts = None
 
@@ -1740,6 +1825,8 @@ class DiegeticPhysicsEngine(nn.Module):
                     pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
                     # Autonomous trajectories proceed without forced token snapping (Teacher's Pet resolution)
                     forcing_lambda = 0.1 * max(0.0, 1.0 - pas_step)
+                    if i in seam_boundary_indices:
+                        forcing_lambda = min(0.25, forcing_lambda * 1.15)
                     
                     if hasattr(self, 'meta_polytope') and self.meta_polytope is not None:
                         boundary_res = self.meta_polytope(current_state)
@@ -1800,6 +1887,25 @@ class DiegeticPhysicsEngine(nn.Module):
             # 3. Geometric Null-Space Shield via LoveInvariantProtector and SDE Fractional Step
             hunger = getattr(self.valence_drive, 'current_hunger', 0.5)
             if isinstance(hunger, torch.Tensor): hunger = hunger.item()
+
+            # 3b. HeritableTrustVault damping: eta = eta_0 * (1 - Trust) (RESONANCE_CAVITY.md)
+            trust_val = 0.0
+            trust_damp = 1.0
+            mdl_codelength_bits = None
+            res_slice = None
+            if hasattr(self, 'trust_vault') and self.trust_vault is not None:
+                try:
+                    k_dim = int(getattr(self.trust_vault, 'k_dim', 5))
+                    flat_st = current_state.detach().view(1, -1)
+                    if flat_st.shape[-1] >= k_dim:
+                        res_slice = flat_st[:, :k_dim]
+                    else:
+                        res_slice = F.pad(flat_st, (0, k_dim - flat_st.shape[-1]))
+                    t_scores = self.trust_vault.query(res_slice)
+                    trust_val = float(torch.clamp(t_scores.mean(), 0.0, 1.0).item())
+                    trust_damp = max(0.15, 1.0 - 0.75 * trust_val)
+                except Exception:
+                    trust_damp = 1.0
             
             with torch.no_grad():
                 for name, param in self.larynx.named_parameters():
@@ -1826,19 +1932,62 @@ class DiegeticPhysicsEngine(nn.Module):
                                 grad_proj = grad_mat - U @ (U.T @ grad_mat)
                                 param.grad.copy_(grad_proj.view(param.shape))
                         
-                        # Apply dynamically modulated SDE fractional step
-                        fractional_step = 0.01 * max(0.1, hunger)
+                        # Apply dynamically modulated SDE fractional step with HeritableTrustVault damping
+                        fractional_step = 0.01 * max(0.1, hunger) * trust_damp
                         param.data.sub_(fractional_step * param.grad)
 
+                # Hebbian pathway reinforcement & JEPA transition energy monitoring
+                jepa_energy_val = None
+                hebbian_updated = False
+                if hasattr(self.larynx, 'compute_jepa_transition_energy'):
+                    try:
+                        jepa_e = self.larynx.compute_jepa_transition_energy(
+                            seed.detach(),
+                            current_state.detach(),
+                            moment_transport=getattr(self, 'moment_transport', None),
+                        )
+                        jepa_energy_val = float(jepa_e.item()) if isinstance(jepa_e, torch.Tensor) else float(jepa_e)
+                    except Exception:
+                        pass
+                if hasattr(self.larynx, 'hebbian_update'):
+                    try:
+                        self.larynx.hebbian_update(
+                            seed.detach(),
+                            target_state=current_state.detach(),
+                            rate=0.005 * max(0.1, hunger) * trust_damp,
+                        )
+                        hebbian_updated = True
+                    except Exception:
+                        pass
+
+                # Update ResonanceCavity & HeritableTrustVault (with prequential MDL via HuffmanEntropyCodec)
+                if res_slice is not None and hasattr(self, 'trust_vault') and self.trust_vault is not None:
+                    try:
+                        surv = torch.tensor([float(honesty)], device=res_slice.device, dtype=res_slice.dtype)
+                        self.trust_vault.update(res_slice, surv, use_mdl_weighting=True)
+                        mdl_rep = getattr(self.trust_vault, 'last_mdl_report', None)
+                        if isinstance(mdl_rep, dict):
+                            mdl_codelength_bits = float(mdl_rep.get('mean_online_codelength_bits', 0.0))
+                    except Exception:
+                        pass
+                if hasattr(self, 'cavity') and self.cavity is not None:
+                    try:
+                        cav_in = current_state.detach().unsqueeze(1) if current_state.dim() == 2 else current_state.detach()
+                        self.cavity(cav_in)
+                    except Exception:
+                        pass
+
                 # PROVE Perturb-Repair-Verify Self-Play DrGRPO Weight Mutation (docs/2611.05158v1.pdf)
+                prove_stats = None
+                fossil_view_updated = False
                 if hasattr(self.larynx, 'prove_self_play_drgrpo_step'):
                     try:
-                        love_prot = getattr(getattr(self, 'orchestrator', None), 'love_protector', None)
+                        love_prot = getattr(self, 'love_protector', None) or getattr(getattr(self, 'orchestrator', None), 'love_protector', None)
                         prove_stats = self.larynx.prove_self_play_drgrpo_step(
-                            seed_state=curr_state.detach(),
+                            seed_state=current_state.detach(),
                             love_protector=love_prot,
                             group_size=4,
-                            lr=0.003 * max(0.1, hunger),
+                            lr=0.003 * max(0.1, hunger) * trust_damp,
                         )
                         self.last_prove_self_play_stats = prove_stats
                         # Non-terminating closed-loop feedback into DyadFossilizer view-tree & BulletinBoard
@@ -1848,8 +1997,23 @@ class DiegeticPhysicsEngine(nn.Module):
                                 top_f = self.fossil_cache[0].get('_fossil_filename')
                                 if top_f:
                                     self.dyad_fossilizer.update_fossil_view_weight(top_f, delta_weight=0.05 * (r_mean - 0.5))
+                                    fossil_view_updated = True
                     except Exception:
                         pass
+
+                self.last_mimicry_telemetry = {
+                    'method': '_train_mimicry_step',
+                    'loss': float(avg_loss_val),
+                    'seal': float(seal),
+                    'seam_cuts_count': len(seam_cuts) if seam_cuts else 0,
+                    'trust_val': float(trust_val),
+                    'trust_damp': float(trust_damp),
+                    'jepa_energy': jepa_energy_val,
+                    'hebbian_updated': hebbian_updated,
+                    'mdl_codelength_bits': mdl_codelength_bits,
+                    'prove_executed': prove_stats is not None,
+                    'fossil_view_updated': fossil_view_updated,
+                }
             
             self.larynx.eval()
             return avg_loss_val
@@ -2537,6 +2701,111 @@ class DiegeticPhysicsEngine(nn.Module):
             self._is_processing = False
             self._processing_lock.release()
 
+    def _build_resonant_lexicon_field(
+        self,
+        current_state: torch.Tensor,
+        prompt_text: str,
+    ) -> Tuple[Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, Dict[str, float]], Dict[str, float], float, int]:
+        """Build a manifold-grounded character/morpheme transition field from the
+        most resonant fossils and graph nodes relative to `current_state`.
+        Zero hardcoded replies: all lexical structure emerges from recovered fossils
+        and VoynichLinguist sub-pair seam decomposition."""
+        t3: Dict[str, Dict[str, float]] = {}
+        t2: Dict[str, Dict[str, float]] = {}
+        t1: Dict[str, Dict[str, float]] = {}
+        starts: Dict[str, float] = {}
+
+        prose_allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,!?'-")
+        prompt_clean = prompt_text.strip().lower()
+        candidates: List[Tuple[float, str]] = []
+
+        s_flat = F.normalize(current_state.detach().float().view(1, -1), p=2, dim=-1)
+        raw_texts: List[str] = []
+
+        for f_item in (getattr(self, 'fossil_cache', None) or [])[:64]:
+            if isinstance(f_item, dict):
+                txt = str(
+                    f_item.get('text')
+                    or f_item.get('target')
+                    or f_item.get('description')
+                    or f_item.get('content')
+                    or ''
+                ).strip()
+                if len(txt) >= 6:
+                    raw_texts.append(txt[:240])
+
+        gm = getattr(self, 'graph_manager', None)
+        if gm is not None:
+            for node in (getattr(gm, 'nodes', None) or [])[:32]:
+                txt = str(getattr(node, 'text', '') or (node.get('text', '') if isinstance(node, dict) else '')).strip()
+                if len(txt) >= 6:
+                    raw_texts.append(txt[:240])
+
+        seen = set()
+        for txt in raw_texts:
+            key = txt[:64].lower()
+            if key in seen or key == prompt_clean:
+                continue
+            seen.add(key)
+            # Keep only natural prose characters and collapse whitespace
+            cleaned = " ".join("".join(ch for ch in txt if ch in prose_allowed).split())
+            if len(cleaned) < 8:
+                continue
+            alpha_cnt = sum(1 for c in cleaned if c.isalpha())
+            if alpha_cnt < len(cleaned) * 0.65:
+                continue
+            if hasattr(self, 'voynich_linguist') and hasattr(self.voynich_linguist, '_is_pathological_garble'):
+                try:
+                    garb, _ = self.voynich_linguist._is_pathological_garble(cleaned[:80])
+                    if garb:
+                        continue
+                except Exception:
+                    pass
+            try:
+                vec = self._text_to_tensor(cleaned[:128]).to(self.device).float().view(1, -1)
+                sim = float(F.cosine_similarity(s_flat, F.normalize(vec, p=2, dim=-1)).item())
+            except Exception:
+                sim = 0.0
+            candidates.append((sim, cleaned))
+
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        top_cands = candidates[:8]
+        top_res = float(top_cands[0][0]) if top_cands else 0.0
+        word_count = 0
+
+        for rank, (sim, text_seq) in enumerate(top_cands):
+            weight = max(0.15, (1.0 + sim) * (0.85 ** rank))
+            words = [w for w in text_seq.split() if len(w) >= 2 and any(ch.isalpha() for ch in w)]
+            word_count += len(words)
+            # Incorporate VoynichLinguist sub-pair morphemes for the top words
+            if hasattr(self, 'voynich_linguist') and hasattr(self.voynich_linguist, 'split_sub_pairs'):
+                for w in words[:4]:
+                    if len(w) >= 6:
+                        try:
+                            _ = self.voynich_linguist.split_sub_pairs(w[:18])
+                        except Exception:
+                            pass
+            seq = text_seq.strip()
+            if not seq:
+                continue
+            if seq[0].isalpha():
+                starts[seq[0]] = starts.get(seq[0], 0.0) + weight
+            for k in range(len(seq) - 1):
+                c1 = seq[k]
+                nxt = seq[k + 1]
+                d1 = t1.setdefault(c1, {})
+                d1[nxt] = d1.get(nxt, 0.0) + weight
+                if k >= 1:
+                    c2 = seq[k - 1:k + 1]
+                    d2 = t2.setdefault(c2, {})
+                    d2[nxt] = d2.get(nxt, 0.0) + weight
+                if k >= 2:
+                    c3 = seq[k - 2:k + 1]
+                    d3 = t3.setdefault(c3, {})
+                    d3[nxt] = d3.get(nxt, 0.0) + weight
+
+        return t3, t2, t1, starts, top_res, word_count
+
     def _generate_converged_response(self, 
                                      text_input: str, 
                                      seed_state: torch.Tensor, 
@@ -2803,6 +3072,17 @@ class DiegeticPhysicsEngine(nn.Module):
 
         cached_v_flat = None
         cached_v_pas = 0.5
+        prev_pas_val = float(getattr(self, 'last_pas', 0.5))
+
+        # Manifold-grounded lexical/morpheme resonance field from recovered fossils & graph nodes
+        lex_t3, lex_t2, lex_t1, lex_starts, lex_top_res, lex_word_count = self._build_resonant_lexicon_field(
+            current_state, echo_source
+        )
+        prose_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,!?'-")
+        prompt_has_symbolic = any(
+            ord(c) >= 128 or c in "{}[]\\|^~$#@&*+=<>"
+            for c in echo_source
+        )
         
         try:
             with torch.no_grad():
@@ -2821,10 +3101,16 @@ class DiegeticPhysicsEngine(nn.Module):
                             )
 
                     logits, conf = self.larynx(current_state, temperature=iter_temp)
+                    conf_scalar = float(conf.item()) if isinstance(conf, torch.Tensor) and not torch.isnan(conf).any() else 0.5
+
+                    # Gate math/Greek/topological glyph emission on explicit symbolic context
+                    allow_symbolic_glyphs = prompt_has_symbolic or (
+                        executability > 0.75 and cached_v_pas > 0.75
+                    )
 
                     # Clean Vocabulary & Voynich-Preserving Five-Gate Filter:
                     # Mask out CP437 control codes (0..31) and unmapped/emoji slots outside self.allowed_chars,
-                    # while preserving both English lexical tokens and Voynich/Greek/topological glyphs in self.allowed_chars.
+                    # and suppress unprompted math/Greek/symbol soup during natural conversational prose.
                     prev_c = dream_chars[-1] if dream_chars else ' '
                     prev2_c = dream_chars[-2] if len(dream_chars) >= 2 else ' '
                     prev_is_punct = (not prev_c.isalnum()) and (prev_c not in (' ', '\n'))
@@ -2840,7 +3126,7 @@ class DiegeticPhysicsEngine(nn.Module):
 
                     for idx in range(logits.shape[-1]):
                         if idx < 32:
-                            if idx not in (10, 32):
+                            if idx not in (10, 32) or (not allow_symbolic_glyphs and idx == 10 and len(dream_chars) < 25):
                                 logits[0, idx] = -1e9
                         elif idx == 127:
                             logits[0, idx] = -1e9
@@ -2848,21 +3134,23 @@ class DiegeticPhysicsEngine(nn.Module):
                             ch_ascii = chr(idx)
                             if ch_ascii not in self.allowed_chars:
                                 logits[0, idx] = -1e9
-                            elif prev_c in (' ', '\n') and ch_ascii in (' ', '\n', '.', ',', '!', '?', ';', ':'):
+                            elif (not allow_symbolic_glyphs) and (ch_ascii not in prose_chars) and ch_ascii != '\n':
                                 logits[0, idx] = -1e9
-                            elif prev_is_punct and ch_ascii in ".,!?;:":
+                            elif prev_c in (' ', '\n') and ch_ascii in (' ', '\n', '.', ',', '!', '?', ';', ':', "'", '-'):
                                 logits[0, idx] = -1e9
-                            elif prev_c.isalpha() and ch_ascii.isupper() and word_len >= 2:
-                                logits[0, idx] -= 4.5
+                            elif prev_is_punct and ch_ascii in ".,!?;:'-":
+                                logits[0, idx] = -1e9
+                            elif prev_c.isalpha() and ch_ascii.isupper() and word_len >= 1:
+                                logits[0, idx] -= 5.0
                         else:
-                            if idx - 128 >= len(self.idx_to_unicode):
+                            if not allow_symbolic_glyphs or (idx - 128 >= len(self.idx_to_unicode)):
                                 logits[0, idx] = -1e9
                             else:
                                 ch_uni = self.idx_to_unicode[idx - 128]
                                 if ch_uni not in self.allowed_chars:
                                     logits[0, idx] = -1e9
 
-                    # Connect Voynich Phoneme Logits & VoynichExemptionToken across ASCII and Voynich/Topological Glyph Slots
+                    # Connect Voynich Phoneme Logits & VoynichExemptionToken across active slots
                     if hasattr(self, 'voynich_linguist') and self.voynich_linguist is not None:
                         try:
                             if i % 4 == 0 or cached_v_flat is None:
@@ -2879,50 +3167,92 @@ class DiegeticPhysicsEngine(nn.Module):
                                 num_v = cached_v_flat.numel()
                                 idx_arange = torch.arange(logits.shape[-1], device=logits.device)
                                 tiled_v = cached_v_flat[idx_arange % num_v]
-                                logits[0] = logits[0] + 0.18 * tiled_v
-                                # Boost Voynich/Greek/topological glyph slots (128..128+len(idx_to_unicode)) proportionally to PAS_s
-                                uni_end = min(logits.shape[-1], 128 + len(self.idx_to_unicode))
-                                if uni_end > 128:
-                                    logits[0, 128:uni_end] += (0.35 + 0.45 * cached_v_pas) * torch.abs(tiled_v[128:uni_end])
+                                active_mask = (logits[0] > -1e8).float()
+                                logits[0] = logits[0] + 0.14 * tiled_v * active_mask
+                                # Only boost Voynich/Greek/topological glyph slots when symbolic context is active
+                                if allow_symbolic_glyphs:
+                                    uni_end = min(logits.shape[-1], 128 + len(self.idx_to_unicode))
+                                    if uni_end > 128:
+                                        logits[0, 128:uni_end] += (0.20 + 0.30 * cached_v_pas) * torch.abs(tiled_v[128:uni_end]) * active_mask[128:uni_end]
                         except Exception:
                             pass
+
+                    # Manifold-Grounded Resonant Fossil Transition Projection (log-space)
+                    if lex_t1:
+                        dist = None
+                        if not dream_chars and lex_starts:
+                            dist = lex_starts
+                        else:
+                            if len(dream_chars) >= 3:
+                                dist = lex_t3.get("".join(dream_chars[-3:]))
+                            if not dist and len(dream_chars) >= 2:
+                                dist = lex_t2.get("".join(dream_chars[-2:]))
+                            if not dist and dream_chars:
+                                dist = lex_t1.get(dream_chars[-1])
+                            if not dist and lex_starts and prev_c in (' ', '\n'):
+                                dist = lex_starts
+                        if dist:
+                            total_w = sum(dist.values()) + 1e-8
+                            lex_strength = 2.4 + 1.8 * max(0.0, 0.85 - conf_scalar)
+                            supported_indices = set()
+                            for ch_k, w_val in dist.items():
+                                c_idx = ord(ch_k) if ord(ch_k) < 128 else -1
+                                if 0 <= c_idx < logits.shape[-1] and logits[0, c_idx] > -1e8:
+                                    p_k = w_val / total_w
+                                    logits[0, c_idx] += lex_strength * (math.log(p_k + 1e-6) + 4.5)
+                                    supported_indices.add(c_idx)
+                            if supported_indices:
+                                for idx_u in range(32, min(127, logits.shape[-1])):
+                                    if idx_u not in supported_indices and logits[0, idx_u] > -1e8:
+                                        logits[0, idx_u] -= 3.2
                     
-                    # Apply Echo Suppression with Coherent Legibility (additive log-space penalty)
-                    if input_chars:
+                    # Apply Echo Suppression with Coherent Legibility (mild, never crippling common letters)
+                    if input_chars and not lex_t1:
                         for char in input_chars:
                             if ord(char) < logits.shape[-1] and char not in "aeiou ":
-                                logits[0, ord(char)] -= (0.35 + (1.0 - conf.item()) * 0.25)
+                                logits[0, ord(char)] -= (0.25 + (1.0 - conf_scalar) * 0.15)
 
                     # Apply Vowel Boosting & Syllable Cadence in log-space
                     prev_char = dream_chars[-1] if dream_chars else ' '
                     if two_consonants:
                         for v in "aeiou":
-                            logits[0, ord(v)] += 4.2
+                            if logits[0, ord(v)] > -1e8:
+                                logits[0, ord(v)] += 3.2
                         for c_idx in range(ord('a'), ord('z') + 1):
-                            if chr(c_idx) not in "aeiou":
-                                logits[0, c_idx] -= 3.0
+                            if chr(c_idx) not in "aeiou" and logits[0, c_idx] > -1e8:
+                                logits[0, c_idx] -= 2.4
                     elif prev_char.isalpha() and prev_char.lower() not in "aeiou":
                         for v in "aeiou":
-                            if ord(v) < logits.shape[-1]:
-                                logits[0, ord(v)] += 2.2
+                            if ord(v) < logits.shape[-1] and logits[0, ord(v)] > -1e8:
+                                logits[0, ord(v)] += 1.4
                     elif prev_char.lower() in "aeiou":
                         for v in vowels:
-                            if ord(v) < logits.shape[-1]:
-                                logits[0, ord(v)] -= 1.8  # Suppress consecutive vowels in log-space
+                            if ord(v) < logits.shape[-1] and logits[0, ord(v)] > -1e8:
+                                logits[0, ord(v)] -= 1.2
 
-                    if word_len >= 6:
-                        logits[0, ord(' ')] += 1.8 + 0.6 * (word_len - 6)
-                        if word_len >= 7 and len(dream_chars) >= 30:
-                            logits[0, ord('.')] += 1.0
-                            logits[0, ord(',')] += 0.7
+                    if word_len >= 7 and logits[0, ord(' ')] > -1e8:
+                        logits[0, ord(' ')] += 1.6 + 0.5 * (word_len - 7)
+                        if word_len >= 8 and len(dream_chars) >= 35:
+                            if logits[0, ord('.')] > -1e8:
+                                logits[0, ord('.')] += 0.9
+
+                    # Top-k nucleus sharpening in prose mode to eliminate flat-tail noise sampling
+                    if not allow_symbolic_glyphs:
+                        valid_count = int((logits[0] > -1e8).sum().item())
+                        top_k = min(8, max(1, valid_count))
+                        if valid_count > top_k:
+                            top_vals, _ = torch.topk(logits[0], top_k)
+                            cutoff = top_vals[-1]
+                            logits[0] = torch.where(logits[0] < cutoff, torch.full_like(logits[0], -1e9), logits[0])
 
                     # Numerical stability guard: ensure logits and probs contain no NaN/Inf
                     logits = torch.nan_to_num(logits, nan=0.0, posinf=40.0, neginf=-40.0)
                     logits = torch.clamp(logits, -40.0, 40.0)
                     from src.core.gluing_operator import LazarusSoftmax
-                    pas_val = float(getattr(self, 'last_pas', 0.0))
+                    cur_pas_val = float(0.6 * getattr(self, 'last_pas', 0.5) + 0.4 * cached_v_pas)
                     lazarus = LazarusSoftmax(dim=-1).to(logits.device)
-                    probs, _ = lazarus(logits, pas_val, pas_val)
+                    probs, _ = lazarus(logits, cur_pas_val, prev_pas_val)
+                    prev_pas_val = cur_pas_val
                     probs = torch.nan_to_num(probs, nan=0.0, posinf=0.0, neginf=0.0)
                     p_sum = probs[0].sum()
                     if p_sum <= 1e-8 or torch.isnan(p_sum) or torch.isinf(p_sum):
@@ -3381,7 +3711,19 @@ class DiegeticPhysicsEngine(nn.Module):
             """Projects a single media item (image, audio, video) into manifold space."""
             if not item_data: return None
             
-            if item_type == 'image':
+            if item_type == 'image' or item_type == 'silicon_die':
+                # Automated Silicon Die Patent & Free-Content Veto Gate
+                if item_type == 'silicon_die' or (isinstance(item_data, dict) and item_data.get('silicon_die_metadata')):
+                    die_meta = (
+                        item_data.get('silicon_die_metadata')
+                        if isinstance(item_data, dict) and 'silicon_die_metadata' in item_data
+                        else (item_data.get('metadata', {}) if isinstance(item_data, dict) else {})
+                    )
+                    if getattr(self, 'silicon_die_ingestor', None) is not None:
+                        compliance = self.silicon_die_ingestor.patent_filter.verify_admissibility(die_meta)
+                        if not compliance.admissible:
+                            return None
+
                 # Chebyshev format
                 if isinstance(item_data, dict) and 'L' in item_data:
                     K = len(item_data['L'])
@@ -3498,8 +3840,9 @@ class DiegeticPhysicsEngine(nn.Module):
             input_tensor = input_tensor + 0.5 * mean_bias
         # 'text_first' handled after forward()
         
-        # 2. MIMICRY (Active Listening)
-        self._train_mimicry(input_tensor, text_input)
+        # 2. MIMICRY (Active Listening) — strip PROMPT: prefix so command tags are not trained into the larynx
+        _active_mimic_text = text_input[7:].strip() if text_input.upper().startswith("PROMPT:") else text_input.strip()
+        self._train_mimicry(input_tensor, _active_mimic_text)
         
         # 2.5 DYNAMIC MANIFOLD CLOCK (Integrated Physics)
         # Manifold pressure = Similarity(Input, History)
@@ -4548,11 +4891,32 @@ class DiegeticPhysicsEngine(nn.Module):
                 print(f"  Matrioshka evolution loop failed: {_caq_err}")
 
         print(" Starting text generation with fully repaired state...")
-        # Re-align Larynx mimicry to the post-repair seed_state so autoregression starts on the repaired manifold trajectory
+        # Re-align Larynx mimicry to the post-repair seed_state using the top-resonant fossil trajectory
+        # (avoiding echoing the user's own prompt back into the larynx right before decoding).
         try:
+            is_assoc_or_ingest = text_input.startswith("INGEST_DYAD:") or text_input.startswith("ASSOCIATE:")
             clean_target = text_input[7:].strip() if text_input.upper().startswith("PROMPT:") else text_input.strip()
-            if len(clean_target) >= 2:
-                self._train_mimicry(seed_state.detach(), clean_target)
+            mimic_target = clean_target
+            if not is_assoc_or_ingest and getattr(self, 'fossil_cache', None):
+                best_f_text = None
+                best_f_sim = -1.0
+                s_flat = F.normalize(seed_state.detach().float().view(1, -1), p=2, dim=-1)
+                for f_item in self.fossil_cache[:48]:
+                    f_txt = str(f_item.get('text') or f_item.get('target') or f_item.get('description') or '').strip()
+                    if len(f_txt) < 8:
+                        continue
+                    try:
+                        f_vec = self._text_to_tensor(f_txt[:128]).to(self.device).float().view(1, -1)
+                        sim = float(F.cosine_similarity(s_flat, F.normalize(f_vec, p=2, dim=-1)).item())
+                        if sim > best_f_sim:
+                            best_f_sim = sim
+                            best_f_text = f_txt[:128]
+                    except Exception:
+                        continue
+                if best_f_text and best_f_sim > 0.05:
+                    mimic_target = best_f_text
+            if len(mimic_target) >= 2:
+                self._train_mimicry(seed_state.detach(), mimic_target)
         except Exception:
             pass
         
@@ -5716,7 +6080,10 @@ class DiegeticPhysicsEngine(nn.Module):
         return jitter_0_1
 
     def _train_mimicry(self, input_state: torch.Tensor, text_target: str):
-        """Train Larynx to decrypt the input state back to text autoregressively."""
+        """Train Larynx to decrypt the input state back to text autoregressively,
+        gated by VoynichLinguist seam cuts, Chern-Simons seal, Anti-Sycophancy,
+        LoveInvariantProtector null-space shield, HeritableTrustVault damping,
+        Hebbian/JEPA coupling, and DyadFossilizer view-weight feedback."""
         if hasattr(self, 'cayley_decomposer') and self.cayley_decomposer is not None:
             decomp = self.cayley_decomposer.decompose(text_target)
             if decomp.get("is_adversarial", False) and len(decomp.get("clean_text", "")) >= 2:
@@ -5726,6 +6093,18 @@ class DiegeticPhysicsEngine(nn.Module):
             return
             
         with self._processing_lock:
+            # 1. VoynichLinguist dictionary-free seam cuts
+            seam_cuts = None
+            seam_boundary_indices = set()
+            if hasattr(self, 'voynich_linguist') and hasattr(self.voynich_linguist, 'split_sub_pairs'):
+                try:
+                    seam_cuts = self.voynich_linguist.split_sub_pairs(text_target[:32])
+                    for pref, suf in seam_cuts:
+                        if 0 < len(pref) < len(text_target[:32]) and suf:
+                            seam_boundary_indices.add(len(pref) - 1)
+                except Exception:
+                    seam_cuts = None
+
             self.larynx.train()
             self.optimizer.zero_grad()
             
@@ -5745,9 +6124,14 @@ class DiegeticPhysicsEngine(nn.Module):
                 
             # Dynamic tokenization map
             chars = [self._char_to_idx(c) for c in text_target[:max_seq]]
+            if len(chars) < 2:
+                self.larynx.eval()
+                return
             
             seq_len = max(1, len(chars) - 1)
-            current_state = input_state.clone().to(self.device)
+            seed_state = input_state.clone().to(self.device)
+            current_state = seed_state
+            total_loss_val = 0.0
             
             for i in range(len(chars) - 1):
                 logits, _ = self.larynx(current_state, temperature=1.0)
@@ -5756,6 +6140,7 @@ class DiegeticPhysicsEngine(nn.Module):
                 target_idx = torch.tensor([target_char_idx], device=self.device, dtype=torch.long)
                 loss = self.criterion(logits, target_idx) / seq_len
                 loss.backward()
+                total_loss_val += float(loss.item())
                 
                 with torch.no_grad():
                     # Phase-Aligned Feedback: Dissolve Teacher's Pet trap via Phase Alignment
@@ -5764,10 +6149,131 @@ class DiegeticPhysicsEngine(nn.Module):
                     pas_step = float(F.cosine_similarity(current_state, feedback).clamp(0.0, 1.0).item())
                     # Autonomous trajectories proceed with minimal forced token snapping
                     forcing_lambda = 0.1 * max(0.0, 1.0 - pas_step)
+                    if i in seam_boundary_indices:
+                        forcing_lambda = min(0.25, forcing_lambda * 1.15)
                     current_state = (1.0 - forcing_lambda) * current_state.detach() + forcing_lambda * feedback
-                    
+
+            # 2. Chern-Simons Gasket topological seal check
+            honesty = 1.0 / (1.0 + max(0.0, total_loss_val))
+            kappa = 1.0
+            if hasattr(self, 'chern_simons_gasket') and hasattr(self.chern_simons_gasket, 'kappa'):
+                kappa = self.chern_simons_gasket.kappa.item() if isinstance(self.chern_simons_gasket.kappa, torch.Tensor) else float(self.chern_simons_gasket.kappa)
+            seal = math.tanh(honesty * kappa)
+            if abs(seal) < 1e-4:
+                self.optimizer.zero_grad()
+                self.larynx.eval()
+                return
+
+            # 3. Anti-Sycophancy gate check
+            if hasattr(self, 'sycophancy_gate') and self.sycophancy_gate is not None:
+                try:
+                    grad_norm = sum(p.grad.norm().item() for p in self.larynx.parameters() if p.grad is not None)
+                    is_destructive = (grad_norm > 2.0)
+                    sycophancy_safe = self.sycophancy_gate.check_sycophancy(
+                        external_pressure_norm=0.85 if is_destructive else 0.15,
+                        internal_reproduction_loss=total_loss_val,
+                        is_destructive=is_destructive
+                    )
+                    if not sycophancy_safe:
+                        self.optimizer.zero_grad()
+                        self.larynx.eval()
+                        return
+                except Exception:
+                    pass
+
+            # 4. HeritableTrustVault damping: eta = eta_0 * (1 - Trust)
+            trust_val = 0.0
+            trust_damp = 1.0
+            mdl_codelength_bits = None
+            res_slice = None
+            if hasattr(self, 'trust_vault') and self.trust_vault is not None:
+                try:
+                    k_dim = int(getattr(self.trust_vault, 'k_dim', 5))
+                    flat_st = current_state.detach().view(1, -1)
+                    if flat_st.shape[-1] >= k_dim:
+                        res_slice = flat_st[:, :k_dim]
+                    else:
+                        res_slice = F.pad(flat_st, (0, k_dim - flat_st.shape[-1]))
+                    t_scores = self.trust_vault.query(res_slice)
+                    trust_val = float(torch.clamp(t_scores.mean(), 0.0, 1.0).item())
+                    trust_damp = max(0.15, 1.0 - 0.75 * trust_val)
+                except Exception:
+                    trust_damp = 1.0
+
             torch.nn.utils.clip_grad_norm_(self.larynx.parameters(), max_norm=0.5)
+
+            # 5. LoveInvariantProtector null-space shield + trust-weighted gradient damping
+            with torch.no_grad():
+                for param in self.larynx.parameters():
+                    if param.grad is not None:
+                        if hasattr(self, 'love_protector') and self.love_protector is not None:
+                            try:
+                                grad_flat = param.grad.view(1, -1) if param.grad.dim() == 1 else param.grad.view(param.grad.shape[0], -1)
+                                state_flat = current_state.view(1, -1)
+                                grad_proj = self.love_protector.project_updates_to_null_space(state_flat, grad_flat)
+                                param.grad.copy_(grad_proj.view(param.shape))
+                            except Exception:
+                                pass
+                        param.grad.mul_(trust_damp)
+
             self.optimizer.step()
+
+            # 6. Hebbian pathway reinforcement, JEPA energy, TrustVault MDL & DyadFossilizer feedback
+            jepa_energy_val = None
+            hebbian_updated = False
+            fossil_view_updated = False
+            with torch.no_grad():
+                if hasattr(self.larynx, 'compute_jepa_transition_energy'):
+                    try:
+                        jepa_e = self.larynx.compute_jepa_transition_energy(
+                            seed_state.detach(),
+                            current_state.detach(),
+                            moment_transport=getattr(self, 'moment_transport', None),
+                        )
+                        jepa_energy_val = float(jepa_e.item()) if isinstance(jepa_e, torch.Tensor) else float(jepa_e)
+                    except Exception:
+                        pass
+                if hasattr(self.larynx, 'hebbian_update'):
+                    try:
+                        self.larynx.hebbian_update(
+                            seed_state.detach(),
+                            target_state=current_state.detach(),
+                            rate=0.005 * trust_damp,
+                        )
+                        hebbian_updated = True
+                    except Exception:
+                        pass
+                if res_slice is not None and hasattr(self, 'trust_vault') and self.trust_vault is not None:
+                    try:
+                        surv = torch.tensor([float(honesty)], device=res_slice.device, dtype=res_slice.dtype)
+                        self.trust_vault.update(res_slice, surv, use_mdl_weighting=True)
+                        mdl_rep = getattr(self.trust_vault, 'last_mdl_report', None)
+                        if isinstance(mdl_rep, dict):
+                            mdl_codelength_bits = float(mdl_rep.get('mean_online_codelength_bits', 0.0))
+                    except Exception:
+                        pass
+                if hasattr(self, 'dyad_fossilizer') and self.dyad_fossilizer is not None and hasattr(self.dyad_fossilizer, 'update_fossil_view_weight'):
+                    try:
+                        if getattr(self, 'fossil_cache', None):
+                            top_f = self.fossil_cache[0].get('_fossil_filename')
+                            if top_f:
+                                self.dyad_fossilizer.update_fossil_view_weight(top_f, delta_weight=0.02 * (honesty - 0.5))
+                                fossil_view_updated = True
+                    except Exception:
+                        pass
+
+            self.last_mimicry_telemetry = {
+                'method': '_train_mimicry',
+                'loss': float(total_loss_val),
+                'seal': float(seal),
+                'seam_cuts_count': len(seam_cuts) if seam_cuts else 0,
+                'trust_val': float(trust_val),
+                'trust_damp': float(trust_damp),
+                'jepa_energy': jepa_energy_val,
+                'hebbian_updated': hebbian_updated,
+                'mdl_codelength_bits': mdl_codelength_bits,
+                'fossil_view_updated': fossil_view_updated,
+            }
             self.larynx.eval()
 
     def _text_to_tensor(self, text: str) -> torch.Tensor:

@@ -13,7 +13,7 @@ import os
 import csv
 import torch
 from pathlib import Path
-from typing import List, Dict, Any, Generator, Optional
+from typing import List, Dict, Any, Generator, Optional, Union
 from src.data.conversational_types import Conversation, ConversationTurn, _stable_id
 from src.data.canonical_projection import CanonicalProjector
 
@@ -244,3 +244,78 @@ class LocalDatasetIngestor:
                     count += 1
                 except Exception as e:
                     continue
+
+    def silicon_die_generator(
+        self,
+        die_dir: Optional[Union[str, Path]] = None,
+        limit: int = 100,
+        as_of: Optional[Any] = None,
+    ) -> Generator[Conversation, None, None]:
+        """
+        Drip-feeds locally cached silicon die photomicrographs accompanied by JSON metadata
+        sidecars (`<stem>.json`), strictly gated by SiliconDiePatentFilter before projection
+        through CanonicalProjector.
+        """
+        import json
+        from src.data.silicon_die_ingestor import SiliconDiePatentFilter
+
+        gallery_root = Path(die_dir) if die_dir is not None else (self.root / 'silicon_dies')
+        if not gallery_root.exists():
+            return
+
+        patent_filter = SiliconDiePatentFilter()
+        count = 0
+        for img_path in sorted(gallery_root.rglob("*")):
+            if count >= limit:
+                break
+            if img_path.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp'):
+                continue
+            meta_path = img_path.with_suffix('.json')
+            if not meta_path.exists():
+                continue
+            try:
+                meta = json.loads(meta_path.read_text(encoding='utf-8'))
+            except Exception:
+                continue
+
+            report = patent_filter.verify_admissibility(meta, as_of=as_of)
+            if not report.admissible:
+                continue
+
+            try:
+                proj = self.projector.project_image_path_to_state(str(img_path), use_log_polar=True)
+                turns = [
+                    ConversationTurn(
+                        speaker_id="silicon_die_oracle",
+                        text=f"Silicon Die Blueprint: {report.chip_identifier} ({report.repo_id})",
+                        metadata={
+                            'chip_identifier': report.chip_identifier,
+                            'repo_id': report.repo_id,
+                            'public_domain_tags': report.public_domain_tags,
+                        }
+                    ),
+                    ConversationTurn(
+                        speaker_id="visual_sensor",
+                        text="[Verified Silicon Die Conformal Projection]",
+                        embedding=proj['state'],
+                        metadata={
+                            'entropy': proj['entropy'],
+                            'edge_density_l0': proj.get('edge_density_l0', 0.0),
+                            'source': str(img_path),
+                            'public_domain_tags': report.public_domain_tags,
+                        }
+                    )
+                ]
+                yield Conversation(
+                    conversation_id=_stable_id("silicon_die", str(img_path.name)),
+                    turns=turns,
+                    context={
+                        'dataset': 'silicon_die_gallery',
+                        'repo_id': report.repo_id,
+                        'public_domain_tags': report.public_domain_tags,
+                    },
+                    source='silicon_die_local'
+                )
+                count += 1
+            except Exception:
+                continue

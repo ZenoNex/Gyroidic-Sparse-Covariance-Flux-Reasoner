@@ -257,20 +257,42 @@ class PersistentHomologyComputer(nn.Module):
             if e2 in edge_to_idx: B_2[edge_to_idx[e2], j] = 1.0
             if e3 in edge_to_idx: B_2[edge_to_idx[e3], j] = -1.0 # arbitrary orientation
             
-        # Spectral Approximation (Laplacian Kernels)
-        # L_0 = B_1 @ B_1^T
-        L_0 = B_1 @ B_1.T
-        eig_0 = torch.linalg.eigvalsh(L_0)
-        # Count zero eigenvalues (with small tolerance)
-        betti[0] = (eig_0 < 1e-5).sum().item()
-        
-        # L_1 = B_1^T @ B_1 + B_2 @ B_2^T
-        if num_edges > 0:
-            L_1 = B_1.T @ B_1 + B_2 @ B_2.T
-            eig_1 = torch.linalg.eigvalsh(L_1)
-            betti[1] = (eig_1 < 1e-5).sum().item()
+        # Spectral Approximation (Laplacian Kernels) — O(N^3) amelioration:
+        # Scale dense Laplacian ceiling with Tri-Accelerator headroom (64 CPU -> 256 GPU/OpenCL);
+        # above ceiling, use O(E * alpha(V)) Union-Find for beta_0 and Euler characteristic for beta_1.
+        dense_limit = 64
+        try:
+            from src.core.hardware_monitor import get_tri_accelerator_dense_limit
+            dense_limit = get_tri_accelerator_dense_limit(cpu_limit=64, gpu_limit=256)
+        except Exception:
+            pass
+        use_dense_laplacian = max(num_vertices, num_edges) <= dense_limit
+
+        if use_dense_laplacian:
+            # L_0 = B_1 @ B_1^T
+            L_0 = B_1 @ B_1.T
+            eig_0 = torch.linalg.eigvalsh(L_0)
+            betti[0] = (eig_0 < 1e-5).sum().item()
+            if num_edges > 0:
+                L_1 = B_1.T @ B_1 + B_2 @ B_2.T
+                eig_1 = torch.linalg.eigvalsh(L_1)
+                betti[1] = (eig_1 < 1e-5).sum().item()
+            else:
+                betti[1] = 0
         else:
-            betti[1] = 0
+            parent = list(range(num_vertices))
+            def _find(a: int) -> int:
+                while parent[a] != a:
+                    parent[a] = parent[parent[a]]
+                    a = parent[a]
+                return a
+            for u, v in complex.get(1, []):
+                ru, rv = _find(vertex_to_idx[u]), _find(vertex_to_idx[v])
+                if ru != rv:
+                    parent[ru] = rv
+            b0 = len({_find(i) for i in range(num_vertices)})
+            betti[0] = b0
+            betti[1] = max(0, num_edges - num_vertices + b0 - num_faces)
             
         return betti
     

@@ -108,6 +108,12 @@ graph TD
 *   **Intercosamination (Handle-Attachment Surgery)**
     *   *Implementation*: [vision_surgery.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/vision_surgery.py)
     *   *Documentation*: [INTERCOSAMINATION_THEORY.md](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/03_philosophy_lore/INTERCOSAMINATION_THEORY.md)
+*   **Silicon Die Image Ingestion & Automated Patent/SCPA Free-Content Filter**
+    *   *Implementation*: [silicon_die_ingestor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/data/silicon_die_ingestor.py) & [structural_blueprints.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/structural_blueprints.py)
+    *   *Documentation*: [TAILSLAYER_PYOPENCL_ARCHITECTURE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md) & [SYSTEM_ARCHITECTURE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/01_architecture_core/SYSTEM_ARCHITECTURE.md) (Section 9.16)
+*   **Tri-Accelerator Sovereignty (PyBevy Rust/wgpu + TorchVision/CUDA + PyOpenCL TailSlayer)**
+    *   *Implementation*: [pyopencl_sovereignty.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/pyopencl_sovereignty.py), [voxelboxter_client.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/ui/voxelboxter_client.py), [image_extension.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/codec/image_extension.py), & [hardware_monitor.py](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hardware_monitor.py) (`get_tri_accelerator_dense_limit`)
+    *   *Documentation*: [TAILSLAYER_PYOPENCL_ARCHITECTURE.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/TAILSLAYER_PYOPENCL_ARCHITECTURE.md), [VOXELBOXTER_NONDUAL_ECOLOGY.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/stepping_stairs_tier_0_vestibule/stepping_stairs_tier_1_mezzanine/04_components_and_mechanics/VOXELBOXTER_NONDUAL_ECOLOGY.md), & [CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/docs/CONJUGATE_COLOR_AND_VOXELBOXTER_INTEGRATION.md)
 
 ---
 

@@ -1382,4 +1382,34 @@ def should_offload_gpu_sovereign(dim: int = 8, min_dim: int = 8) -> tuple:
     return bool(gpu_aff.is_admissible and thermal_aff.is_admissible), gpu_aff
 
 
+def get_tri_accelerator_dense_limit(cpu_limit: int = 64, gpu_limit: int = 256) -> int:
+    """
+    Returns the dynamic dense-linear-algebra dimension ceiling respecting the
+    Tri-Accelerator Architecture (PyBevy Rust/wgpu ECS + TorchVision/CUDA +
+    PyOpenCL TailSlayer Queue A/B).
+
+    Instead of pessimistically capping at CPU-only limits (e.g. 64), raises the
+    ceiling up to `gpu_limit` (default 256) whenever GPU_SOVEREIGN or CUDA is
+    active and THERMAL/ALGORITHMIC affordances are admissible; degrades smoothly
+    toward `cpu_limit` only on pure-CPU hosts or thermal/algorithmic pressure.
+    """
+    hm = HardwareMonitor.get_instance()
+    if hm.thermal_runaway:
+        return int(cpu_limit)
+    algo_aff = hm.get_typed_affordance(ComputeAffordanceType.ALGORITHMIC)
+    gpu_aff = hm.get_typed_affordance(ComputeAffordanceType.GPU_SOVEREIGN)
+    thermal_aff = hm.get_typed_affordance(ComputeAffordanceType.THERMAL)
+    has_cuda = False
+    try:
+        import torch
+        has_cuda = bool(torch.cuda.is_available())
+    except Exception:
+        has_cuda = False
+    if (gpu_aff.is_admissible or has_cuda) and thermal_aff.is_admissible and algo_aff.is_admissible:
+        scaled = int(round(cpu_limit + (gpu_limit - cpu_limit) * max(gpu_aff.gauge, algo_aff.gauge)))
+        return max(int(cpu_limit), min(int(gpu_limit), scaled))
+    return int(cpu_limit)
+
+
+
 

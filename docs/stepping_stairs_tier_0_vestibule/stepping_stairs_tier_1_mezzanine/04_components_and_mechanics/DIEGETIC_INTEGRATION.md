@@ -107,7 +107,7 @@ The manifold state is bathed in the diffuse endocrine broadcast field orchestrat
 
 ### Layer 5: Live Adaptation & Continual Learning
 Rather than freezing weights after offline training, [`hybrid_backend.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/hybrid_backend.py) coordinates continual live adaptation:
-- **Background Larynx Coherence Trainer**: Spawns a dedicated daemon thread `larynx-bglearn` executing `_train_larynx_step` every 30 seconds of idle time. Trains the Larynx to decrypt historical fossil states back into clean linguistic sequences.
+- **Background & Inline Larynx Mimicry Trainer**: Spawns a dedicated daemon thread `larynx-bglearn` executing `_train_mimicry_step` every 30 seconds of idle time, complemented by inline `_train_mimicry` and per-epoch `TrainingManager._training_loop` steps. Trains `ResonanceLarynx` to decrypt historical fossil and resonant manifold states back into clean linguistic sequences under `VoynichLinguist.split_sub_pairs`, `HeritableTrustVault` trust damping, `LoveInvariantProtector` null-space projection, `ResonanceLarynx.hebbian_update`, PROVE DrGRPO self-play, and `DyadFossilizer.update_fossil_view_weight`.
 - **Ricci Flow Parameter Updates**: Adjusts model weights via non-teleological geometric flow:
   $$\frac{dg}{dt} = -2\operatorname{Ric}(g)$$
   incorporating split-beam interfactorization across commutative gradient pressure and non-commutative Chern-Simons tension.

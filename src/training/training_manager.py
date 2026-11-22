@@ -366,6 +366,27 @@ class TrainingManager:
 
                 self.log.append(f"[OK] Epoch {epoch+1} completed. Loss: {loss:.4f}")
 
+                # Coupled ResonanceLarynx mimicry step on top recovered fossil text
+                engine = getattr(self.ai_system, 'engine', None) if self.ai_system is not None else None
+                if engine is not None and hasattr(engine, '_train_mimicry_step'):
+                    try:
+                        f_cache = getattr(engine, 'fossil_cache', None) or []
+                        mimic_sample = None
+                        if f_cache:
+                            f_entry = f_cache[epoch % len(f_cache)]
+                            mimic_sample = str(
+                                f_entry.get('text')
+                                or f_entry.get('target')
+                                or f_entry.get('description')
+                                or ''
+                            ).strip()
+                        if mimic_sample and len(mimic_sample) >= 4:
+                            m_loss = engine._train_mimicry_step(mimic_sample[:128])
+                            if m_loss is not None:
+                                self.log.append(f"  [Larynx Mimicry] Epoch {epoch+1} loss: {m_loss:.4f}")
+                    except Exception as m_err:
+                        self.log.append(f"  [WARN] Larynx mimicry step skipped: {m_err}")
+
             if not self.stop_event.is_set():
                 self.results = {"success": True, "final_loss": loss}
                 self.log.append("[SUCCESS] Training completed successfully.")
