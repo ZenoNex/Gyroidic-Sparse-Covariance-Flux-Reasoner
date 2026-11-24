@@ -205,7 +205,29 @@ def test_hybrid_backend_process_text_and_ui_contracts():
     assert "voynich_honesty" in result["metrics"]
     assert "rns_collatz_audit" in result["metrics"]
     assert "moment_transport_energy" in result["metrics"]
+    assert "monge_ampere_ebm" in result["metrics"]
+    assert "quasicrystal_e8_h4_bridge" in result["metrics"]
+    assert "yves_bouligand_chiral" in result["metrics"]
+    assert "georges_bouligand_fractal" in result["metrics"]
+    assert "non_abelian_gauge_optics" in result["metrics"]
+    assert "rans_bb_ans_crt" in result["metrics"]
+    assert "sagawa_ueda_kelly" in result["metrics"]
+    assert "ontological_null_wheel_hub" in result["metrics"]
+    assert "threat_recalibration_reflexes" in result["metrics"]
+    assert "vanellope_first_causative" in result["metrics"]
+    assert "love_invariant_stack" in result["metrics"]
+    assert "ebm_affordance_landscape" in result["metrics"]
+    assert "ebm_learning_systems" in result["metrics"]
+    assert "cmd_telemetry_report" in result["metrics"]
+    assert "cmd_telemetry_formatted" in result["metrics"]
     assert "thermal_guard" in result["metrics"]
+
+    cmd_txt = result["metrics"]["cmd_telemetry_formatted"]
+    assert "[I. NON-TELEOLOGICAL NOMENCLATURE & FOUNDATIONAL ONTOLOGY (Old <-> Refined Terms)]" in cmd_txt
+    assert "[II. PRIME RESONANCE LADDER, ZEITGEIST CRT POLYTOPE ROUTER & VETO SUBSPACE]" in cmd_txt
+    assert "[III. QUASICRYSTALS, DUAL-LINEAGE BOULIGAND, SU(2) GAUGE OPTICS & rANS/BB-ANS]" in cmd_txt
+    assert "[IV. UNIFIED ENERGY-BASED LEARNING (EBL) & AFFORDANCE LANDSCAPE]" in cmd_txt
+    assert "[V. TREE OF THOUGHT (ToT) 5-BRANCH, WHEEL ALGEBRA HUB (bot=0/0) & GOVERNANCE]" in cmd_txt
 
     term_path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'ui', 'diegetic_terminal.html')
     with open(term_path, 'r', encoding='utf-8') as f:
@@ -1201,6 +1223,188 @@ def test_silicon_die_patent_filter_and_structural_blueprint_connections(tmp_path
     assert hyb_veto["vetoed"] is True
     hyb_ok = ai.ingest_silicon_die(die_img_path, expired_die_meta, as_of=today)
     assert hyb_ok["admissible"] is True and hyb_ok["blueprint"]["die_id"] == "intel_4004"
+
+
+def test_quasicrystal_bouligand_gauge_optics_rans_and_ebm_affordance():
+    """
+    Verifies full end-to-end integration of:
+      1. Elser-Sloane E8 -> H4 600-cell cut-and-project quasicrystal, internal-space
+         phason flips, and 14-vertex Einstein Hat monotile / 14-mode discrete elastic
+         lattice U(1) twist reaction (Zenodo:18434750).
+      2. Dual-Lineage Bouligand unification on BouligandBirkhoffManifold:
+         - Yves Bouligand (arXiv:2309.11632 Bloch projector & Haydock recursion,
+           arXiv:2302.09385 Bragg-Pippard 2x2 cuticle transfer matrix,
+           arXiv:2607.29225 Moire twisted magnetic domain contrast).
+         - Georges Bouligand (arXiv:2607.08612 Point-Cross framework,
+           arXiv:2311.15669v2 infinite-dimensional B-subdifferentials,
+           viXra:2609.0039v1 fractal exponent).
+      3. Non-Abelian SU(2) gauge optics & Zitterbewegung (arXiv:1802.09866v2),
+         chiral magnetic nonreciprocity (arXiv:2605.09135v1), Dressing Field Method
+         twisted gauge cocycle C(p, hh') = C(p, h)C(ph, h') (arXiv:2606.28888v1),
+         and chiral BF topological flux-density locking B = -kappa * n (arXiv:2204.05386v3).
+      4. 5 Spliced Compression-Topology Pillars (Jarek Duda rANS + BB-ANS over CRT
+         residue channels, Sagawa-Ueda information-thermodynamic bound + Kelly stake sizing).
+      5. Energy-Based Model (EBM) of Affordance (Gibson + Takahashi-El Hady
+         docs/2611.02220v1.pdf Boltzmann dwell free energy + Friston variational free energy)
+         and UniversalOrchestrator.audit_domain_transversality_and_survival.
+    """
+    os.environ["Sovereign_Disable_Background"] = "1"
+    from src.core.polychoron_quantization import Polychoron600Quantizer
+    from src.topology.einstein_monotile import get_einstein_tessellation
+    from src.core.birkhoff_projection import BouligandBirkhoffManifold
+    from src.core.chern_simons_gasket import ChernSimonsGasket
+    from src.core.huffman_entropy import HuffmanEntropyCodec
+    from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+    from src.core.hardware_monitor import compute_energy_based_affordance_landscape
+    from src.core.orchestrator import UniversalOrchestrator
+
+    # 1. Quasicrystal E8 -> H4 600-cell cut-and-project & 14-mode lattice bridge
+    q600 = Polychoron600Quantizer()
+    state_8d = torch.tensor(
+        [0.45, -0.30, 0.80, -0.25, 0.60, 0.15, -0.50, 0.70,
+         0.12, -0.40, 0.33, 0.55, -0.22, 0.90, 0.18, -0.65],
+        dtype=torch.float32,
+    )
+    qc_res = q600.cut_and_project_e8_to_h4_quasicrystal(
+        state_8d=state_8d,
+        window_radius=1.20,
+        phason_strain=0.50,
+    )
+    assert qc_res["x_parallel"].shape == (2, 4)
+    assert qc_res["x_perp"].shape == (2, 4)
+    assert qc_res["quasicrystal_vertices"].shape == (2, 4)
+    assert 0.0 <= float(qc_res["acceptance_ratio"].item()) <= 1.0
+
+    tess = get_einstein_tessellation()
+    bridge_res = tess.bridge_quasicrystal_600_cell_and_14mode_lattice(state_8d)
+    assert bridge_res["monotile_14_modes"] == 14
+    assert math.isfinite(bridge_res["emergent_u1_elastic_twist_A_mu"])
+    assert bridge_res["elastic_14mode_stress_energy"] > 0.0
+
+    # 2. Dual-Lineage Bouligand (Yves Bouligand + Georges Bouligand)
+    b_manifold = BouligandBirkhoffManifold(n=4)
+    yves = b_manifold.compute_yves_bouligand_chiral_homogenization(state_8d)
+    assert yves["lineage"] == "Yves_Bouligand_Chiral_Homogenization"
+    assert yves["coupled_circular_2x2"].shape == (2, 2)
+    assert yves["cuticle_transfer_2x2"].shape == (2, 2)
+    assert yves["bragg_pippard_effective_eps"] > 0.0
+    assert yves["chiral_bandgap_center"] > 0.0
+    assert math.isfinite(yves["bloch_projector_homogenized_t_inv"])
+
+    georges = b_manifold.compute_georges_bouligand_point_cross_and_exponent(state_8d)
+    assert georges["lineage"] == "Georges_Bouligand_Tangent_Cone_Fractal"
+    assert georges["point_cross_count"] >= 1
+    assert georges["bouligand_fractal_exponent"] >= 1.0
+    assert georges["tangent_cone_vector"].shape == state_8d.shape
+
+    # 3. Non-Abelian SU(2) Gauge Optics, DFM Twisted Cocycle & Chiral BF Flux Locking
+    gasket = ChernSimonsGasket(manifold_dim=3, level_k=2)
+    gauge = gasket.compute_su2_anisotropic_gauge_optics_and_dfm(state_8d)
+    assert gauge["su2_curvature_norm"] > 0.0
+    assert gauge["zitterbewegung_amplitude"] > 0.0
+    assert gauge["dfm_cocycle_verified"] is True
+    assert gauge["dfm_cocycle_residual"] < 1e-6
+    assert math.isclose(
+        gauge["chiral_bf_locked_flux_B"],
+        -2.0 * gauge["chiral_bf_matter_density_n"],
+        rel_tol=1e-5,
+    )
+
+    # 4. Jarek Duda rANS + BB-ANS over Coprime CRT Residue Channels & Sagawa-Ueda + Kelly
+    symbols = [3, 14, 15, 92, 65, 35, 89, 79, 32, 38, 46, 26]
+    moduli = (5, 7, 11)
+    states, rans_meta = HuffmanEntropyCodec.encode_rans_crt_channels(symbols, moduli=moduli)
+    decoded_ch = HuffmanEntropyCodec.decode_rans_crt_channels(states, rans_meta)
+    for m_k in moduli:
+        expected_res = [s % m_k for s in symbols]
+        assert decoded_ch[m_k] == expected_res, f"rANS CRT channel {m_k} mismatch"
+    assert abs(sum(rans_meta["implied_predictive_probs_m0"].values()) - 1.0) < 1e-6
+    assert rans_meta["bb_ans_total_mdl_bits"] > 0.0
+
+    ledger = CarnotMobiusLedger()
+    su_pos = ledger.evaluate_sagawa_ueda_and_kelly_governance(
+        mutual_info_bits=2.5, pred_error_bits=0.5, temperature=1.0
+    )
+    assert su_pos["thermodynamic_work_positive"] is True
+    assert 0.0 < su_pos["kelly_optimal_fraction"] <= 1.0
+    su_neg = ledger.evaluate_sagawa_ueda_and_kelly_governance(
+        mutual_info_bits=0.2, pred_error_bits=1.8, temperature=1.0
+    )
+    assert su_neg["thermodynamic_work_positive"] is False
+    assert su_neg["byzantine_throttled"] is True
+
+    # 5. Energy-Based Affordance Landscape, Canonical Codebase EBM Learning Stack & UniversalOrchestrator Integration
+    from src.core.energy_monitor import StructuralEnergyMonitor
+    from src.core.codes_constraint_framework import create_codes_framework
+    from src.core.conjugate_moment_transport import ConjugateMomentTransport
+    from src.core.valence_drive import ValenceFunctional
+    from src.core.energy_based_soliton_healer import EnergyBasedSolitonHealer
+
+    sem = StructuralEnergyMonitor(margin=0.25, beta_init=2.0)
+    e_c = torch.tensor([0.20, 0.30], dtype=torch.float32)
+    e_i = torch.tensor([0.85, 0.95], dtype=torch.float32)
+    ebm_losses = sem.compute_ebm_loss_functionals(e_c, e_i)
+    assert ebm_losses["condition_3_no_collapse_satisfied"] is True
+    assert ebm_losses["hinge_loss"] == 0.0
+    assert ebm_losses["square_square_loss"] > 0.0
+    assert ebm_losses["square_exp_loss"] > 0.0
+    assert ebm_losses["nll_helmholtz_loss"] >= 0.0
+
+    latent_z = torch.tensor([[0.8, 0.2, 1.4], [1.1, 0.4, 0.9]], dtype=torch.float32)
+    lat_res = sem.marginalize_latent_free_energy(latent_z)
+    assert float(lat_res["helmholtz_latent_free_energy"].item()) <= float(lat_res["zero_temp_min_energy"].item())
+
+    codes_fw = create_codes_framework(state_dim=16, max_constraints=8)
+    evolved_state, codes_diag = codes_fw.evolve_state(state_8d, num_steps=3)
+    assert evolved_state.shape == state_8d.shape
+    assert "hessian_8x8_ledger" in codes_diag
+    assert "bouligand_kink_intensity" in codes_diag["hessian_8x8_ledger"]
+    train_res = codes_fw.train_constraints(
+        state_8d.unsqueeze(0), (state_8d * 2.5).unsqueeze(0), loss_type="square_square"
+    )
+    assert train_res["trained"] is True
+
+    cmt = ConjugateMomentTransport(dim=16)
+    ma_res = cmt.compute_monge_ampere_ebm_density_loss(
+        state_8d.unsqueeze(0), target_energy=torch.tensor([0.5], dtype=torch.float32)
+    )
+    assert ma_res["mcmc_free_transport"] is True
+    assert math.isfinite(ma_res["monge_ampere_log_density"])
+
+    ebm_aff = compute_energy_based_affordance_landscape(
+        dwell_times={"circling": 9.22, "drift": 0.65, "algorithmic": 4.50},
+        temperature=0.25,
+        affordance_gradients={
+            "executability_pressure": 0.12,
+            "formal_symbol_density": 0.25,
+            "constraint_forcing_gradient": 0.18,
+        },
+        energy_monitor=sem,
+        codes_framework=codes_fw,
+        valence_functional=ValenceFunctional(),
+        soliton_healer=EnergyBasedSolitonHealer(state_dim=16),
+        moment_transport=cmt,
+        state=state_8d,
+    )
+    assert ebm_aff["first_law_residual"] < 1e-9
+    assert ebm_aff["dominant_ground_state_affordance"] == "circling"
+    assert "structural_energy_monitor" in ebm_aff["coupled_ebm_systems"]
+    assert "codes_constraint_framework" in ebm_aff["coupled_ebm_systems"]
+    assert "valence_functional" in ebm_aff["coupled_ebm_systems"]
+    assert "soliton_healer" in ebm_aff["coupled_ebm_systems"]
+    assert "conjugate_moment_transport" in ebm_aff["coupled_ebm_systems"]
+
+    orch = UniversalOrchestrator(dim=16, device="cpu")
+    rep = orch.audit_domain_transversality_and_survival(state_8d)
+    assert "quasicrystal_e8_h4_bridge" in rep
+    assert "yves_bouligand_chiral" in rep
+    assert "georges_bouligand_fractal" in rep
+    assert "non_abelian_gauge_optics" in rep
+    assert "ebm_affordance_landscape" in rep
+    assert "ebm_learning_systems" in rep
+    assert "structural_energy_monitor" in rep["ebm_learning_systems"]
+    assert "codes_constraint_framework" in rep["ebm_learning_systems"]
+    assert "conjugate_moment_transport" in rep["ebm_learning_systems"]
 
 
 if __name__ == "__main__":

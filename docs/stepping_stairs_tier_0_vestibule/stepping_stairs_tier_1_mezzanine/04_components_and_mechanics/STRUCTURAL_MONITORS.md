@@ -189,5 +189,25 @@ graph TB
     VF["ValenceFunctional<br/>(hunger)"] -->|drives| TRAIN["StructuralAdaptor"]
     EBSH["EnergyBasedSolitonHealer<br/>(energy gradient repair)"] -->|heals| SOL
     EBSH -->|step 4 of cascade| SCC["SpectralCoherenceCorrector"]
+    SEM["StructuralEnergyMonitor<br/>(E_C, E_I, F_topo, LeCun EBM Losses)"] -->|couples| EBM_AFF["compute_energy_based_affordance_landscape"]
+    CODES["CODESConstraintFramework<br/>(GNZ Gibbs & 8x8 Hessian)"] -->|couples| EBM_AFF
+    CMT["ConjugateMomentTransport<br/>(Monge-Ampere EBM Density)"] -->|couples| EBM_AFF
 ```
+
+---
+
+## 9. StructuralEnergyMonitor & Unified EBM Learning Stack
+
+**Source**: [`src/core/energy_monitor.py`](../../../../src/core/energy_monitor.py), [`src/core/codes_constraint_framework.py`](../../../../src/core/codes_constraint_framework.py), [`src/core/conjugate_moment_transport.py`](../../../../src/core/conjugate_moment_transport.py), [`src/core/hardware_monitor.py`](../../../../src/core/hardware_monitor.py)
+
+`StructuralEnergyMonitor` formalizes structural pressure as Energy $E(W, Y, X)$ in accordance with [`A Tutorial on Energy-Based Learning.txt`](../stepping_stairs_tier_2_crypt/06_reports_and_inspirations/A%20Tutorial%20on%20Energy-Based%20Learning.txt):
+
+1. **Contrastive Loss Functionals (`compute_ebm_loss_functionals`)**:
+   - Evaluates `energy_loss` (Eq. 6), `perceptron_loss` (Eq. 7), `hinge_loss` (Eq. 11), `log_loss` (Eq. 12), `lvq2_loss` (Eq. 13), `mce_loss` (Eq. 15), `square_square_loss` (Eq. 16), `square_exp_loss` (Eq. 17), `nll_helmholtz_loss` (Eq. 23), and `mee_loss` (Eq. 27).
+   - Verifies **Condition 3** ($E_C + m < E_I$, Eq. 54-57) to ensure the energy surface maintains a finite margin against flat-energy collapse.
+2. **Latent-Variable Helmholtz Free Energy (`marginalize_latent_free_energy`)**:
+   - Computes zero-temperature minimization $E_{\min}(Y, X) = \min_{z \in \mathcal{Z}} E(z, Y, X)$ (Eq. 46) and finite-temperature Helmholtz marginalization $F_\beta(\mathcal{Z}) = -\frac{1}{\beta}\log \sum_{z \in \mathcal{Z}} e^{-\beta E(z, Y, X)}$ (Eq. 47).
+3. **Unified Energy-Based Affordance Coupling (`compute_energy_based_affordance_landscape`)**:
+   - Synthesizes Gibson ecological affordances, the 7 semantic affordance gradients, Takahashi & El Hady spontaneous behavior exit-barrier energies $E(a) = -T \ln(m(a)/\tau_0)$ (`docs/2611.02220v1.pdf`), Friston variational free energy, `StructuralEnergyMonitor`, `CODESConstraintFramework` (GNZ local insertion energy `docs/1701.08105v2.pdf`), `ValenceFunctional`, `EnergyBasedSolitonHealer`, and `ConjugateMomentTransport` (`compute_monge_ampere_ebm_density_loss`).
+
 

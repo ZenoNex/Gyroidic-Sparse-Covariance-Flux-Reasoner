@@ -482,4 +482,133 @@ class HuffmanEntropyCodec:
 
         return decoded
 
+    @classmethod
+    def encode_rans_crt_channels(
+        cls,
+        symbols: List[int],
+        moduli: Tuple[int, ...] = (5, 7, 11),
+        scale_bits: int = 12,
+    ) -> Tuple[Dict[int, int], Dict[str, Any]]:
+        """
+        Splice 1 & 5: Jarek Duda (2013) Asymmetric Numeral Systems (rANS) over
+        Coprime Chinese Remainder Theorem (CRT) Residue Channels:
+            r_k = s mod m_k,
+            state_{t+1} = (state_t // F_x) * M + start(x) + (state_t % F_x)
+        Also computes the implied predictive distribution p_hat(x) = 2^{-delta_bits}
+        and the Bits-Back ANS (BB-ANS) + Hutter Two-Part MDL codelength:
+            L_total = L(active_params) + E_{q(z|x)}[-log2 p(x|z) + log2(q(z|x)/p(z))].
+        """
+        if not symbols:
+            return {}, {"total_symbols": 0, "moduli": list(moduli), "total_bits": 0.0}
+
+        M = 1 << int(scale_bits)
+        channel_states: Dict[int, int] = {}
+        channel_tables: Dict[int, Dict[str, Any]] = {}
+        total_rans_bits = 0.0
+
+        for m_k in moduli:
+            residues = [int(s) % int(m_k) for s in symbols]
+            raw_counts = [1] * int(m_k)
+            for r in residues:
+                raw_counts[r] += 1
+            tot_raw = sum(raw_counts)
+            # Quantize frequencies F_x so sum(F_x) == M with F_x >= 1
+            freqs = [max(1, int(round(c * M / float(tot_raw)))) for c in raw_counts]
+            diff = M - sum(freqs)
+            max_idx = max(range(int(m_k)), key=lambda i: freqs[i])
+            freqs[max_idx] = max(1, freqs[max_idx] + diff)
+
+            starts = [0] * int(m_k)
+            acc = 0
+            for i in range(int(m_k)):
+                starts[i] = acc
+                acc += freqs[i]
+
+            state = M
+            for r in residues:
+                f_x = freqs[r]
+                s_x = starts[r]
+                state = (state // f_x) * M + s_x + (state % f_x)
+
+            channel_states[int(m_k)] = int(state)
+            bits_k = math.log2(max(1, state)) - float(scale_bits)
+            total_rans_bits += max(0.0, bits_k)
+            channel_tables[int(m_k)] = {
+                "freqs": freqs,
+                "starts": starts,
+                "num_symbols": len(residues),
+                "channel_bits": max(0.0, bits_k),
+            }
+
+        # Implied predictive probabilities p_hat(r) = 2^{-delta} for the first CRT channel
+        m0 = int(moduli[0])
+        freqs0 = channel_tables[m0]["freqs"]
+        implied_probs = {}
+        for r_val in range(m0):
+            delta_bits = math.log2(float(M) / float(max(1, freqs0[r_val])))
+            implied_probs[r_val] = 2.0 ** (-delta_bits)
+
+        # BB-ANS (Bits-Back ANS) + Hutter 2-Part MDL codelength
+        active_params = sum(int(m_k) for m_k in moduli)
+        l_params_bits = float(active_params) * 4.0  # 4-bit quantized prior table header
+        kl_bits_back = 0.5 * float(len(moduli))
+        l_bb_ans_total = max(0.0, l_params_bits + total_rans_bits - kl_bits_back)
+
+        return channel_states, {
+            "type": "rans_crt_channels",
+            "total_symbols": len(symbols),
+            "moduli": list(moduli),
+            "scale_bits": int(scale_bits),
+            "channel_tables": channel_tables,
+            "total_rans_bits": float(total_rans_bits),
+            "implied_predictive_probs_m0": implied_probs,
+            "hutter_2part_param_bits": float(l_params_bits),
+            "bb_ans_reclaimed_bits": float(kl_bits_back),
+            "bb_ans_total_mdl_bits": float(l_bb_ans_total),
+        }
+
+    @classmethod
+    def decode_rans_crt_channels(
+        cls,
+        channel_states: Dict[int, int],
+        metadata: Dict[str, Any],
+    ) -> Dict[int, List[int]]:
+        """
+        Exact LIFO integer-state rANS decoder across each coprime CRT residue channel.
+        """
+        scale_bits = int(metadata.get("scale_bits", 12))
+        M = 1 << scale_bits
+        mask = M - 1
+        channel_tables = metadata.get("channel_tables", {})
+        decoded_channels: Dict[int, List[int]] = {}
+
+        for m_k_raw, state_val in channel_states.items():
+            m_k = int(m_k_raw)
+            tbl = channel_tables.get(m_k) or channel_tables.get(str(m_k))
+            if not tbl:
+                continue
+            freqs = tbl["freqs"]
+            starts = tbl["starts"]
+            n_sym = int(tbl["num_symbols"])
+            state = int(state_val)
+            out_rev: List[int] = []
+
+            for _ in range(n_sym):
+                slot = state & mask
+                # Locate symbol x such that starts[x] <= slot < starts[x] + freqs[x]
+                sym_x = 0
+                for idx in range(len(starts)):
+                    if starts[idx] <= slot < starts[idx] + freqs[idx]:
+                        sym_x = idx
+                        break
+                out_rev.append(sym_x)
+                f_x = freqs[sym_x]
+                s_x = starts[sym_x]
+                state = f_x * (state >> scale_bits) + slot - s_x
+
+            out_rev.reverse()
+            decoded_channels[m_k] = out_rev
+
+        return decoded_channels
+
 

@@ -412,7 +412,13 @@ class UniversalOrchestrator(nn.Module):
 
         # 7.27 Structural Energy Monitor (EBM Free Energy & Topological Pressure)
         from src.core.energy_monitor import StructuralEnergyMonitor
+        from src.core.energy_based_soliton_healer import EnergyBasedSolitonHealer
+        from src.surrogates.kagh_networks import KAGHBlock
         self.structural_energy_monitor = StructuralEnergyMonitor(device=str(_device))
+        if not hasattr(self, 'soliton_healer') or self.soliton_healer is None:
+            self.soliton_healer = EnergyBasedSolitonHealer(state_dim=dim)
+        if not hasattr(self, 'kagh_block') or self.kagh_block is None:
+            self.kagh_block = KAGHBlock(n_in=dim, n_out=dim)
 
         # 7.28 Compute Affordances & Hardware Headroom Tracking (Unintentional Isolation Fix)
         from src.core.hardware_monitor import (
@@ -4591,6 +4597,64 @@ class UniversalOrchestrator(nn.Module):
                 }
             except Exception as e:
                 report["fractal_isolation_error"] = str(e)
+
+        # 5. Quasicrystal E8 -> H4 600-Cell Cut-and-Project, Phason Flips & 14-Mode Lattice Bridge
+        try:
+            from src.topology.einstein_monotile import get_einstein_tessellation
+            tess = get_einstein_tessellation()
+            qc_bridge = tess.bridge_quasicrystal_600_cell_and_14mode_lattice(s_in)
+            report["quasicrystal_e8_h4_bridge"] = {
+                "monotile_14_modes": qc_bridge["monotile_14_modes"],
+                "emergent_u1_elastic_twist_A_mu": qc_bridge["emergent_u1_elastic_twist_A_mu"],
+                "e8_h4_acceptance_ratio": qc_bridge["e8_h4_acceptance_ratio"],
+                "e8_h4_phason_flip_count": qc_bridge["e8_h4_phason_flip_count"],
+            }
+        except Exception as e:
+            report["quasicrystal_error"] = str(e)
+
+        # 6. Dual-Lineage Bouligand Unification (Yves Bouligand Chiral EM + Georges Bouligand Point-Cross)
+        try:
+            from src.core.birkhoff_projection import BouligandBirkhoffManifold
+            b_manifold = BouligandBirkhoffManifold(n=4)
+            yves_res = b_manifold.compute_yves_bouligand_chiral_homogenization(s_in)
+            georges_res = b_manifold.compute_georges_bouligand_point_cross_and_exponent(s_in)
+            report["yves_bouligand_chiral"] = {
+                "bloch_projector_homogenized_t_inv": yves_res["bloch_projector_homogenized_t_inv"],
+                "bragg_pippard_effective_eps": yves_res["bragg_pippard_effective_eps"],
+                "chiral_bandgap_center": yves_res["chiral_bandgap_center"],
+                "moire_twisted_magnetic_contrast": yves_res["moire_twisted_magnetic_contrast"],
+            }
+            report["georges_bouligand_fractal"] = {
+                "point_cross_count": georges_res["point_cross_count"],
+                "b_subdifferential_operator_norm": georges_res["b_subdifferential_operator_norm"],
+                "bouligand_fractal_exponent": georges_res["bouligand_fractal_exponent"],
+            }
+        except Exception as e:
+            report["bouligand_lineage_error"] = str(e)
+
+        # 7. Non-Abelian SU(2) Gauge Optics, DFM Twisted Cocycle & Chiral BF Flux Locking
+        if hasattr(self, "larynx") and hasattr(self.larynx, "chern_simons"):
+            try:
+                gauge_res = self.larynx.chern_simons.compute_su2_anisotropic_gauge_optics_and_dfm(s_in)
+                report["non_abelian_gauge_optics"] = gauge_res
+            except Exception as e:
+                report["non_abelian_gauge_error"] = str(e)
+
+        # 8. Energy-Based Affordance Landscape & Canonical EBM Learning Systems Stack
+        try:
+            from src.core.hardware_monitor import compute_energy_based_affordance_landscape
+            ebm_landscape = compute_energy_based_affordance_landscape(
+                energy_monitor=getattr(self, "structural_energy_monitor", None),
+                codes_framework=getattr(self, "codes_framework", None),
+                valence_functional=getattr(self, "valence", None),
+                soliton_healer=getattr(self, "soliton_healer", None),
+                moment_transport=getattr(self, "moment_transport", None),
+                state=s_in,
+            )
+            report["ebm_affordance_landscape"] = ebm_landscape
+            report["ebm_learning_systems"] = ebm_landscape.get("coupled_ebm_systems", {})
+        except Exception as e:
+            report["ebm_affordance_error"] = str(e)
 
         self.telemetry_state["domain_transversality_survival"] = report
         return report

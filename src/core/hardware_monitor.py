@@ -1411,5 +1411,181 @@ def get_tri_accelerator_dense_limit(cpu_limit: int = 64, gpu_limit: int = 256) -
     return int(cpu_limit)
 
 
+def compute_energy_based_affordance_landscape(
+    dwell_times: Optional[Dict[str, float]] = None,
+    frequencies: Optional[Dict[str, float]] = None,
+    temperature: float = 0.25,
+    reward_field: Optional[Dict[str, float]] = None,
+    beta_reward: float = 1.0,
+    tau_0: float = 1.0,
+    affordance_gradients: Optional[Dict[str, float]] = None,
+    energy_monitor: Optional[Any] = None,
+    codes_framework: Optional[Any] = None,
+    valence_functional: Optional[Any] = None,
+    soliton_healer: Optional[Any] = None,
+    moment_transport: Optional[Any] = None,
+    state: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """
+    Unified Energy-Based Model (EBM) of Affordance & Codebase EBM Synthesis:
+    Synthesizes:
+      1. J.J. Gibson Ecological Affordances (mode parameter a in A governing regime dynamics)
+         & the 7 Semantic Affordance Gradients (executability, formal symbols, runtime expandability,
+         referential closure, conversational pressure, API extraction, constraint forcing),
+      2. Takahashi & El Hady Statistical Mechanics of Spontaneous Behavior (docs/2611.02220v1.pdf):
+         - Temperature T := sigma^2,
+         - Exit-barrier Boltzmann dwell energy E(a) := -J_bar^a = -T * ln(m(a) / tau_0),
+         - Mean dwell m(a) = tau_0 * exp(-E(a) / T),
+         - Reward-tilted Gibbs occupation p_beta(a) proportional to m(a) * lambda(a) * exp(beta * Psi(a)),
+         - Per-excursion free energy F = -T * ln(Z_0 / tau_0) where Z_0 = sum_a m(a) * lambda(a),
+      3. Friston Active Inference / Markov Blanket Variational Free Energy:
+         F_variational = <E(a)>_{p_beta} - T * S_Gibbs(p_beta || lambda),
+      4. Canonical Codebase Energy-Based Learning Systems:
+         - StructuralEnergyMonitor (LeCun et al. 2006 EBM contrastive loss functionals & Condition 3 margin),
+         - CODESConstraintFramework (Georgii-Nguyen-Zessin partition-free local insertion energy, docs/1701.08105v2.pdf),
+         - ValenceFunctional (Negempirical Hunger V & metaphysical entropy bands H_d + H_s + H_m),
+         - EnergyBasedSolitonHealer (quadratic/linear soliton energy surface & healing efficiency),
+         - ConjugateMomentTransport (ICNN Monge-Ampere EBM log-density without MCMC chains).
+    """
+    hm = HardwareMonitor.get_instance()
+    gauges = hm.get_affordance_gauges()
+
+    # Merge semantic affordance gradients into reward field if supplied
+    if affordance_gradients and isinstance(affordance_gradients, dict):
+        numeric_grads = [
+            float(v) for v in affordance_gradients.values()
+            if isinstance(v, (int, float)) and not isinstance(v, bool)
+        ]
+        sem_mean = sum(numeric_grads) / max(1, len(numeric_grads)) if numeric_grads else 0.0
+    else:
+        sem_mean = 0.0
+
+    # Default dwell times m(a) derived from live typed affordance gauges if not supplied
+    if dwell_times is None:
+        dwell_times = {
+            k: max(0.05, float(tau_0) * math.exp(2.0 * float(g) + 0.5 * sem_mean))
+            for k, g in gauges.items()
+        }
+    modes = sorted(dwell_times.keys())
+    n_modes = max(1, len(modes))
+
+    if frequencies is None:
+        frequencies = {k: 1.0 / float(n_modes) for k in modes}
+    else:
+        tot_f = max(1e-8, sum(max(0.0, float(frequencies.get(k, 0.0))) for k in modes))
+        frequencies = {k: max(1e-6, float(frequencies.get(k, 0.0))) / tot_f for k in modes}
+
+    if reward_field is None:
+        reward_field = {k: float(gauges.get(k, 0.5)) + 0.25 * sem_mean for k in modes}
+
+    t_safe = max(1e-4, float(temperature))
+    tau_safe = max(1e-4, float(tau_0))
+
+    energies: Dict[str, float] = {}
+    unrewarded_weights: Dict[str, float] = {}
+    tilted_weights: Dict[str, float] = {}
+
+    for k in modes:
+        m_a = max(1e-4, float(dwell_times[k]))
+        lam_a = float(frequencies[k])
+        psi_a = float(reward_field.get(k, 0.0))
+        # E(a) = -J_bar^a = -T * ln(m(a) / tau_0)
+        e_a = -t_safe * math.log(m_a / tau_safe)
+        energies[k] = float(e_a)
+        unrewarded_weights[k] = m_a * lam_a
+        tilted_weights[k] = m_a * lam_a * math.exp(float(beta_reward) * psi_a)
+
+    z_0 = max(1e-8, sum(unrewarded_weights.values()))
+    z_beta = max(1e-8, sum(tilted_weights.values()))
+
+    p_0 = {k: unrewarded_weights[k] / z_0 for k in modes}
+    p_beta = {k: tilted_weights[k] / z_beta for k in modes}
+
+    # Per-excursion free energy F = -T * ln(Z_0 / tau_0)
+    free_energy_f = -t_safe * math.log(z_0 / tau_safe)
+
+    # Mean energy U = <E>_{p_0} and Gibbs relative entropy S = -D_KL(p_0 || lambda)
+    mean_energy_u = sum(p_0[k] * energies[k] for k in modes)
+    gibbs_entropy_s = -sum(
+        p_0[k] * math.log(max(1e-12, p_0[k] / max(1e-12, frequencies[k])))
+        for k in modes
+    )
+    # First-law check: F = U - T * S
+    variational_free_energy = mean_energy_u - t_safe * gibbs_entropy_s
+
+    dominant_mode = min(modes, key=lambda k: energies[k])
+
+    # Couple with existing Energy-Based Learning systems when provided
+    coupled_ebm: Dict[str, Any] = {}
+    try:
+        import torch
+        s_tensor = None
+        if state is not None and isinstance(state, torch.Tensor):
+            s_tensor = state.detach().float()
+            if s_tensor.dim() == 1:
+                s_tensor = s_tensor.unsqueeze(0)
+
+        if energy_monitor is not None and hasattr(energy_monitor, "compute_ebm_loss_functionals"):
+            e_vals = sorted(energies.values())
+            e_c = torch.tensor([e_vals[0]], dtype=torch.float32)
+            e_i = torch.tensor([e_vals[1] if len(e_vals) > 1 else e_vals[0] + 0.25], dtype=torch.float32)
+            all_e = torch.tensor([e_vals], dtype=torch.float32)
+            ebm_func = energy_monitor.compute_ebm_loss_functionals(e_c, e_i, all_energies=all_e)
+            coupled_ebm["structural_energy_monitor"] = {
+                k: v for k, v in ebm_func.items() if k != "tensors"
+            }
+
+        if codes_framework is not None and s_tensor is not None:
+            c_dim = getattr(codes_framework, "state_dim", s_tensor.shape[-1])
+            s_codes = torch.nn.functional.pad(s_tensor.reshape(1, -1), (0, max(0, c_dim - s_tensor.numel())))[:, :c_dim]
+            tot_e = float(codes_framework.compute_total_energy(s_codes).mean().item())
+            gnz = codes_framework.compute_gnz_local_insertion_energy(s_codes)
+            coupled_ebm["codes_constraint_framework"] = {
+                "total_constraint_energy": tot_e,
+                "gnz_local_insertion_energy": float(gnz.get("mean_insertion_energy_h", 0.0)),
+                "estimated_beta_gnz": float(gnz.get("estimated_beta_gnz", 1.0)),
+            }
+
+        if valence_functional is not None:
+            p_t = torch.tensor(abs(mean_energy_u), dtype=torch.float32)
+            hunger = float(valence_functional(p_t).mean().item())
+            coupled_ebm["valence_functional"] = {
+                "negempirical_hunger_V": hunger,
+                "satisfaction_baseline": float(valence_functional.satisfaction.item()),
+            }
+
+        if soliton_healer is not None and s_tensor is not None:
+            h_dim = getattr(soliton_healer, "state_dim", s_tensor.shape[-1])
+            s_heal = torch.nn.functional.pad(s_tensor.reshape(1, -1), (0, max(0, h_dim - s_tensor.numel())))[:, :h_dim]
+            sol_e = float(soliton_healer.compute_energy(s_heal).mean().item())
+            coupled_ebm["soliton_healer"] = {
+                "soliton_energy": sol_e,
+                "stability_metrics": soliton_healer.get_stability_metrics(),
+            }
+
+        if moment_transport is not None and s_tensor is not None and hasattr(moment_transport, "compute_monge_ampere_ebm_density_loss"):
+            m_dim = getattr(moment_transport, "dim", s_tensor.shape[-1])
+            s_mt = torch.nn.functional.pad(s_tensor.reshape(1, -1), (0, max(0, m_dim - s_tensor.numel())))[:, :m_dim]
+            coupled_ebm["conjugate_moment_transport"] = moment_transport.compute_monge_ampere_ebm_density_loss(s_mt)
+    except Exception as e:
+        coupled_ebm["coupling_warning"] = str(e)
+
+    return {
+        "temperature_T": t_safe,
+        "partition_mean_cycle_time_Z0": float(z_0),
+        "per_excursion_free_energy_F": float(free_energy_f),
+        "variational_free_energy": float(variational_free_energy),
+        "first_law_residual": float(abs(free_energy_f - variational_free_energy)),
+        "mean_energy_U": float(mean_energy_u),
+        "gibbs_entropy_S": float(gibbs_entropy_s),
+        "energies_E": energies,
+        "occupation_p0": p_0,
+        "reward_tilted_occupation_p_beta": p_beta,
+        "dominant_ground_state_affordance": dominant_mode,
+        "semantic_affordance_gradients": affordance_gradients or {},
+        "coupled_ebm_systems": coupled_ebm,
+    }
+
+
 
 

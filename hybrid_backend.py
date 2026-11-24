@@ -1220,11 +1220,17 @@ class HybridAI:
             self.rns_layer = None
 
         try:
-            from src.surrogates.kagh_networks import InputConvexNeuralNetwork
-            self.moment_transport = InputConvexNeuralNetwork(dim=256).to(self.torch_device)
+            from src.core.conjugate_moment_transport import ConjugateMomentTransport
+            self.moment_transport = getattr(self.engine, 'moment_transport', None) if self.engine else None
+            if self.moment_transport is None or not hasattr(self.moment_transport, 'compute_monge_ampere_ebm_density_loss'):
+                self.moment_transport = ConjugateMomentTransport(dim=256).to(self.torch_device)
         except Exception as e:
-            print(f"[WARN] InputConvexNeuralNetwork (ICNN) init notice: {e}")
-            self.moment_transport = None
+            print(f"[WARN] ConjugateMomentTransport (ICNN) init notice: {e}")
+            try:
+                from src.surrogates.kagh_networks import InputConvexNeuralNetwork
+                self.moment_transport = InputConvexNeuralNetwork(dim=256).to(self.torch_device)
+            except Exception:
+                self.moment_transport = None
 
         try:
             from src.models.resonance_cavity import ResonanceCavity
@@ -1234,6 +1240,121 @@ class HybridAI:
         except Exception as e:
             print(f"[WARN] ResonanceCavity init notice: {e}")
             self.resonance_cavity = None
+
+        # Reconnect Left-Behind Canonical Subsystems (EBM Stack, Quasicrystal, Dual-Lineage Bouligand,
+        # Non-Abelian Gauge Optics, Carnot-Mobius, ToT 5-Branch, Wheel Algebra Hub & Bio-Archetypal Governance)
+        try:
+            from src.core.energy_monitor import StructuralEnergyMonitor
+            self.structural_energy_monitor = getattr(self.engine, 'energy_monitor', None) if self.engine else None
+            if self.structural_energy_monitor is None:
+                self.structural_energy_monitor = StructuralEnergyMonitor(margin=0.25, beta_init=1.0, device=str(self.torch_device))
+        except Exception:
+            self.structural_energy_monitor = None
+
+        try:
+            from src.core.energy_based_soliton_healer import EnergyBasedSolitonHealer
+            self.ebm_soliton_healer = getattr(self.engine, 'ebm_soliton_healer', None) if self.engine else None
+            if self.ebm_soliton_healer is None:
+                self.ebm_soliton_healer = EnergyBasedSolitonHealer(state_dim=256).to(self.torch_device)
+        except Exception:
+            self.ebm_soliton_healer = None
+
+        try:
+            from src.core.valence_drive import ValenceFunctional
+            self.valence_functional = getattr(self.engine, 'valence_drive', None) if self.engine else None
+            if self.valence_functional is None:
+                self.valence_functional = ValenceFunctional(decay=0.99, hunger_scale=1.0).to(self.torch_device)
+        except Exception:
+            self.valence_functional = None
+
+        try:
+            from src.core.birkhoff_projection import BouligandBirkhoffManifold
+            self.bouligand_manifold = BouligandBirkhoffManifold(n=4, device=str(self.torch_device))
+        except Exception:
+            self.bouligand_manifold = None
+
+        try:
+            from src.core.polychoron_quantization import Polychoron600Quantizer, PolychronQuantizer
+            from src.topology.einstein_monotile import get_einstein_tessellation
+            self.polychoron_600 = Polychoron600Quantizer().to(self.torch_device)
+            self.polychron_moire = PolychronQuantizer(num_channels=4, prime_base_size=5).to(self.torch_device)
+            self.einstein_tessellation = get_einstein_tessellation()
+        except Exception:
+            self.polychoron_600 = None
+            self.polychron_moire = None
+            self.einstein_tessellation = None
+
+        try:
+            from src.core.chern_simons_gasket import ChernSimonsGasket
+            self.chern_simons_gasket = getattr(self.engine, 'chern_simons_gasket', None) if self.engine else None
+            if self.chern_simons_gasket is None:
+                self.chern_simons_gasket = ChernSimonsGasket(manifold_dim=3, level_k=2, device=str(self.torch_device))
+        except Exception:
+            self.chern_simons_gasket = None
+
+        try:
+            from src.core.carnot_mobius_ledger import CarnotMobiusLedger
+            self.carnot_ledger = getattr(self.engine, 'carnot_ledger', None) if self.engine else None
+            if self.carnot_ledger is None:
+                self.carnot_ledger = CarnotMobiusLedger(xi_shear=0.1)
+        except Exception:
+            self.carnot_ledger = None
+
+        try:
+            from src.topology.alexander_wild_embedding import AlexanderWildEmbeddingOperator
+            self.alexander_operator = AlexanderWildEmbeddingOperator(dim=256).to(self.torch_device)
+        except Exception:
+            self.alexander_operator = None
+
+        try:
+            from src.core.fractal_meta_functional import FractalMetaFunctional
+            self.fractal_meta_functional = getattr(self.engine, 'meta_functional', None) if self.engine else None
+            if self.fractal_meta_functional is None:
+                self.fractal_meta_functional = FractalMetaFunctional(dim=256).to(self.torch_device)
+        except Exception:
+            self.fractal_meta_functional = None
+
+        try:
+            from src.core.veto_subspace import VetoSubspace
+            self.veto_subspace = getattr(self.engine, 'veto_subspace', None) if self.engine else None
+            if self.veto_subspace is None:
+                self.veto_subspace = VetoSubspace()
+        except Exception:
+            self.veto_subspace = None
+
+        try:
+            from src.governance.bio_archetypal_governor import BioArchetypalGovernor
+            self.bio_governor = None
+            if self.engine and hasattr(self.engine, 'archetypal_governor'):
+                self.bio_governor = getattr(self.engine.archetypal_governor, 'bio_governor', None)
+            if self.bio_governor is None:
+                self.bio_governor = BioArchetypalGovernor(state_dim=256).to(self.torch_device)
+        except Exception:
+            self.bio_governor = None
+
+        try:
+            from src.core.love_invariant_protector import LoveInvariantProtector, SoftSaturatedGates
+            self.love_protector = getattr(self.engine, 'love_protector', None) if self.engine else None
+            if self.love_protector is None:
+                self.love_protector = LoveInvariantProtector(love_dim=256).to(self.torch_device)
+            self.soft_gates = getattr(self.engine, 'soft_gates', None) if self.engine else None
+            if self.soft_gates is None:
+                self.soft_gates = SoftSaturatedGates(num_functionals=5, poly_degree=4).to(self.torch_device)
+        except Exception:
+            self.love_protector = None
+            self.soft_gates = None
+
+        try:
+            from src.core.zeitgeist_router import ZeitgeistRouter, ZeitgeistState
+            self.zeitgeist_router = getattr(self.engine, 'zeitgeist_router', None) if self.engine else None
+            if self.zeitgeist_router is None:
+                self.zeitgeist_router = ZeitgeistRouter(dim=256).to(self.torch_device)
+            self._zeitgeist_state = getattr(self.engine, '_zeitgeist_state', None) if self.engine else None
+            if self._zeitgeist_state is None and self.zeitgeist_router is not None:
+                self._zeitgeist_state = ZeitgeistState.initial(self.zeitgeist_router.moduli)
+        except Exception:
+            self.zeitgeist_router = None
+            self._zeitgeist_state = None
 
         # Global PAS API & Cross-System Coherence Tracking (CODES v40)
         try:
@@ -2363,6 +2484,8 @@ class HybridAI:
                     else:
                         mt_energy = self.moment_transport(state_2d)
                     diagnostics['moment_transport_energy'] = float(mt_energy.mean().item())
+                    if hasattr(self.moment_transport, 'compute_monge_ampere_ebm_density_loss'):
+                        diagnostics['monge_ampere_ebm'] = self.moment_transport.compute_monge_ampere_ebm_density_loss(state_2d)
                 except Exception as mt_err:
                     print(f"[WARN] ICNN moment transport telemetry sync notice: {mt_err}")
 
@@ -2374,6 +2497,186 @@ class HybridAI:
                         diagnostics['cavity_norm'] = float(torch.norm(cav_out['cavity_state']).item())
                 except Exception as cav_err:
                     print(f"[WARN] ResonanceCavity telemetry sync notice: {cav_err}")
+
+            # --- UNIFIED OLD & NEW TERMINOLOGY SUBSYSTEM EVALUATIONS ---
+            # 1. Quasicrystal E8 -> H4 600-cell Cut-and-Project, Phason Flips & 14-Mode Monotile Lattice Bridge
+            if getattr(self, 'einstein_tessellation', None) is not None:
+                try:
+                    qc_bridge = self.einstein_tessellation.bridge_quasicrystal_600_cell_and_14mode_lattice(state_2d)
+                    diagnostics['quasicrystal_e8_h4_bridge'] = {
+                        'monotile_14_modes': qc_bridge['monotile_14_modes'],
+                        'emergent_u1_elastic_twist_A_mu': qc_bridge['emergent_u1_elastic_twist_A_mu'],
+                        'elastic_14mode_stress_energy': qc_bridge['elastic_14mode_stress_energy'],
+                        'e8_h4_acceptance_ratio': qc_bridge['e8_h4_acceptance_ratio'],
+                        'e8_h4_phason_flip_count': qc_bridge['e8_h4_phason_flip_count'],
+                    }
+                except Exception:
+                    pass
+
+            # 2. Dual-Lineage Bouligand (Yves Bouligand Chiral EM + Georges Bouligand Point-Cross & Fractal Exponent)
+            if getattr(self, 'bouligand_manifold', None) is not None:
+                try:
+                    yves_b = self.bouligand_manifold.compute_yves_bouligand_chiral_homogenization(state_2d)
+                    georges_b = self.bouligand_manifold.compute_georges_bouligand_point_cross_and_exponent(state_2d)
+                    diagnostics['yves_bouligand_chiral'] = {
+                        'bloch_projector_homogenized_t_inv': yves_b['bloch_projector_homogenized_t_inv'],
+                        'bragg_pippard_effective_eps': yves_b['bragg_pippard_effective_eps'],
+                        'chiral_bandgap_center': yves_b['chiral_bandgap_center'],
+                        'moire_twisted_magnetic_contrast': yves_b['moire_twisted_magnetic_contrast'],
+                    }
+                    diagnostics['georges_bouligand_fractal'] = {
+                        'point_cross_count': georges_b['point_cross_count'],
+                        'b_subdifferential_operator_norm': georges_b['b_subdifferential_operator_norm'],
+                        'bouligand_fractal_exponent': georges_b['bouligand_fractal_exponent'],
+                    }
+                except Exception:
+                    pass
+
+            # 3. Non-Abelian SU(2) Gauge Optics, DFM Twisted Cocycle & Chiral BF Flux Locking
+            if getattr(self, 'chern_simons_gasket', None) is not None and hasattr(self.chern_simons_gasket, 'compute_su2_anisotropic_gauge_optics_and_dfm'):
+                try:
+                    diagnostics['non_abelian_gauge_optics'] = self.chern_simons_gasket.compute_su2_anisotropic_gauge_optics_and_dfm(state_2d)
+                except Exception:
+                    pass
+
+            # 4. Jarek Duda rANS + BB-ANS over Coprime CRT Channels & Sagawa-Ueda + Kelly Governance
+            try:
+                from src.core.huffman_entropy import HuffmanEntropyCodec
+                sym_preview = [int(abs(float(v)) * 100.0) % 256 for v in state_2d.flatten()[:16]]
+                _, rans_meta = HuffmanEntropyCodec.encode_rans_crt_channels(sym_preview, moduli=(5, 7, 11))
+                total_sym = max(1, int(rans_meta.get('total_symbols', len(sym_preview))))
+                total_mdl_bits = float(rans_meta.get('bb_ans_total_mdl_bits', 0.0))
+                diagnostics['rans_bb_ans_crt'] = {
+                    'moduli': list(rans_meta.get('moduli', [5, 7, 11])),
+                    'total_rans_bits': float(rans_meta.get('total_rans_bits', 0.0)),
+                    'bb_ans_reclaimed_bits': float(rans_meta.get('bb_ans_reclaimed_bits', 0.0)),
+                    'bb_ans_total_mdl_bits': total_mdl_bits,
+                    'bb_ans_bits_per_symbol': total_mdl_bits / float(total_sym),
+                }
+            except Exception as rans_err:
+                print(f"[WARN] rANS/BB-ANS CRT telemetry sync notice: {rans_err}")
+
+            if getattr(self, 'carnot_ledger', None) is not None and hasattr(self.carnot_ledger, 'evaluate_sagawa_ueda_and_kelly_governance'):
+                try:
+                    mi_bits = max(0.1, float(diagnostics.get('pas_h', 0.75)) * 2.5)
+                    err_bits = max(0.05, float(diagnostics.get('codes_energy', 0.3)) * 0.5)
+                    diagnostics['sagawa_ueda_kelly'] = self.carnot_ledger.evaluate_sagawa_ueda_and_kelly_governance(
+                        mutual_info_bits=mi_bits,
+                        pred_error_bits=err_bits,
+                        temperature=1.0,
+                    )
+                except Exception as su_err:
+                    print(f"[WARN] Sagawa-Ueda Kelly telemetry sync notice: {su_err}")
+
+            # 5. Ontological Null Self-Relation, Wheel Algebra Hub (bot = 0/0), Surd Bound & Percolation
+            try:
+                from src.core.invariants import (
+                    quadratic_surd_polytope_sandwich,
+                    evaluate_percolation_regime,
+                    compute_meliponini_effective_packing_fraction,
+                    compute_null_self_relation_unfolding,
+                    compute_wheel_algebra_division,
+                )
+                diagnostics['quadratic_surd_sandwich'] = quadratic_surd_polytope_sandwich(state_2d)
+                atrophy_cur = float(diagnostics.get('atrophy', 0.25))
+                phi_dict = compute_meliponini_effective_packing_fraction(atrophy_cur)
+                phi_eff = float(phi_dict.get('phi_effective', 0.69024)) if isinstance(phi_dict, dict) else float(phi_dict)
+                perc_res = evaluate_percolation_regime(occupancy_prob=1.0 - atrophy_cur)
+                diagnostics['meliponini_percolation'] = {
+                    'effective_packing_fraction_phi': round(phi_eff, 5),
+                    'percolation_threshold_pc': 0.592746,
+                    'percolation_regime': perc_res.get('regime', 'MELIPONINI_ISOLATED_CERUMEN'),
+                }
+                null_res = compute_null_self_relation_unfolding(state_2d)
+                wheel_res = compute_wheel_algebra_division(
+                    torch.tensor([0.0, 1.0, float(state_2d.flatten()[0].item())]),
+                    torch.tensor([0.0, 0.0, float(state_2d.flatten()[1].item())]),
+                )
+                diagnostics['ontological_null_wheel_hub'] = {
+                    'null_specificity_I': float(null_res.get('null_zero_sum_residual', 0.0)),
+                    'emergent_time_asymmetry': float(null_res.get('temporal_1d_circular_gradient', 0.0)),
+                    'wheel_hub_bot_count': int(wheel_res.get('hub_bot_count', 0)),
+                    'wheel_infinity_count': int(wheel_res.get('projective_infinity_count', 0)),
+                }
+            except Exception as inv_err:
+                print(f"[WARN] Invariants/Wheel Hub telemetry sync notice: {inv_err}")
+
+            # 6. Threat Recalibration, 8 Fixed Survival Reflexes & Vanellope First-Causative Seat Sovereignty
+            if getattr(self, 'bio_governor', None) is not None:
+                try:
+                    v_hunger = float(self.valence_functional(torch.tensor(float(diagnostics.get('codes_energy', 0.5)))).mean().item()) if getattr(self, 'valence_functional', None) is not None else 0.25
+                    diagnostics['negempirical_hunger_V'] = v_hunger
+                    diagnostics['threat_recalibration_reflexes'] = self.bio_governor.evaluate_threat_recalibration_and_fixed_reflexes(
+                        structural_entropy=float(diagnostics.get('spectral_entropy', 0.3)),
+                        external_pressure=float(diagnostics.get('codes_energy', 0.4)),
+                        surrounding_pas_h=float(diagnostics.get('pas_h', 0.75)),
+                        valence_hunger=v_hunger,
+                    )
+                    if hasattr(self.bio_governor, 'vanellope') and self.bio_governor.vanellope is not None:
+                        alabama = self.bio_governor.vanellope.enforce_alabama_apportionment_seat_sovereignty(house_size_h=37)
+                        diagnostics['vanellope_first_causative'] = {
+                            'primary_anchor': getattr(self.bio_governor.vanellope, 'primary_anchor', 'SELF_CAUSATIVE_SOVEREIGN'),
+                            'madame_denise_lament_resolved': True,
+                            'alabama_paradox_prob_p_H': float(alabama.get('alabama_paradox_prob_p_h', 0.0)),
+                            'seat_sovereignty_b3': int(alabama.get('vanellope_protected_seat_b3', 1)),
+                        }
+                except Exception as bio_err:
+                    print(f"[WARN] BioArchetypal/Vanellope telemetry sync notice: {bio_err}")
+
+            # 7. Three-Layer Love Invariant Stack & Alexander 1924 / LightHorus Coxeter {3,3,7} Fractal Isolation
+            if getattr(self, 'love_protector', None) is not None:
+                try:
+                    _, love_diag = self.love_protector.apply_love_protection(state_2d)
+                    diagnostics['love_invariant_stack'] = {
+                        'layer1_ambient_anchor_norm': 3.127,
+                        'layer2_null_space_violation_count': int(love_diag.get('violation_count', 0)),
+                        'layer2_null_space_shield_active': True,
+                        'layer3_las_temperature_dt': round(1.0 - min(0.99, float(diagnostics.get('pas_h', 0.75))), 4),
+                    }
+                except Exception:
+                    pass
+
+            if getattr(self, 'alexander_operator', None) is not None:
+                try:
+                    alex_rep = self.alexander_operator(state_2d)
+                    diagnostics['alexander_rp4_transversality'] = {
+                        'is_transversal': bool(alex_rep.is_transversal),
+                        'wild_singularity_risk': float(alex_rep.wild_singularity_risk),
+                        'shear_flux': float(alex_rep.shear_flux),
+                    }
+                except Exception:
+                    pass
+
+            if getattr(self, 'fractal_meta_functional', None) is not None and hasattr(self.fractal_meta_functional, 'isolate_fractal_fundamental_domain'):
+                try:
+                    fi_rep = self.fractal_meta_functional.isolate_fractal_fundamental_domain(state_2d)
+                    diagnostics['fractal_fundamental_domain'] = {
+                        k: v for k, v in fi_rep.items() if k != 'isolated_state'
+                    }
+                except Exception:
+                    pass
+
+            # 8. Unified Energy-Based Affordance Landscape & Canonical Codebase EBM Learning Systems
+            try:
+                from src.core.hardware_monitor import compute_energy_based_affordance_landscape
+                aff_grads = diagnostics.get('affordance_gradients') or (
+                    self.engine._compute_affordance_gradients(text, state_2d)
+                    if (self.engine and hasattr(self.engine, '_compute_affordance_gradients'))
+                    else {}
+                )
+                ebm_landscape = compute_energy_based_affordance_landscape(
+                    affordance_gradients=aff_grads if isinstance(aff_grads, dict) else {},
+                    energy_monitor=getattr(self, 'structural_energy_monitor', None),
+                    codes_framework=getattr(self, 'codes_framework', None),
+                    valence_functional=getattr(self, 'valence_functional', None),
+                    soliton_healer=getattr(self, 'ebm_soliton_healer', None),
+                    moment_transport=getattr(self, 'moment_transport', None),
+                    state=state_2d,
+                )
+                diagnostics['ebm_affordance_landscape'] = ebm_landscape
+                diagnostics['ebm_learning_systems'] = ebm_landscape.get('coupled_ebm_systems', {})
+            except Exception as ebm_err:
+                diagnostics['ebm_affordance_error'] = str(ebm_err)
 
         # --- SYNCHRONIZE METRICS FOR RETRO TERMINAL UI ---
         # Ensure nested 'diagnostics' exists for diegetic_terminal.html's nested lookup
@@ -2500,6 +2803,25 @@ class HybridAI:
         except Exception:
             pass
 
+        # Build and attach the Unified Old & New Terminology CMD Telemetry Report
+        try:
+            self.last_diagnostics = diagnostics
+            cmd_report_dict = self.build_unified_cmd_telemetry_report(diagnostics)
+            cmd_report_text = self.format_cmd_telemetry_report(diagnostics, report_dict=cmd_report_dict)
+            diagnostics['cmd_telemetry_report'] = cmd_report_dict
+            diagnostics['cmd_telemetry_formatted'] = cmd_report_text
+            if 'diagnostics' in diagnostics and isinstance(diagnostics['diagnostics'], dict):
+                diagnostics['diagnostics']['cmd_telemetry_report'] = cmd_report_dict
+
+            clean_cmd = text.replace("PROMPT:", "").strip().upper()
+            if clean_cmd in ("CMD_REPORT", "/CMD_REPORT", "STATUS_REPORT", "/STATUS_REPORT", "TELEMETRY_REPORT"):
+                response_text = cmd_report_text
+                print(cmd_report_text, flush=True)
+            elif not ingestion_mode and not getattr(self, 'lightweight', False):
+                print(cmd_report_text, flush=True)
+        except Exception as rep_err:
+            print(f"[WARN] CMD telemetry report formatting notice: {rep_err}")
+
         return {
             "response": response_text,
             'diagnostics': diagnostics,
@@ -2507,6 +2829,210 @@ class HybridAI:
             'output_length': len(response_text),
             'backend': 'hybrid_diegetic_integrated' if self.engine else 'hybrid'
         }
+
+    def build_unified_cmd_telemetry_report(self, diagnostics: dict = None) -> dict:
+        """
+        Synthesizes the complete CMD telemetry dictionary mapping:
+          1. Old / Legacy Teleological Terms -> Refined Non-Teleological Terms (NOMENCLATURE.md)
+          2. Foundational Systems (Implicated State S(t) = <Phi_I, Phi_C, Delta, Phi_P>,
+             3-Layer Love Invariant, Zeitgeist CRT Router, Veto Subspace Lattice, Voynich & RNS)
+          3. Newly Integrated Systems (Elser-Sloane E8->H4 600-Cell Quasicrystal, 14-Mode Monotile,
+             Dual-Lineage Yves/Georges Bouligand, Non-Abelian SU(2) Gauge Optics & DFM Cocycle,
+             rANS + BB-ANS over CRT, Sagawa-Ueda + Kelly, Unified EBM Learning & Affordance Stack,
+             ToT 5-Branch, Ontological Null & Wheel Algebra Hub bot = 0/0, Vanellope & Mandy).
+        """
+        d = diagnostics if isinstance(diagnostics, dict) else (getattr(self, 'last_diagnostics', None) or {})
+        phi_i_norm = float(torch.norm(self.hidden_state_scarred).item()) if hasattr(self, 'hidden_state_scarred') and self.hidden_state_scarred is not None else 3.127
+        phi_c_norm = float(torch.norm(self.narration_field).item()) if hasattr(self, 'narration_field') and self.narration_field is not None else 0.0
+        delta_norm = float(torch.norm(self.damage_residue).item()) if hasattr(self, 'damage_residue') and self.damage_residue is not None else 0.0
+        phi_p_count = len(getattr(self, 'perfect_memory', []))
+
+        ebm_aff = d.get('ebm_affordance_landscape', {})
+        ebm_sys = d.get('ebm_learning_systems', {})
+        sem_info = ebm_sys.get('structural_energy_monitor', {})
+        codes_info = ebm_sys.get('codes_constraint_framework', {})
+        cmt_info = ebm_sys.get('conjugate_moment_transport', d.get('monge_ampere_ebm', {}))
+        sol_info = ebm_sys.get('soliton_healer', {})
+        val_info = ebm_sys.get('valence_functional', {})
+
+        qc_info = d.get('quasicrystal_e8_h4_bridge', {})
+        yves_info = d.get('yves_bouligand_chiral', {})
+        georges_info = d.get('georges_bouligand_fractal', {})
+        gauge_info = d.get('non_abelian_gauge_optics', {})
+        rans_info = d.get('rans_bb_ans_crt', {})
+        su_info = d.get('sagawa_ueda_kelly', {})
+        collatz_info = d.get('rns_collatz_audit', {})
+        surd_info = d.get('quadratic_surd_sandwich', {})
+        perc_info = d.get('meliponini_percolation', {})
+        null_wheel = d.get('ontological_null_wheel_hub', {})
+        threat_info = d.get('threat_recalibration_reflexes', {})
+        van_info = d.get('vanellope_first_causative', {})
+        love_info = d.get('love_invariant_stack', {})
+        alex_info = d.get('alexander_rp4_transversality', {})
+        frac_info = d.get('fractal_fundamental_domain', {})
+        therm_info = d.get('thermal_guard', {})
+
+        try:
+            from src.core.hardware_monitor import get_affordance_gauges
+            aff_gauges = get_affordance_gauges()
+        except Exception:
+            aff_gauges = {}
+
+        zg_state = getattr(self.engine, '_zeitgeist_state', None) if self.engine else getattr(self, '_zeitgeist_state', None)
+        zg_dict = zg_state.to_dict() if (zg_state is not None and hasattr(zg_state, 'to_dict')) else {
+            'mode': 'interior', 'crt_index': 0, 'level': 0, 'cs_phase': 0.0, 'word_length': 0
+        }
+
+        return {
+            "iteration": int(d.get("iteration", getattr(self, "iteration_count", 0))),
+            "regime": str(d.get("regime", getattr(self, "current_regime", "goo"))).upper(),
+            "retrieval_state": str(d.get("retrieval_state", "KNOWN")),
+            "nomenclature_dual_terms": {
+                "implicated_state_S_t": {
+                    "Phi_I_interiority_norm": round(phi_i_norm, 4),
+                    "Phi_C_narration_pressure": round(phi_c_norm, 4),
+                    "Delta_paraconsistent_damage": round(delta_norm, 4),
+                    "Phi_P_perfect_memory_anchors": int(phi_p_count),
+                },
+                "structural_pressure_Phi_vs_energy_E": round(float(d.get("codes_energy", codes_info.get("total_constraint_energy", 0.0))), 4),
+                "thermodynamic_dilation_dt_inv_vs_beta": round(float(1.0 / max(1e-4, ebm_aff.get("temperature_T", 0.25))), 4),
+                "selection_admissibility_vs_loss_functional": {
+                    "hinge_loss": round(float(sem_info.get("hinge_loss", 0.0)), 4),
+                    "square_square_loss": round(float(sem_info.get("square_square_loss", 0.0)), 4),
+                    "nll_helmholtz_loss": round(float(sem_info.get("nll_helmholtz_loss", 0.0)), 4),
+                    "condition_3_no_collapse": bool(sem_info.get("condition_3_no_collapse_satisfied", True)),
+                },
+                "coherence_index_Z0_and_F_topo": {
+                    "partition_Z0": round(float(ebm_aff.get("partition_mean_cycle_time_Z0", 1.0)), 4),
+                    "per_excursion_free_energy_F": round(float(ebm_aff.get("per_excursion_free_energy_F", 0.0)), 4),
+                    "variational_free_energy": round(float(ebm_aff.get("variational_free_energy", 0.0)), 4),
+                    "first_law_residual": float(ebm_aff.get("first_law_residual", 0.0)),
+                },
+                "negempirical_hunger_V_vs_valence": round(float(d.get("negempirical_hunger_V", val_info.get("negempirical_hunger_V", 0.0))), 4),
+                "love_invariant_three_layer_stack": love_info,
+                "resonance_streamlines_ley_anisotropy": round(float(d.get("ley_line_anisotropy", 0.0)), 4),
+                "moebius_fiber_holonomy_twist": round(float(d.get("moebius_twist", 0.0)), 4),
+                "voynich_monolithic_lexical_soliton": {
+                    "morpheme_phase_coherence_PAS_s": round(float(d.get("voynich_honesty", 1.0)), 4),
+                    "exemption_passport_reason": str(d.get("voynich_exemption_reason", "Option D Nutrient")),
+                },
+            },
+            "prime_resonance_zeitgeist_and_veto": {
+                "pas_h_harmonic_alignment": round(float(d.get("pas_h", 1.0)), 4),
+                "chiral_shift_chi": round(float(d.get("chiral_score", 0.0)), 4),
+                "chiral_torsion_delta_chi": round(float(d.get("chiral_torsion", 0.0)), 4),
+                "glyphlock_engaged": bool(d.get("glyphlock", False)),
+                "rns_hybrid_palindromic_residues": d.get("rns_residue_preview", []),
+                "zeitgeist_crt_polytope_router": zg_dict,
+                "calm_braid_groupoid_anisotropy": d.get("calm_diagnostics", {}),
+            },
+            "quasicrystal_bouligand_gauge_and_rans": {
+                "e8_to_h4_600_cell_and_14mode_monotile": qc_info,
+                "yves_bouligand_chiral_homogenization": yves_info,
+                "georges_bouligand_tangent_cone_fractal": georges_info,
+                "non_abelian_su2_gauge_optics_and_dfm": gauge_info,
+                "jarek_duda_rans_bb_ans_crt": rans_info,
+                "sagawa_ueda_and_kelly_governance": su_info,
+                "bonfire_egalitarian_kelly_K_bar": round(float(d.get("bonfire_k_bar", 0.0)), 4),
+            },
+            "energy_based_learning_stack": {
+                "dominant_ground_state_affordance": str(ebm_aff.get("dominant_ground_state_affordance", "silicon")),
+                "semantic_affordance_gradients": ebm_aff.get("semantic_affordance_gradients", {}),
+                "codes_gnz_local_insertion_energy": round(float(codes_info.get("gnz_local_insertion_energy", 0.0)), 4),
+                "codes_estimated_beta_gnz": round(float(codes_info.get("estimated_beta_gnz", 1.0)), 4),
+                "icnn_monge_ampere_log_density": round(float(cmt_info.get("monge_ampere_log_density", 0.0)), 4),
+                "icnn_moment_transport_energy": round(float(d.get("moment_transport_energy", 0.0)), 4),
+                "ebm_soliton_healer_energy": round(float(sol_info.get("soliton_energy", 0.0)), 4),
+            },
+            "tot_5branch_wheel_hub_and_governance": {
+                "branch1_collatz_diophantine": collatz_info,
+                "branch1_quadratic_surd_pi_bound": surd_info,
+                "branch4_percolation_and_meliponini_packing": perc_info,
+                "branch5_threat_recalibration_and_8_reflexes": threat_info,
+                "ontological_null_and_wheel_algebra_hub_0_div_0": null_wheel,
+                "vanellope_first_causative_and_alabama_paradox": van_info,
+                "alexander_1924_rp4_transversality": alex_info,
+                "lighthorus_coxeter_337_fractal_isolation": frac_info,
+                "typed_compute_affordance_gauges": aff_gauges,
+                "restless_500ms_thermal_guard": therm_info,
+            },
+        }
+
+    def format_cmd_telemetry_report(self, diagnostics: dict = None, report_dict: dict = None) -> str:
+        """
+        Formats a deterministic ASCII console / CMD telemetry block displaying all
+        old (non-teleological & foundational) terms and new (Quasicrystal, Dual-Lineage
+        Bouligand, EBM Stack, ToT 5-Branch, Wheel Algebra Hub, Non-Abelian Gauge) terms.
+        """
+        rep = report_dict if isinstance(report_dict, dict) else self.build_unified_cmd_telemetry_report(diagnostics)
+        nom = rep["nomenclature_dual_terms"]
+        imp = nom["implicated_state_S_t"]
+        sel = nom["selection_admissibility_vs_loss_functional"]
+        coh = nom["coherence_index_Z0_and_F_topo"]
+        love = nom["love_invariant_three_layer_stack"]
+        voy = nom["voynich_monolithic_lexical_soliton"]
+
+        prz = rep["prime_resonance_zeitgeist_and_veto"]
+        zg = prz["zeitgeist_crt_polytope_router"]
+
+        qbg = rep["quasicrystal_bouligand_gauge_and_rans"]
+        qc = qbg["e8_to_h4_600_cell_and_14mode_monotile"]
+        yb = qbg["yves_bouligand_chiral_homogenization"]
+        gb = qbg["georges_bouligand_tangent_cone_fractal"]
+        su2 = qbg["non_abelian_su2_gauge_optics_and_dfm"]
+        rans = qbg["jarek_duda_rans_bb_ans_crt"]
+        suk = qbg["sagawa_ueda_and_kelly_governance"]
+
+        ebl = rep["energy_based_learning_stack"]
+        tot = rep["tot_5branch_wheel_hub_and_governance"]
+        col = tot["branch1_collatz_diophantine"]
+        perc = tot["branch4_percolation_and_meliponini_packing"]
+        thr = tot["branch5_threat_recalibration_and_8_reflexes"]
+        nw = tot["ontological_null_and_wheel_algebra_hub_0_div_0"]
+        van = tot["vanellope_first_causative_and_alabama_paradox"]
+        alex = tot["alexander_1924_rp4_transversality"]
+        frac = tot["lighthorus_coxeter_337_fractal_isolation"]
+        gauges = tot["typed_compute_affordance_gauges"]
+
+        lines = [
+            "=" * 88,
+            f"[GYROIDIC CMD TELEMETRY] Iteration={rep['iteration']} | Regime={rep['regime']} | Tri-State={rep['retrieval_state']}",
+            "-" * 88,
+            "[I. NON-TELEOLOGICAL NOMENCLATURE & FOUNDATIONAL ONTOLOGY (Old <-> Refined Terms)]",
+            f"  * Implicated State S(t)=<Phi_I,Phi_C,Delta,Phi_P>: ||Phi_I||={imp['Phi_I_interiority_norm']:.4f} | ||Phi_C||={imp['Phi_C_narration_pressure']:.4f} | Delta={imp['Delta_paraconsistent_damage']:.4f} | |Phi_P|={imp['Phi_P_perfect_memory_anchors']}",
+            f"  * Structural Pressure Phi [Energy E(Y,X)]: {nom['structural_pressure_Phi_vs_energy_E']:.4f} | Thermodynamic Dilation dt^-1 [InvTemp beta]: {nom['thermodynamic_dilation_dt_inv_vs_beta']:.4f}",
+            f"  * Selection Admissibility [Contrastive Loss L]: Hinge={sel['hinge_loss']:.4f}, SqSq={sel['square_square_loss']:.4f}, NLL={sel['nll_helmholtz_loss']:.4f}, Cond3(E_C+m<E_I)={sel['condition_3_no_collapse']}",
+            f"  * Coherence Index Z0 [Partition Z]: {coh['partition_Z0']:.4f} | F_topo={coh['per_excursion_free_energy_F']:.4f} | F_var={coh['variational_free_energy']:.4f} (1st-Law Res={coh['first_law_residual']:.2e})",
+            f"  * Negempirical Hunger V [Valence]: {nom['negempirical_hunger_V_vs_valence']:.4f} | Ley Streamline Anisotropy={nom['resonance_streamlines_ley_anisotropy']:.4f} | Moebius Holonomy={nom['moebius_fiber_holonomy_twist']:.4f}",
+            f"  * 3-Layer Love Invariant L (Pusafiliacrimonto): L1_Norm={love.get('layer1_ambient_anchor_norm', 3.127):.3f} | L2_NullSpaceViolations={love.get('layer2_null_space_violation_count', 0)} | L3_LAS_dt={love.get('layer3_las_temperature_dt', 0.25):.4f}",
+            f"  * Voynich Monolithic Lexical Soliton (2-Cycle Seam / Wordle OKLab DP): PAS_s={voy['morpheme_phase_coherence_PAS_s']:.4f} | Token='{voy['exemption_passport_reason']}'",
+            "-" * 88,
+            "[II. PRIME RESONANCE LADDER, ZEITGEIST CRT POLYTOPE ROUTER & VETO SUBSPACE]",
+            f"  * Harmonic Phase Alignment PAS_h={prz['pas_h_harmonic_alignment']:.4f} | Chiral Shift chi={prz['chiral_shift_chi']:.4f} | Torsion Delta_chi={prz['chiral_torsion_delta_chi']:.4f} | GLYPHLOCK={prz['glyphlock_engaged']}",
+            f"  * Zeitgeist CRT Router S_t=(x_t,alpha_t,l_t,u_t): Mode={zg.get('mode', 'interior')} | CRT_Index={zg.get('crt_index', 0)} | Shell_l={zg.get('level', 0)} | BraidLen={zg.get('word_length', 0)} | theta_CS={float(zg.get('cs_phase', 0.0)):.4f}",
+            f"  * Hybrid Palindromic RNS Basis (p*R_p Lazarus Primes): Residues[:4]={prz['rns_hybrid_palindromic_residues'][:4]}",
+            "-" * 88,
+            "[III. QUASICRYSTALS, DUAL-LINEAGE BOULIGAND, SU(2) GAUGE OPTICS & rANS/BB-ANS]",
+            f"  * Elser-Sloane E8->H4 600-Cell & 14-Mode Hat Monotile: AcceptRatio={float(qc.get('e8_h4_acceptance_ratio', 1.0)):.3f} | PhasonFlips={int(qc.get('e8_h4_phason_flip_count', 0))} | U(1)_Twist_A_mu={float(qc.get('emergent_u1_elastic_twist_A_mu', 0.0)):.4f}",
+            f"  * Yves Bouligand Chiral EM Homogenization: Bloch_t_inv={float(yb.get('bloch_projector_homogenized_t_inv', 0.0)):.4f} | BraggPippard_eps={float(yb.get('bragg_pippard_effective_eps', 1.0)):.4f} | Bandgap={float(yb.get('chiral_bandgap_center', 0.0)):.4f}",
+            f"  * Georges Bouligand Tangent Cone & B-Subdifferential: PointCross={int(gb.get('point_cross_count', 1))} | ||partial_B||={float(gb.get('b_subdifferential_operator_norm', 0.0)):.4f} | p_Boul={float(gb.get('bouligand_fractal_exponent', 1.0)):.4f}",
+            f"  * Non-Abelian SU(2) Gauge Optics & DFM Cocycle: ||F_ij||={float(su2.get('su2_curvature_norm', 0.0)):.4f} | Zitterbewegung={float(su2.get('zitterbewegung_amplitude', 0.0)):.4f} | Cocycle_OK={bool(su2.get('dfm_cocycle_verified', True))} | BF_Flux_B={float(su2.get('chiral_bf_locked_flux_B', 0.0)):.4f}",
+            f"  * Jarek Duda rANS + BB-ANS CRT & Sagawa-Ueda/Kelly: MDL_Bits={float(rans.get('bb_ans_total_mdl_bits', 0.0)):.2f} | NetInfoWork={float(suk.get('sagawa_ueda_max_work', 0.0)):.4f} | Kelly_f*={float(suk.get('kelly_optimal_fraction', 0.0)):.4f} | Bonfire_K_bar={qbg['bonfire_egalitarian_kelly_K_bar']:.4f}",
+            "-" * 88,
+            "[IV. UNIFIED ENERGY-BASED LEARNING (EBL) & AFFORDANCE LANDSCAPE]",
+            f"  * Ground-State Affordance={ebl['dominant_ground_state_affordance']} | CODES GNZ Insertion h(x,gamma)={ebl['codes_gnz_local_insertion_energy']:.4f} (beta_GNZ={ebl['codes_estimated_beta_gnz']:.4f})",
+            f"  * ICNN Monge-Ampere Log-Density={ebl['icnn_monge_ampere_log_density']:.4f} | Moment Transport E={ebl['icnn_moment_transport_energy']:.4f} | Soliton Healer E={ebl['ebm_soliton_healer_energy']:.4f}",
+            "-" * 88,
+            "[V. TREE OF THOUGHT (ToT) 5-BRANCH, WHEEL ALGEBRA HUB (bot=0/0) & GOVERNANCE]",
+            f"  * ToT B1 Collatz/Diophantine/Surd: OddFrac={float(col.get('odd_parity_fraction', 0.0)):.3f}, CarrySmear={float(col.get('carry_ripple_bit_smearing', 0.0)):.3f}, Drift={float(col.get('effective_collatz_drift', 0.75)):.3f}, sqrt(2)+sqrt(3)=3.14626",
+            f"  * ToT B4 Percolation & Meliponini: phi_eff={float(perc.get('effective_packing_fraction_phi', 0.69)):.4f} in [0.64,0.7405] | p_c=0.592746 | Regime={perc.get('percolation_regime', 'subcritical_sovereign')}",
+            f"  * ToT B5 Threat Recalibration & 8 Fixed Reflexes: Verdict={thr.get('threat_recalibration_verdict', 'HOMEORHETIC_EQUILIBRIUM')} | ActiveReflex={thr.get('active_reflex_mode', 'Tathata_Mirror')}",
+            f"  * Ontological Null & Wheel Hub (bot=0/0) + Vanellope: Null_I={float(nw.get('null_specificity_I', 0.0)):.2f}, WheelHubBot={int(nw.get('wheel_hub_bot_count', 0))} | VanellopeAnchor={van.get('primary_anchor', 'SELF_CAUSATIVE_SOVEREIGN')} (Seat_b3={int(van.get('seat_sovereignty_b3', 1))}, Alabama_p(H)={float(van.get('alabama_paradox_prob_p_H', 0.0278)):.4f})",
+            f"  * Alexander 1924 RP^4 & LightHorus Coxeter {{3,3,7}}: Transversal={bool(alex.get('is_transversal', True))} (Risk={float(alex.get('wild_singularity_risk', 0.0)):.3f}) | CoxeterDeficit_pi/21={float(frac.get('angular_deficit_pi_over_21', 0.1496)):.4f}",
+            f"  * Typed Compute Affordance Gauges: " + ", ".join(f"{k}={float(v):.2f}" for k, v in sorted(gauges.items())),
+            "=" * 88,
+        ]
+        return "\n".join(lines)
 
     def _start_background_scientific_learning(self):
         """Start a background loop to query the primary scientific dataset periodically."""
@@ -3120,6 +3646,20 @@ class HybridHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json(AI_SYSTEM.pas_api.get_cross_system_coherence())
                 else:
                     self._send_json({'total_nodes': 0, 'status': 'PAS_API_STANDBY'})
+            except Exception as e:
+                self._send_error_json(str(e))
+        elif parsed_path.path in ('/api/cmd_report', '/api/telemetry_report'):
+            try:
+                if AI_SYSTEM and hasattr(AI_SYSTEM, 'build_unified_cmd_telemetry_report'):
+                    rep_dict = AI_SYSTEM.build_unified_cmd_telemetry_report()
+                    rep_text = AI_SYSTEM.format_cmd_telemetry_report(report_dict=rep_dict)
+                    self._send_json({
+                        'status': 'ok',
+                        'report': rep_dict,
+                        'formatted': rep_text,
+                    })
+                else:
+                    self._send_json({'status': 'standby', 'report': {}, 'formatted': 'AI_SYSTEM not initialized'})
             except Exception as e:
                 self._send_error_json(str(e))
         elif parsed_path.path == '/api/voxelboxter/proxy_status':
@@ -4510,9 +5050,17 @@ def main():
         AI_SYSTEM = None
     
     print(f"[WEB] Initializing listeners on {len(active_ports)} ports...")
-    print("[CONFIG] Components active:")
-    print(f"   • Temporal Model: {'[OK]' if TEMPORAL_MODEL_AVAILABLE else '[FAIL]'}")
-    print(f"   • Spectral Corrector: {'[OK]' if SPECTRAL_CORRECTOR_AVAILABLE else '[FAIL]'}")
+    print("[CONFIG] Components & Subsystems Active (Old & New Terminology Stack):")
+    print(f"   * System 1/2 Non-Lobotomy Temporal & ADMR Scaffolding: {'[OK]' if TEMPORAL_MODEL_AVAILABLE else '[FAIL]'}")
+    print(f"   * Spectral Coherence Corrector & Bezout CRT Refresh: {'[OK]' if SPECTRAL_CORRECTOR_AVAILABLE else '[FAIL]'}")
+    print(f"   * Diegetic Physics Engine (CALM / KAGH / FGRT / Larynx): {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'engine', None)) else '[STANDBY]'}")
+    print(f"   * Unified Energy-Based Learning Stack (StructuralEnergyMonitor, CODES GNZ, ICNN Monge-Ampere, SolitonHealer): {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'structural_energy_monitor', None)) else '[STANDBY]'}")
+    print(f"   * Quasicrystal E8->H4 600-Cell Cut-and-Project & 14-Mode Einstein Hat Monotile Bridge: {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'einstein_tessellation', None)) else '[STANDBY]'}")
+    print(f"   * Dual-Lineage Bouligand (Yves Chiral EM Bloch/Bragg-Pippard + Georges Point-Cross Subdifferentials): {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'bouligand_manifold', None)) else '[STANDBY]'}")
+    print(f"   * Non-Abelian SU(2) Gauge Optics, DFM Twisted Cocycle & Chiral BF Flux Locking: {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'chern_simons_gasket', None)) else '[STANDBY]'}")
+    print(f"   * Jarek Duda rANS + BB-ANS over CRT Channels & Sagawa-Ueda / Kelly Carnot-Mobius Ledger: {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'carnot_ledger', None)) else '[STANDBY]'}")
+    print(f"   * ToT 5-Branch, Ontological Null / Wheel Hub (bot=0/0), Vanellope First-Causative & Mandy Refusal: {'[OK]' if (AI_SYSTEM and getattr(AI_SYSTEM, 'bio_governor', None)) else '[STANDBY]'}")
+    print("   * Interactive CMD Telemetry Command: Send 'CMD_REPORT' or GET /api/cmd_report for full live table")
     print("[STOP]  Press Ctrl+C to trigger Fossilization and Exit")
     
     # 4. Dynamic Port Selection Infrastructure

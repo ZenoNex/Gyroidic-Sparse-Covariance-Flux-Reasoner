@@ -231,3 +231,9 @@ There are two primary locations on Windows:
    curl -X POST http://127.0.0.1:8000/api/shutdown
    ```
    This triggers synchronous fossilization before shutting down listeners.
+4. **Live CMD Telemetry & Non-Teleological Nomenclature Audit**:
+   Query the 5-section unified CMD telemetry report (bridging old <-> refined non-teleological nomenclature, Prime Resonance Ladder, Zeitgeist CRT Router, Veto Subspace, Quasicrystal $E_8 \to H_4$ 600-cell / 14-mode Einstein monotile, Dual-Lineage Yves/Georges Bouligand, Non-Abelian $SU(2)$ Gauge Optics & DFM cocycle, rANS/BB-ANS over CRT, Sagawa-Ueda + Kelly governance, Unified Energy-Based Learning & Affordance Landscape, and Tree of Thought 5-Branch + Wheel Algebra Hub $\bot=0/0$) via:
+   ```bash
+   curl http://127.0.0.1:8000/api/cmd_report
+   ```
+   or by sending `CMD_REPORT` / `STATUS_REPORT` to `/api/chat`.

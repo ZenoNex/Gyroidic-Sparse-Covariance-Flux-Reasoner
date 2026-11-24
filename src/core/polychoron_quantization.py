@@ -93,6 +93,84 @@ class Polychoron600Quantizer(nn.Module):
         quantized = self.vertices.to(device=x.device, dtype=x.dtype)[indices]
         return quantized.view(orig_shape)
 
+    def cut_and_project_e8_to_h4_quasicrystal(
+        self,
+        state_8d: torch.Tensor,
+        window_radius: float = 1.6180339887,
+        phason_strain: float = 0.08,
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Elser-Sloane 4D Quasicrystal Cut-and-Project (E8 -> H4 = E_parallel (+) E_perp):
+        Projects an 8D lattice/state vector onto the 4D 600-cell {3,3,5} (H4 symmetry)
+        using golden-ratio incommensurate projections:
+            x_parallel = (x_1 + phi * R_H4 @ x_2) / sqrt(1 + phi^2)
+            x_perp     = (phi * x_1 - R_H4 @ x_2) / sqrt(1 + phi^2)
+        Evaluates the internal-space acceptance window ||x_perp||_2 <= window_radius
+        and executes a discrete aperiodic Phason Flip between golden-conjugate 600-cell
+        shells whenever x_perp grazes the acceptance window boundary.
+        """
+        phi = float(PHI)
+        norm_factor = 1.0 / float(np.sqrt(1.0 + phi * phi))
+        s_flat = state_8d.detach().float().reshape(-1)
+        if s_flat.numel() < 8:
+            s_flat = torch.nn.functional.pad(s_flat, (0, 8 - s_flat.numel()))
+        n_blocks = max(1, s_flat.numel() // 8)
+        s_8d = s_flat[: n_blocks * 8].view(n_blocks, 8)
+
+        x1 = s_8d[:, :4]
+        x2 = s_8d[:, 4:8]
+
+        # Canonical H4 icosian quaternion rotation R_H4 (half-turn + golden twist)
+        r_h4 = torch.tensor(
+            [
+                [0.5, -0.5, -0.5, -0.5],
+                [0.5, 0.5, -0.5, 0.5],
+                [0.5, 0.5, 0.5, -0.5],
+                [0.5, -0.5, 0.5, 0.5],
+            ],
+            dtype=s_8d.dtype,
+            device=s_8d.device,
+        )
+        x2_rot = torch.matmul(x2, r_h4.T)
+
+        x_parallel = norm_factor * (x1 + phi * x2_rot)
+        x_perp = norm_factor * (phi * x1 - x2_rot)
+
+        perp_norm = torch.norm(x_perp, dim=-1)
+        accepted_mask = perp_norm <= float(window_radius)
+
+        # Phason flip: points whose internal coordinate grazes the acceptance boundary
+        # [R_W - phason_strain, R_W + phason_strain] flip to the phi^{-1} conjugate 600-cell shell
+        phason_boundary_dist = torch.abs(perp_norm - float(window_radius))
+        phason_flip_mask = phason_boundary_dist <= max(1e-3, float(phason_strain))
+
+        verts = self.vertices.to(device=s_8d.device, dtype=s_8d.dtype)
+        dist = torch.cdist(x_parallel, verts)
+        nearest_idx = torch.argmin(dist, dim=-1)
+        # Second-nearest vertex for phason flip jump
+        top2_indices = torch.topk(dist, k=2, dim=-1, largest=False).indices
+        primary_v = verts[nearest_idx]
+        conjugate_v = (1.0 / phi) * verts[top2_indices[:, 1]]
+
+        quasicrystal_vertices = torch.where(
+            phason_flip_mask.unsqueeze(-1),
+            conjugate_v,
+            primary_v,
+        )
+
+        return {
+            "x_parallel": x_parallel,
+            "x_perp": x_perp,
+            "perp_norm": perp_norm,
+            "accepted_mask": accepted_mask,
+            "acceptance_ratio": accepted_mask.float().mean(),
+            "phason_flip_mask": phason_flip_mask,
+            "phason_flip_count": phason_flip_mask.long().sum(),
+            "quasicrystal_vertices": quasicrystal_vertices,
+            "vertex_indices": nearest_idx,
+            "golden_ratio_phi": torch.tensor(phi, device=s_8d.device),
+        }
+
 
 class PolychronQuantizer(nn.Module):
     """

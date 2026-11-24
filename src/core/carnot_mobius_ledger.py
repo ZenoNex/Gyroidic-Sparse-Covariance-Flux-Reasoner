@@ -139,6 +139,45 @@ class CarnotMobiusLedger(nn.Module):
             time_t=dt
         )
 
+    def evaluate_sagawa_ueda_and_kelly_governance(
+        self,
+        mutual_info_bits: float,
+        pred_error_bits: float,
+        temperature: float = 1.0,
+        payoff_odds: float = 1.0,
+    ) -> Dict[str, Any]:
+        """
+        Splice 4: Sagawa-Ueda Information-Thermodynamic Bound + Optimal Kelly Criterion:
+          1. Generalized Second Law with Feedback & Prediction Error (Sagawa & Ueda 2010):
+                 <W_extract> <= -Delta F + k_B * T * ln(2) * (I(X; M) - zeta_pred)
+             Wait-heat or negative net information (I(X; M) < zeta_pred) cannot extract work
+             and triggers an information-thermodynamic deficit alert.
+          2. Kelly Criterion Stake Sizing for HeritableTrustVault & Bonfire Consensus:
+                 f^* = clamp((p * b - q) / b, 0.0, 1.0)
+             where p = 1 / (1 + 2^{-(I - zeta_pred)}) is the effective predictive edge,
+             preventing Byzantine or high-residual actors from compounding influence.
+        """
+        kb_t_ln2 = max(1e-6, float(temperature)) * math.log(2.0)
+        net_info_bits = float(mutual_info_bits) - float(pred_error_bits)
+        max_extractable_work = kb_t_ln2 * net_info_bits
+
+        # Convert net information bits into predictive survival probability p in (0, 1)
+        p_win = 1.0 / (1.0 + math.pow(2.0, -max(-20.0, min(20.0, net_info_bits))))
+        q_loss = 1.0 - p_win
+        b_odds = max(1e-4, float(payoff_odds))
+        kelly_fraction = max(0.0, min(1.0, (p_win * b_odds - q_loss) / b_odds))
+
+        return {
+            "mutual_info_bits": float(mutual_info_bits),
+            "pred_error_bits": float(pred_error_bits),
+            "net_info_bits": float(net_info_bits),
+            "sagawa_ueda_max_work": float(max_extractable_work),
+            "thermodynamic_work_positive": bool(max_extractable_work > 0.0),
+            "kelly_win_probability": float(p_win),
+            "kelly_optimal_fraction": float(kelly_fraction),
+            "byzantine_throttled": bool(kelly_fraction <= 1e-4),
+        }
+
     def compute_parallel_sorting_entropy(
         self,
         omega_heads: torch.Tensor,

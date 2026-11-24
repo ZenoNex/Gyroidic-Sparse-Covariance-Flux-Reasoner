@@ -202,10 +202,10 @@ class Hessian8x8CurvatureLedger(nn.Module):
             bwd_grads[idx_pos, :] = g_minus
 
         # Offload to OpenCL Silicon Sovereignty Engine
-        state_np = state_tensor.reshape(-1)[active_indices].cpu().float().numpy()
-        grad_np = grad_sub.cpu().numpy()
-        fwd_np = fwd_grads.cpu().numpy()
-        bwd_np = bwd_grads.cpu().numpy()
+        state_np = state_tensor.detach().reshape(-1)[active_indices].cpu().float().numpy()
+        grad_np = grad_sub.detach().cpu().numpy()
+        fwd_np = fwd_grads.detach().cpu().numpy()
+        bwd_np = bwd_grads.detach().cpu().numpy()
 
         (
             h_np,

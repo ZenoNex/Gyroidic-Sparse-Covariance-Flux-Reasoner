@@ -44,8 +44,10 @@ The learning block implemented in [codes_constraint_framework.py](file:///d:/pro
 *   **Key Features**:
     *   `CODESConstraintFramework`: Tracks quadratic, harmonic, and coprime polynomial constraints.
     *   `evolve_state`: Integrates constraint-oriented differential equations using a damped velocity model:
-        $$\frac{dx}{dt} = -E(x) - \gamma \frac{dx}{dt}$$
-    *   Contrastive Learning: Optimizes parameters using margin-based loss to push down correct state energies and pull up incorrect ones.
+        $$\frac{dx}{dt} = -\nabla E(x) - \gamma \frac{dx}{dt}$$
+    *   `compute_gnz_local_insertion_energy`: Evaluates partition-free Georgii-Nguyen-Zessin local insertion energy $h(x, \gamma) = E(\gamma \cup \{x\}) - E(\gamma)$ (`docs/1701.08105v2.pdf`), estimating variational inverse temperature $\hat{\beta}_{\text{GNZ}}$ without computing an intractable global partition function $Z$.
+    *   `compute_boundary_curvature_ledger`: Delegates second-order finite differences, Coxeter $D_4$ Weyl chamber projection, and Bouligand subdifferential kink evaluation ($\|\mathcal{H}^+ - \mathcal{H}^-\|_F$) to [`Hessian8x8CurvatureLedger`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/hessian_8x8_curvature_ledger.py).
+    *   `train_constraints`: Contrastive Energy-Based Learning delegating loss evaluation (`'hinge'`, `'log'`, `'lvq2'`, `'mce'`, `'square_square'`, `'square_exp'`, `'nll'`, `'mee'`) and Condition 3 no-collapse verification ($E_C + m < E_I$) to [`StructuralEnergyMonitor.compute_ebm_loss_functionals`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/energy_monitor.py#L135).
 
 ### 2.4 Constraint Oscillation Driven Evolutionary Selection (Evolutionary Manager)
 The selection system monitored by the [Legibility Audit](file:///d:/programming/python/Gyroidic Sparse Covariance Flux Reasoner/docs/stepping_stairs_tier_0_vestibule/02_math_physics_topology/INVARIANT_OPTIMIZATION.md#15-legibility-audit-srccorelegibility_auditpy).

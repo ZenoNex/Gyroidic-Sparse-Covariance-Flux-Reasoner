@@ -440,6 +440,65 @@ class EinsteinMonotileTessellation(nn.Module):
             
         return coords
 
+    # =========================================================================
+    # Domain 6: Quasicrystal E8 -> H4 600-Cell & 14-Mode Discrete Lattice Bridge
+    # =========================================================================
+    def bridge_quasicrystal_600_cell_and_14mode_lattice(
+        self,
+        state: torch.Tensor,
+        window_radius: float = 1.6180339887,
+        phason_strain: float = 0.08,
+    ) -> Dict[str, Any]:
+        """
+        Bridges the 2D aperiodic 14-vertex Einstein Hat Monotile (CANONICAL_HAT_VERTICES)
+        with:
+          1. The 14-Mode Discrete Elastic Lattice U(1) twist/stress reaction (Zenodo:18434750),
+             where the 14 polykite vertices define the 14 discrete elastic modes whose
+             antisymmetric shear stress induces the emergent gauge potential A_mu^{(14)}.
+          2. The 4D Elser-Sloane E8 -> H4 600-cell cut-and-project quasicrystal and
+             internal-space phason flips in Polychoron600Quantizer.
+        """
+        from src.core.polychoron_quantization import Polychoron600Quantizer
+
+        s_flat = state.detach().float().reshape(-1)
+        if s_flat.numel() < 14:
+            s_14 = torch.nn.functional.pad(s_flat, (0, 14 - s_flat.numel()))
+        else:
+            s_14 = s_flat[:14]
+
+        # 1. 14-mode discrete elastic lattice twist/stress reaction (Zenodo:18434750)
+        hat_v = torch.tensor(
+            EinsteinMonotile.CANONICAL_HAT_VERTICES,
+            dtype=torch.float32,
+            device=s_14.device,
+        )  # [14, 2]
+        # Elastic displacement field u_k across the 14 monotile vertex modes
+        u_modes = hat_v * s_14.unsqueeze(-1)  # [14, 2]
+        u_next = torch.roll(u_modes, shifts=-1, dims=0)
+        du = u_next - u_modes  # [14, 2]
+        # Emergent U(1) gauge potential A_mu as discrete 14-mode elastic twist reaction
+        a_mu_14 = torch.mean(u_modes[:, 0] * du[:, 1] - u_modes[:, 1] * du[:, 0])
+        elastic_stress_energy = torch.mean(torch.sum(du * du, dim=-1))
+
+        # 2. Elser-Sloane E8 -> H4 600-cell cut-and-project quasicrystal
+        q600 = Polychoron600Quantizer().to(s_14.device)
+        qc_res = q600.cut_and_project_e8_to_h4_quasicrystal(
+            state_8d=s_flat,
+            window_radius=window_radius,
+            phason_strain=phason_strain,
+        )
+
+        return {
+            "monotile_14_modes": int(hat_v.shape[0]),
+            "emergent_u1_elastic_twist_A_mu": float(a_mu_14.item()),
+            "elastic_14mode_stress_energy": float(elastic_stress_energy.item()),
+            "e8_h4_acceptance_ratio": float(qc_res["acceptance_ratio"].item()),
+            "e8_h4_phason_flip_count": int(qc_res["phason_flip_count"].item()),
+            "quasicrystal_vertices": qc_res["quasicrystal_vertices"],
+            "x_parallel": qc_res["x_parallel"],
+            "x_perp": qc_res["x_perp"],
+        }
+
 
 # Singleton instance accessor
 _global_tessellation: Optional[EinsteinMonotileTessellation] = None

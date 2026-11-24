@@ -470,6 +470,13 @@ graph TD
     end
 ```
 
+### Quasicrystal, Dual-Lineage Bouligand, Non-Abelian $SU(2)$ Gauge & EBM Affordance Integration
+`UniversalOrchestrator.audit_domain_transversality_and_survival` ([`src/core/orchestrator.py`](file:///d:/programming/python/Gyroidic%20Sparse%20Covariance%20Flux%20Reasoner/src/core/orchestrator.py)) couples:
+1. **Elser-Sloane $E_8 \to H_4$ 600-Cell Cut-and-Project Quasicrystal & Phason Flips**: Bridges `EinsteinMonotileTessellation` (14-vertex Hat polykite / 14-mode discrete elastic lattice $U(1)$ twist reaction, `Zenodo:18434750`) with `Polychoron600Quantizer.cut_and_project_e8_to_h4_quasicrystal`.
+2. **Dual-Lineage Bouligand Unification**: Evaluates both **Yves Bouligand** chiral EM homogenization (`arXiv:2309.11632` Bloch projector & Haydock recursion, `arXiv:2302.09385` Bragg-Pippard $2\times 2$ cuticle transfer matrix, `arXiv:2607.29225` Moiré twisted magnetic contrast) and **Georges Bouligand** tangent cones (`arXiv:2607.08612` Point-Cross framework, `arXiv:2311.15669v2` infinite-dimensional B-subdifferentials, `viXra:2609.0039v1` fractal exponent) on `BouligandBirkhoffManifold`.
+3. **Non-Abelian $SU(2)$ Gauge Optics, DFM Twisted Cocycle & Chiral BF Flux Locking**: Evaluates emergent $SU(2)$ pseudospinor curvature and Zitterbewegung (`arXiv:1802.09866v2`), chiral magnetic nonreciprocity (`arXiv:2605.09135v1`), Dressing Field Method 1-cocycles $C(p, hh') = C(p, h)C(ph, h')$ (`arXiv:2606.28888v1`), and chiral BF flux-density locking $B = -\kappa n$ (`arXiv:2204.05386v3`) on `ChernSimonsGasket`.
+4. **5 Compression-Topology Splices & Energy-Based Affordance Landscape**: Connects CRT-channel rANS & BB-ANS (`HuffmanEntropyCodec`), Sagawa-Ueda + Kelly governance (`CarnotMobiusLedger`), and the Gibson / Takahashi-El Hady (`docs/2611.02220v1.pdf`) / Friston Energy-Based Affordance Landscape (`HardwareMonitor.compute_energy_based_affordance_landscape`).
+
 ---
 
 ##  Key Invariants

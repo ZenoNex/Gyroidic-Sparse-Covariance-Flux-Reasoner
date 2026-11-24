@@ -547,6 +547,12 @@ The biological evidence overwhelmingly supports the latter. No organism with a n
 | `src/core/meta_polytope_matrioshka.py` | Meta-polytope state space, BoundaryState | AI Report III-V |
 | `src/training/temporal_association_trainer.py` | Survivorship-pressure temporal training | TEMPORAL_ASSOCIATION_TRAINING.md |
 | `src/ui/diegetic_backend.py` | 9-stage process_input pipeline (820 lines) | DIEGETIC_ENGINE.md |
+| `src/core/energy_monitor.py` | Contrastive EBM loss functionals, Condition 3 margin verification, latent Helmholtz free energy | A Tutorial on Energy-Based Learning.txt |
+| `src/core/codes_constraint_framework.py` | Partition-free GNZ local insertion energy, 8x8 Hessian curvature ledger, contrastive constraint ODEs | 1701.08105v2.pdf, CODES_RESOLUTIONS.md |
+| `src/core/conjugate_moment_transport.py` | ICNN Legendre-Fenchel transport, MCMC-free Monge-Ampere EBM density regression, Cayley cubic projection | TECHNICAL SPECIFICATION_ TO-MSR-OT-2026-CMM.txt |
+| `src/core/polychoron_quantization.py` | Elser-Sloane $E_8 \to H_4 \oplus H_4^\perp$ 600-cell cut-and-project quasicrystal & phason flips | MATRYOSHKA_POLYTOPE_MAP.md |
+| `src/core/birkhoff_projection.py` | Dual-Lineage Bouligand (Yves chiral EM Bloch/Bragg-Pippard + Georges Point-Cross tangent cones) | INVARIANT_OPTIMIZATION.md |
+| `src/core/hardware_monitor.py` | Unified EBM of Affordance (Gibson + Takahashi-El Hady dwell barrier + Friston Markov Blanket + Codebase EBM stack) | 2611.02220v1.pdf |
 
 ---
 

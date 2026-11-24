@@ -324,8 +324,23 @@ class CODESConstraintFramework(nn.Module):
         """
         if not hasattr(self, '_hessian_engine') or self._hessian_engine is None:
             from src.core.hessian_8x8_curvature_ledger import Hessian8x8CurvatureLedger
-            self._hessian_engine = Hessian8x8CurvatureLedger(state_dim=self.state_dim, device=str(state.device))
-        return self._hessian_engine(state, self.compute_energy_gradient)
+            self._hessian_engine = Hessian8x8CurvatureLedger(dim=8, device=str(state.device))
+        res = self._hessian_engine.compute_boundary_curvature_ledger(state, grad_fn=self.compute_energy_gradient)
+        if isinstance(res, dict):
+            return res
+        return {
+            'stability_score': float(res.stability_score),
+            'bouligand_kink_intensity': float(res.bouligand_kink_intensity),
+            'trace': float(res.trace),
+            'trace_curvature': float(res.trace_curvature),
+            'condition_number': float(res.condition_number),
+            'determinant': float(res.determinant),
+            'morse_index': int(res.morse_index),
+            'is_minimal_surface': bool(res.is_minimal_surface),
+            'multiharmonic_coherence': float(res.multiharmonic_coherence),
+            'attractor_regime': str(res.attractor_regime),
+            'active_indices': list(res.active_indices),
+        }
 
     def _compute_stability_score(self, state: torch.Tensor) -> float:
         """Compute stability score based on energy landscape curvature (8x8 Hessian Trick)."""
@@ -384,36 +399,49 @@ class CODESConstraintFramework(nn.Module):
         
         return stabilized_state
     
-    def train_constraints(self, positive_states: torch.Tensor, negative_states: torch.Tensor):
+    def train_constraints(
+        self,
+        positive_states: torch.Tensor,
+        negative_states: torch.Tensor,
+        loss_type: str = 'hinge',
+    ) -> Dict[str, Any]:
         """
-        Train constraint parameters using contrastive learning.
-        
-        Implements margin-based loss:
-        L = max(0, margin + E(positive) - E(negative))
+        Train constraint parameters using Contrastive Energy-Based Learning (LeCun et al. 2006).
+        Delegates loss evaluation and Condition 3 no-collapse verification to StructuralEnergyMonitor.
+        Supports: 'hinge', 'log', 'lvq2', 'mce', 'square_square', 'square_exp', 'nll', 'mee'.
         """
         if len(positive_states) == 0 or len(negative_states) == 0:
-            return
-        
+            return {'trained': False, 'loss': 0.0}
+
         # Compute energies
         pos_energy = self.compute_total_energy(positive_states)
         neg_energy = self.compute_total_energy(negative_states)
-        
-        # Margin-based contrastive loss
-        loss = torch.clamp(self.energy_margin + pos_energy.mean() - neg_energy.mean(), min=0)
-        
-        if loss.item() > 0:
-            # Backpropagate and update
-            loss.backward()
-            
-            # Gradient clipping
+
+        from src.core.energy_monitor import StructuralEnergyMonitor
+        if not hasattr(self, '_ebm_monitor') or self._ebm_monitor is None:
+            self._ebm_monitor = StructuralEnergyMonitor(margin=self.energy_margin, device=str(positive_states.device))
+        self._ebm_monitor.margin = self.energy_margin
+
+        ebm_losses = self._ebm_monitor.compute_ebm_loss_functionals(pos_energy, neg_energy)
+        loss_tensor = ebm_losses['tensors'].get(loss_type, ebm_losses['tensors']['hinge'])
+
+        if loss_tensor.item() > 0 and loss_tensor.requires_grad:
+            loss_tensor.backward()
             torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)
-            
-            # Simple SGD update
             with torch.no_grad():
                 for param in self.parameters():
                     if param.grad is not None:
                         param -= 0.01 * param.grad
                         param.grad.zero_()
+
+        return {
+            'trained': True,
+            'loss_type': loss_type,
+            'loss': float(loss_tensor.detach().item()),
+            'condition_3_no_collapse_satisfied': ebm_losses['condition_3_no_collapse_satisfied'],
+            'energy_gap': ebm_losses['energy_gap'],
+            'helmholtz_free_energy': ebm_losses['helmholtz_free_energy'],
+        }
     
     def get_system_status(self) -> Dict:
         """Get current system status and diagnostics."""
